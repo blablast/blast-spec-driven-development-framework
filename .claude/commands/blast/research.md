@@ -65,9 +65,12 @@ For each question:
 
 **Standard mode** (default):
 - Check project steering and existing code first (Grep, Glob)
-- WebSearch for current best practices and comparisons
+- Search local knowledge base (`.blast/knowledge/`) — decisions, references, previous research
+- If knowledge base answers the question — skip web search
+- WebSearch for current best practices and comparisons (only if needed)
 - Consult official docs (WebFetch)
 - Summarize findings concisely
+- Save reusable findings back to knowledge base
 
 **Deep mode** (`--deep`):
 - Everything in standard mode, plus:

@@ -31,6 +31,10 @@ blast wymusza zestaw zasad na każdym etapie (pełna lista w `.blast/settings/ru
 │       ├── specs/         ← szablony specyfikacji (init.json, requirements.md, design.md...)
 │       ├── steering/      ← szablony core steering (product, tech, structure)
 │       └── steering-custom/ ← szablony rozszerzonych steering (API, DB, security...)
+├── knowledge/
+│   ├── decisions/         ← decyzje architektoniczne (ADR)
+│   ├── references/        ← dokumentacja API, snippety, artykuły
+│   └── research/          ← wyniki researchów (auto-generowane)
 ├── steering/              ← pamięć projektu (generowana przez /blast:steering)
 └── specs/                 ← specyfikacje ficzerów (generowane przez /blast:init)
 

@@ -13,6 +13,7 @@ Nie piszemy kodu w ciemno. Najpierw wiemy CO, potem JAK, a dopiero wtedy lecimy 
 
 - **Steering** (`.blast/steering/`) — pamięć projektu: kontekst, stack, konwencje
 - **Specs** (`.blast/specs/`) — specyfikacje poszczególnych ficzerów
+- **Knowledge** (`.blast/knowledge/`) — baza wiedzy: decyzje, referencje, wyniki researchów
 - **Settings** (`.blast/settings/`) — reguły, szablony, konfiguracja systemu
 
 Pełna dokumentacja: `.blast/README.md`

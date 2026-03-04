@@ -102,6 +102,16 @@ push ◄── steering ◄── security ◄── complete ◄── impl ◄
 
 **`/blast:full`** runs all phases automatically. Security blocks on critical findings.
 
+## Knowledge Base
+
+`.blast/knowledge/` — local knowledge that research agent searches BEFORE the internet.
+
+- **`decisions/`** — architectural decisions (ADR). Research respects existing decisions.
+- **`references/`** — API docs, library gotchas, saved articles. Drop anything useful here.
+- **`research/`** — auto-generated summaries from previous `/blast:research` runs.
+
+Research agent reads knowledge base first, skips web search when local sources answer the question, and writes back reusable findings after each research.
+
 ## Code Principles
 
 blast enforces on every phase: Clean Code, SOLID, KISS, DRY, YAGNI, appropriate design patterns, no overengineering, SOTA solutions, PEP 8 / ruff (Python), ESLint / Prettier (JS/TS), Google-style docstrings.
@@ -115,7 +125,7 @@ blast is designed as a **reusable template** — the `.blast/` and `.claude/` di
 ```bash
 gh repo clone blablast/claude_code-template my-new-project
 cd my-new-project
-rm -rf .git .blast/steering/ .blast/specs/
+rm -rf .git .blast/steering/ .blast/specs/ .blast/knowledge/research/ .blast/knowledge/decisions/
 git init && git add -A && git commit -m "Initial commit from blast template"
 ```
 

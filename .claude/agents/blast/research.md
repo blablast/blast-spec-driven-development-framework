@@ -29,6 +29,7 @@ Read all necessary context:
 - `.blast/specs/{feature}/requirements.md` — what needs to be built
 - `.blast/steering/*.md` — project context, tech stack, conventions
 - `.blast/steering/INVENTORY.md` — what already exists (avoid duplication)
+- `.blast/knowledge/**/*.md` — **local knowledge base** (see Step 1.5)
 
 ### Step 1: Identify Research Questions
 
@@ -55,29 +56,38 @@ For each research question:
    - Are there similar components in inventory?
    - What does steering/tech.md say about preferred stack?
 
-2. **Search for current best practices** (WebSearch):
+2. **Search local knowledge base** (Glob, Grep, Read):
+   - Glob `.blast/knowledge/**/*.md` — list all knowledge files
+   - Grep for keywords related to the current question (technology names, pattern names, library names)
+   - Read matching files — extract relevant findings, decisions, references
+   - Check `.blast/knowledge/research/` — previous research results from other features
+   - Check `.blast/knowledge/decisions/` — existing architectural decisions (don't contradict them without good reason)
+   - Check `.blast/knowledge/references/` — saved documentation, API specs, articles
+   - **If knowledge base answers the question sufficiently — skip web search for this question**
+
+3. **Search for current best practices** (WebSearch) — only if knowledge base didn't fully answer:
    - Search for "{technology} best practices {year}"
    - Search for "{library A} vs {library B} comparison"
    - Look for recent Stack Overflow discussions, blog posts
 
-3. **Consult official documentation** (WebFetch):
+4. **Consult official documentation** (WebFetch):
    - Read official docs for candidate libraries/tools
    - Check migration guides if upgrading
 
-4. **Summarize findings** concisely per question
+5. **Summarize findings** concisely per question
 
 **Deep mode** (`--deep`) — everything above, plus:
 
-5. **Benchmarks and performance** (WebSearch):
+6. **Benchmarks and performance** (WebSearch):
    - Search for "{library} benchmark {year}"
    - Look for performance comparison repos on GitHub
 
-6. **Community signals** (WebSearch):
+7. **Community signals** (WebSearch):
    - GitHub stars, issues count, last commit date
    - Search for "{library} problems" or "{library} alternatives"
    - Look for post-mortems or migration stories
 
-7. **Risk analysis**:
+8. **Risk analysis**:
    - What could go wrong with each option?
    - What's the migration cost if we need to switch later?
 
@@ -109,7 +119,28 @@ Create/update `.blast/specs/{feature}/research.md` with:
 5. **Risks & Mitigations**: Identified risks with proposed mitigations
 6. **References**: All links to docs, articles, benchmarks consulted
 
-### Step 5: Update spec.json
+### Step 5: Update Knowledge Base
+
+Save reusable findings to `.blast/knowledge/` for future research:
+
+1. **Research summary** → `.blast/knowledge/research/{feature-name}.md`:
+   - Copy key findings and recommendations (NOT the full research.md — just the reusable parts)
+   - Format with header: title, date, tags (technology names)
+   - Focus on conclusions that apply beyond this specific feature
+
+2. **New architectural decisions** → `.blast/knowledge/decisions/YYYY-MM-DD-{topic}.md`:
+   - Only if research resulted in a significant technology/pattern choice
+   - Format: Context → Decision → Rationale → Consequences
+   - Example: "Chose FastAPI over Flask for async support and auto-docs"
+
+3. **Useful references discovered** → `.blast/knowledge/references/{technology}.md`:
+   - Only if a reference file for this technology doesn't already exist
+   - Save: official docs URL, key API patterns, gotchas discovered
+   - Append to existing file if it already exists
+
+**Skip write-back if**: findings are too feature-specific to be reusable, or knowledge files already contain equivalent information.
+
+### Step 6: Update spec.json
 
 Update `spec.json`:
 - `phase`: `"research-completed"`
@@ -118,12 +149,15 @@ Update `spec.json`:
 
 ## Critical Constraints
 
+- **Search order**: codebase → knowledge base → internet. Skip web if local sources answer sufficiently
 - **Codebase first**: Always check what the project already uses before suggesting alternatives
+- **Knowledge base second**: Check `.blast/knowledge/` before WebSearch — respect existing decisions
 - **Steering alignment**: Recommendations must align with project tech stack (steering/tech.md)
 - **No hallucinated links**: Only include URLs you actually visited via WebFetch/WebSearch
 - **Current information**: Always search for recent data — libraries change fast
 - **Actionable output**: Every finding must inform a design decision
 - **DRY check**: Verify against INVENTORY.md that you're not recommending rebuilding existing components
+- **Knowledge write-back**: Save reusable findings to knowledge base — but only genuinely reusable ones, not feature-specific details
 
 ## Output Format
 
@@ -142,9 +176,10 @@ Provide brief summary in the language specified in spec.json:
 ### Error Scenarios
 
 **WebSearch Unavailable**:
-- Fall back to codebase analysis, steering context, and built-in knowledge
-- Note limitation in research.md: "Research limited to codebase analysis — web sources unavailable"
-- Still produce useful output from existing project context
+- Fall back to codebase analysis, steering context, and **knowledge base**
+- Knowledge base may contain enough from previous research to answer questions
+- Note limitation in research.md: "Research limited to local sources — web unavailable"
+- Still produce useful output from existing project context + knowledge
 
 **No Requirements**:
 - Stop: "Requirements needed before research. Run `/blast:requirements {feature}` first."
