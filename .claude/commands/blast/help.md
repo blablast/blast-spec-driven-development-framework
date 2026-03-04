@@ -18,7 +18,7 @@ Display help information about blast commands. If a specific command name is pro
 - If `$ARGUMENTS` contains a command name → show **detailed help** for that command
 
 Valid command names (with or without `blast:` prefix):
-`steering`, `steering-custom`, `init`, `requirements`, `design`, `tasks`, `impl`, `complete`, `deprecate`, `quick`, `full`, `status`, `validate-gap`, `validate-design`, `validate-impl`, `help`
+`steering`, `steering-custom`, `init`, `requirements`, `design`, `tasks`, `impl`, `complete`, `deprecate`, `quick`, `full`, `review`, `status`, `validate-gap`, `validate-design`, `validate-impl`, `help`
 
 ### Step 2: Generate Help Output
 
@@ -44,6 +44,11 @@ SKRÓTY:
   /blast:full "opis"               Pełny pipeline (spec + impl + ship)
   /blast:full "opis" --auto        Pipeline pełny automat
   /blast:full --source file --auto   Pipeline z pliku, automat
+
+JAKOŚĆ KODU:
+  /blast:review {f}                Code review vs zasady (Clean Code, SOLID, DRY...)
+  /blast:review {f} --fix          Code review + automatyczne poprawki
+  /blast:review                    Review całego codebase
 
 WALIDACJE (opcjonalne):
   /blast:validate-gap {f}          Analiza luki (przed design)
@@ -109,6 +114,7 @@ FLAGI:
   -y                               Auto-approve (design, tasks)
   --auto                           Pełny automat (quick, full)
   --source path/to/file            Importuj opis z pliku (init, quick, full)
+  --fix                            Auto-fix (review)
 
 PAMIĘĆ:
   steering/     → pamięć projektu (product, tech, structure, inventory, research)

@@ -12,6 +12,30 @@
 - Comments explain **why**, not **what** — the code itself explains what
 - Consistent formatting within the project (enforced by linters/formatters)
 
+### Documentation: Google-Style Docstrings
+- Every public function, class, and method MUST have a docstring
+- Use **Google-style** format (not NumPy, not Sphinx):
+  ```python
+  def calculate_fee(amount: float, rate: float = 0.05) -> float:
+      """Calculate transaction fee based on amount and rate.
+
+      Args:
+          amount: Transaction amount in base currency.
+          rate: Fee rate as decimal. Defaults to 0.05.
+
+      Returns:
+          Calculated fee rounded to 2 decimal places.
+
+      Raises:
+          ValueError: If amount is negative.
+      """
+  ```
+- Sections used: `Args`, `Returns`, `Raises`, `Yields`, `Examples`, `Note`, `Attributes`
+- First line: imperative mood, one sentence, no period at end if single line
+- Private/internal functions: docstring optional but recommended for complex logic
+- Classes: docstring describes purpose + `Attributes` section for public attrs
+- ruff rule `D` (pydocstyle) enforces docstring presence and format
+
 ### Code Smells to Eliminate
 - Long methods (>20 lines is a warning sign)
 - Deep nesting (>3 levels — refactor to early returns or extract)
@@ -149,6 +173,36 @@ Ask before every architectural decision:
 3. Only then consider newer alternatives — with explicit risk assessment
 4. Document the choice and rationale in `research.md`
 
+## 9. Linting & Formatting — Automated Quality
+
+### Python: PEP 8 + ruff
+- **ruff** is the default linter and formatter — fast, opinionated, replaces flake8/isort/black
+- Run `ruff check .` after every implementation step — zero violations allowed
+- Run `ruff format .` to auto-format before committing
+- Key ruff rules enforced:
+  - `E` / `W` — PEP 8 errors and warnings
+  - `F` — pyflakes (unused imports, undefined names)
+  - `I` — isort (import ordering)
+  - `N` — pep8-naming (function/class naming conventions)
+  - `UP` — pyupgrade (modern Python idioms)
+  - `B` — flake8-bugbear (common bugs and design issues)
+  - `D` — pydocstyle (Google-style docstrings — presence and format)
+  - `SIM` — flake8-simplify (simplifiable expressions)
+  - `C4` — flake8-comprehensions (unnecessary list/dict/set calls)
+- If project has `pyproject.toml` or `ruff.toml`: respect project config
+- If no config exists: use ruff defaults (they're sensible)
+
+### JavaScript/TypeScript: ESLint + Prettier
+- ESLint for code quality, Prettier for formatting
+- Respect project `.eslintrc` and `.prettierrc`
+- Run `npx eslint .` and `npx prettier --check .` after implementation
+
+### General Linting Rules
+- **Zero warnings policy**: treat warnings as errors during implementation
+- **Auto-fix first**: use `ruff check --fix .` / `eslint --fix .` before manual fixes
+- **Don't disable rules inline** unless absolutely necessary — and always explain why in a comment
+- **CI parity**: local linting must match CI — no "works on my machine"
+
 ## Cross-Cutting Rules
 
 ### Testing Alignment
@@ -164,3 +218,5 @@ Ask before every architectural decision:
 - [ ] Are dependencies injected, not hardcoded? (DIP)
 - [ ] Is the pattern justified by a real problem? (No Overengineering)
 - [ ] Are we using current best practices? (SOTA)
+- [ ] Does linter pass with zero violations? (Linting)
+- [ ] Is formatting consistent and automated? (Formatting)

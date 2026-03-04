@@ -35,7 +35,7 @@ blast wymusza zestaw zasad na każdym etapie (pełna lista w `.blast/settings/ru
 └── specs/                 ← specyfikacje ficzerów (generowane przez /blast:init)
 
 .claude/
-├── agents/blast/          ← 10 agentów (steering, requirements, design, tasks, impl, complete, walidacje)
+├── agents/blast/          ← 12 agentów (steering, requirements, design, tasks, impl, complete, review, walidacje)
 ├── commands/blast/        ← 16 slash commands (interfejs użytkownika)
 └── settings.local.json    ← uprawnienia bash (git-ignored)
 
@@ -138,7 +138,22 @@ Każdy etap wymaga review — idziesz dalej dopiero po aprovacie.
 
 `/blast:full` wykonuje 7 faz: init → requirements → design → tasks → impl → complete → steering. W trybie interaktywnym przed implementacją rekomenduje wyczyszczenie kontekstu (`/clear`).
 
-### Walidacje (opcjonalne, ale polecane)
+### Code review — jakość kodu
+
+```bash
+# Review ficzera — Clean Code, SOLID, DRY, YAGNI, ruff, docstrings
+/blast:review system-logowania-oauth2
+
+# Review + automatyczne poprawki (ruff fix, formatowanie, docstrings)
+/blast:review system-logowania-oauth2 --fix
+
+# Review całego codebase
+/blast:review
+```
+
+`/blast:review` sprawdza kod pod kątem WSZYSTKICH zasad z `code-principles.md` — punkt po punkcie. Odpala ruff (Python) / ESLint (JS/TS), waliduje Google-style docstrings, szuka code smells, i generuje raport ze scorecard. Z flagą `--fix` automatycznie naprawia co się da.
+
+### Walidacje specyfikacji (opcjonalne, ale polecane)
 
 ```bash
 # Gap analysis — co jest, czego brakuje
@@ -351,6 +366,7 @@ node_modules/
 | Refactoring | `/blast:init` z opisem refactoringu, potem design + tasks |
 | Hotfix produkcyjny | Bez blasta — czas jest kluczowy |
 | Spike / research | Bez blasta — ale wyniki zapisz w steering |
+| Przegląd jakości kodu | `/blast:review` lub `/blast:review {f}` |
 
 ## Komendy — ściąga
 
@@ -362,7 +378,8 @@ node_modules/
 | `/blast:requirements {f}` | Generuje EARS requirements | Po init |
 | `/blast:design {f} [-y]` | Generuje design | Po requirements |
 | `/blast:tasks {f} [-y]` | Generuje taski | Po design |
-| `/blast:impl {f} [taski]` | Implementuje w TDD | Po tasks |
+| `/blast:impl {f} [taski]` | Implementuje w TDD + ruff + docstrings | Po tasks |
+| `/blast:review {f} [--fix]` | Code review vs zasady + linting | Po impl / w dowolnym momencie |
 | `/blast:complete {f}` | Zamyka spec, aktualizuje inventory | Po implementacji |
 | `/blast:deprecate {f}` | Wycofuje ficzer z migration guide | Gdy ficzer do wymiany |
 | `/blast:quick "opis" [--auto] [--source]` | Specyfikacja w jednym (do tasków) | Prototyp / CRUD — spec |

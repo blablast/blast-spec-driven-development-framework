@@ -81,8 +81,17 @@ For each selected task, follow Kent Beck's TDD cycle:
    - Apply design patterns where appropriate
    - Ensure all tests still pass after refactoring
 
-4. **VERIFY - Validate Quality**:
+4. **LINT & FORMAT**:
+   - Read `.blast/settings/rules/code-principles.md` — apply ALL principles during coding
+   - **Python**: Run `ruff check --fix .` then `ruff format .` — zero violations allowed
+   - **JS/TS**: Run `npx eslint --fix .` then `npx prettier --write .`
+   - If linter not installed: install it (`pip install ruff --break-system-packages` / `npm install -D eslint prettier`)
+   - Fix ALL violations before proceeding — do not leave warnings
+   - Verify Google-style docstrings on all public functions/classes/methods
+
+5. **VERIFY - Validate Quality**:
    - All tests pass (new and existing)
+   - Linter passes with zero violations
    - No regressions in existing functionality
    - Code coverage maintained or improved
 
@@ -95,6 +104,9 @@ For each selected task, follow Kent Beck's TDD cycle:
 - **Test Coverage**: All new code must have tests
 - **No Regressions**: Existing tests must continue to pass
 - **Design Alignment**: Implementation must follow design.md specifications
+- **Code Principles**: Apply ALL rules from `.blast/settings/rules/code-principles.md` — Clean Code, SOLID, KISS, DRY, YAGNI, no overengineering
+- **Linting**: Zero violations from ruff (Python) or ESLint (JS/TS) after every task
+- **Docstrings**: Google-style docstrings on all public functions, classes, methods
 
 ## Tool Guidance
 - **Read first**: Load all context before implementation

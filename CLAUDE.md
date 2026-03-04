@@ -41,7 +41,8 @@ Pełna dokumentacja: `.blast/README.md`
 
 | Komenda | Co robi |
 |---|---|
-| `/blast:impl {feature} [tasks]` | Implementuje taski (TDD) |
+| `/blast:impl {feature} [tasks]` | Implementuje taski (TDD) z lintingiem (ruff/eslint) i docstrings |
+| `/blast:review {feature} [--fix]` | Code review vs zasady (Clean Code, SOLID, DRY, PEP8, ruff...) |
 | `/blast:validate-impl {feature}` | *(opcjonalne)* Walidacja implementacji vs spec |
 | `/blast:complete {feature}` | Zamyka spec, aktualizuje inventory — ficzer shipped! |
 | `/blast:deprecate {feature}` | Wycofuje ficzer z migration guide |
