@@ -130,6 +130,9 @@ Każdy etap wymaga review — idziesz dalej dopiero po aprovacie.
 
 # Z pliku źródłowego
 /blast:quick --source docs/brief.pdf --auto
+
+# Z fazą research (gdy nie wiesz JAK)
+/blast:quick "OAuth2 login" --auto --research
 ```
 
 ### Pełny pipeline — od opisu do shipped kodu
@@ -138,7 +141,7 @@ Każdy etap wymaga review — idziesz dalej dopiero po aprovacie.
 # Interaktywny — zatrzymuje się po każdej fazie, pytasz "dalej?"
 /blast:full "Formularz kontaktowy z walidacją"
 
-# Pełny automat — spec, implementacja TDD, ship, sync pamięci
+# Pełny automat — spec, implementacja TDD, security, ship, sync pamięci
 /blast:full "Formularz kontaktowy z walidacją" --auto
 
 # Z pliku źródłowego, automat
@@ -148,7 +151,7 @@ Każdy etap wymaga review — idziesz dalej dopiero po aprovacie.
 /blast:full "Formularz kontaktowy" --auto --push
 ```
 
-`/blast:full` wykonuje 7 faz: init → requirements → design → tasks → impl → complete → steering (8 z `--push`). W trybie interaktywnym przed implementacją rekomenduje wyczyszczenie kontekstu (`/clear`).
+`/blast:full` wykonuje 8 faz: init → req → [research] → design → tasks → impl → complete → security → steering [→ push]. Security jest zawsze — blokuje pipeline przy krytycznych lukach. Research opcjonalny z `--research`.
 
 ### Git push — wrzucanie na repo
 
@@ -387,8 +390,9 @@ node_modules/
 | Bugfix (1-2 pliki) | Bez blasta — napraw bezpośrednio |
 | Refactoring | `/blast:init` z opisem refactoringu, potem design + tasks |
 | Hotfix produkcyjny | Bez blasta — czas jest kluczowy |
-| Spike / research | Bez blasta — ale wyniki zapisz w steering |
+| Spike / research | `/blast:research {f}` lub `--research` w quick/full |
 | Przegląd jakości kodu | `/blast:review` lub `/blast:review {f}` |
+| Audyt bezpieczeństwa | `/blast:security {f}` (w full jest automatycznie) |
 
 ## Komendy — ściąga
 
@@ -407,8 +411,8 @@ node_modules/
 | `/blast:complete {f}` | Zamyka spec, aktualizuje inventory | Po implementacji |
 | `/blast:push [feature]` | Git commit + push (smart staging, English title) | Po complete / standalone |
 | `/blast:deprecate {f}` | Wycofuje ficzer z migration guide | Gdy ficzer do wymiany |
-| `/blast:quick "opis" [--auto] [--source]` | Specyfikacja w jednym (do tasków) | Prototyp / CRUD — spec |
-| `/blast:full "opis" [--auto] [--source] [--push]` | Pełny pipeline do shipped kodu (+ push) | Prototyp / CRUD — od razu do kodu |
+| `/blast:quick "opis" [--auto] [--source] [--research]` | Spec w jednym (+ opcjonalny research) | Prototyp / CRUD — spec |
+| `/blast:full "opis" [--auto] [--source] [--research] [--push]` | Pełny pipeline + security (+ push) | Prototyp / CRUD — od razu do kodu |
 | `/blast:status {f}` | Sprawdza postęp | W dowolnym momencie |
 | `/blast:validate-gap {f}` | Analiza luki | Przed design (opcjonalne) |
 | `/blast:validate-design {f}` | Review designu | Po design (opcjonalne) |

@@ -54,8 +54,8 @@ Pełna dokumentacja: `.blast/README.md`
 
 | Komenda | Co robi |
 |---|---|
-| `/blast:quick "opis" [--auto] [--source]` | Specyfikacja w jednym strzale (init→req→design→tasks) |
-| `/blast:full "opis" [--auto] [--source] [--push]` | Pełny pipeline od opisu do shipped kodu (spec + impl + ship + steering + push) |
+| `/blast:quick "opis" [--auto] [--source] [--research]` | Specyfikacja w jednym strzale (init→req→[research]→design→tasks) |
+| `/blast:full "opis" [--auto] [--source] [--research] [--push]` | Pełny pipeline (spec + impl + security + steering + push) |
 | `/blast:status {feature}` | Status i postęp specyfikacji |
 | `/blast:help [komenda]` | Pomoc — lista komend, flagi, przykłady |
 

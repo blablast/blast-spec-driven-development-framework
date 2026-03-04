@@ -42,8 +42,10 @@ WORKFLOW (od zera do kodu):
 SKRÓTY:
   /blast:quick "opis"              Spec w jednym (init→req→design→tasks)
   /blast:quick "opis" --auto       Spec pełny automat
-  /blast:full "opis"               Pełny pipeline (spec + impl + ship)
+  /blast:quick --research          Spec z research phase
+  /blast:full "opis"               Pełny pipeline (spec + impl + ship + security)
   /blast:full "opis" --auto        Pipeline pełny automat
+  /blast:full --research --push    Pipeline z research i pushem
   /blast:full --source file --auto   Pipeline z pliku, automat
 
 JAKOŚĆ KODU:
@@ -125,8 +127,8 @@ GRAF PRZEJŚĆ:
   │  security   │  (audyt bezpieczeństwa)
   └─────────────┘
 
-  /blast:quick = init → requirements → design → tasks
-  /blast:full  = init → req → design → tasks → impl → complete → steering [→ push]
+  /blast:quick = init → req → [research] → design → tasks
+  /blast:full  = init → req → [research] → design → tasks → impl → complete → security → steering [→ push]
 
 FLAGI:
   -y                               Auto-approve (design, tasks)
@@ -134,6 +136,7 @@ FLAGI:
   --source path/to/file            Importuj opis z pliku (init, quick, full)
   --fix                            Auto-fix (review)
   --push                           Git push po pipeline (full)
+  --research                       Research phase (quick, full)
   --deep                           Dogłębny research (research)
   --all                            Skan całego codebase (security)
 

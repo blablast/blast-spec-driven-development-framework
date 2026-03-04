@@ -1,18 +1,18 @@
 ---
 description: "Od zera do shipped kodu — blast pełny pipeline"
 allowed-tools: Read, SlashCommand, TodoWrite, Bash, Write, Glob
-argument-hint: <project-description> [--auto] [--source path/to/file] [--push]
+argument-hint: <project-description> [--auto] [--source path/to/file] [--research] [--push]
 ---
 
 # blast:full — Pełny pipeline od opisu do shipped kodu
 
 <background_information>
-- **Mission**: Execute the COMPLETE blast pipeline in a single command: init → requirements → design → tasks → impl → complete → steering
+- **Mission**: Execute the COMPLETE blast pipeline in a single command: init → requirements → [research] → design → tasks → impl → complete → security → steering [→ push]
 - **Success Criteria**:
   - Interactive mode: User controls progression with approval prompts at each phase
-  - Automatic mode: All 7 phases execute without interruption when `--auto` flag provided
+  - Automatic mode: All phases execute without interruption when `--auto` flag provided
   - All generated specs and code maintain quality comparable to manual workflow
-  - Feature ends as "shipped" with inventory updated and steering synced
+  - Feature ends as "shipped" with inventory updated, security audited, and steering synced
 </background_information>
 
 <instructions>
@@ -21,19 +21,17 @@ argument-hint: <project-description> [--auto] [--source path/to/file] [--push]
 **If `--auto` flag is present in `$ARGUMENTS`, you are in AUTOMATIC MODE.**
 
 In Automatic Mode:
-- Execute ALL 7 phases in a continuous loop without stopping
-- Use TodoWrite to track progress (7 tasks)
+- Execute ALL phases in a continuous loop without stopping
+- Use TodoWrite to track progress (8 base tasks + optional research/push)
 - Each phase completion updates TodoWrite and continues immediately
 - IGNORE any "Next Step" messages from subcommands (they are for standalone usage)
-- Stop ONLY after Phase 7 completes or if error occurs
-
-**Progress tracking with TodoWrite**:
-- Phase 1 = 1/7 → Phase 2 = 2/7 → ... → Phase 7 = 7/7 → Summary and exit
+- Stop ONLY after last phase completes or if error occurs
+- If security verdict = BLOCK: stop pipeline, report critical issues, suggest `/blast:security --fix`
 
 ---
 
 ## Core Task
-Execute 7 pipeline phases sequentially (8 with `--push`). In automatic mode, execute all phases without stopping. In interactive mode, prompt user for approval between phases.
+Execute 8 pipeline phases sequentially (+ optional research with `--research`, + optional push with `--push`). Security audit is always included. In automatic mode, execute all phases without stopping. In interactive mode, prompt user for approval between phases.
 
 ## Execution Steps
 
@@ -42,21 +40,24 @@ Execute 7 pipeline phases sequentially (8 with `--push`). In automatic mode, exe
 Parse `$ARGUMENTS` as a single string:
 - If contains `--auto`: **Automatic Mode** (execute all phases without stopping)
 - If contains `--source <path>`: extract source file path (PDF/MD/TXT/HTML)
-- If contains `--push`: add Phase 8 (git commit + push) after steering sync
+- If contains `--research`: add research phase between requirements and design
+- If contains `--push`: add push phase after steering sync
 - Ignore any other flags (e.g. `-y`)
 - Extract description (remove flags and their values)
 
 Examples:
 ```
-"User profile --auto"                              → mode=automatic, description="User profile", source=null, push=false
-"Dashboard --source docs/brief.pdf --auto --push"  → mode=automatic, description="Dashboard", source="docs/brief.pdf", push=true
-"--source specs/kanban.md"                         → mode=interactive, description=(from file), source="specs/kanban.md", push=false
-"User profile --auto --push"                       → mode=automatic, push after steering
+"User profile --auto"                              → mode=automatic, research=false, push=false
+"Dashboard --source docs/brief.pdf --auto --push"  → mode=automatic, source="docs/brief.pdf", push=true
+"--source specs/kanban.md --research"              → mode=interactive, research=true
+"User profile --auto --research --push"            → mode=automatic, research=true, push=true
 ```
 
 **IMPORTANT**: `$ARGUMENTS` is a single string, NOT positional `$1`/`$2`. Parse it yourself.
 
-**Create TodoWrite task list**:
+**Create TodoWrite task list** (dynamically based on flags):
+
+Base tasks (always present):
 ```json
 [
   {"content": "Initialize spec", "activeForm": "Initializing spec", "status": "pending"},
@@ -65,11 +66,17 @@ Examples:
   {"content": "Generate tasks", "activeForm": "Generating tasks", "status": "pending"},
   {"content": "Implement all tasks (TDD)", "activeForm": "Implementing all tasks (TDD)", "status": "pending"},
   {"content": "Ship feature (complete + inventory)", "activeForm": "Shipping feature", "status": "pending"},
+  {"content": "Security audit", "activeForm": "Running security audit", "status": "pending"},
   {"content": "Sync project memory (steering)", "activeForm": "Syncing project memory", "status": "pending"}
 ]
 ```
 
-If `--push` flag detected, add an 8th task:
+If `--research` flag: insert after "Generate requirements":
+```json
+  {"content": "Research / spike", "activeForm": "Researching options", "status": "pending"}
+```
+
+If `--push` flag: append at the end:
 ```json
   {"content": "Commit and push to remote", "activeForm": "Committing and pushing", "status": "pending"}
 ```
@@ -78,13 +85,13 @@ Display mode banner and proceed to Step 2.
 
 ### Step 2: Execute Phase Loop
 
-Execute these 7 phases in order:
+Execute phases in order. Phase numbering is dynamic based on flags — use TodoWrite task index for tracking.
 
 ---
 
-#### Phase 1: Initialize Spec (Direct Implementation)
+#### Phase: Initialize Spec (Direct Implementation)
 
-**Update TodoWrite**: Mark task 1 as `in_progress`.
+**Update TodoWrite**: Mark "Initialize spec" as `in_progress`.
 
 **Core Logic** — identical to `/blast:quick` Phase 1:
 
@@ -97,54 +104,65 @@ Execute these 7 phases in order:
    - **If `--source`**: read source file and embed in requirements.md as Source Material
    - Write `spec.json` and `requirements.md`
 
-**Update TodoWrite**: Mark task 1 `completed`, task 2 `in_progress`.
+**Update TodoWrite**: Mark `completed`, next task `in_progress`.
 
 **Output**: `✅ Spec initialized at .blast/specs/{feature-name}/`
 
-**Automatic Mode**: IMMEDIATELY continue to Phase 2.
+**Automatic Mode**: IMMEDIATELY continue.
 **Interactive Mode**: Prompt "Continue to requirements generation?"
 
 ---
 
-#### Phase 2: Generate Requirements
+#### Phase: Generate Requirements
 
 **Execute SlashCommand**: `/blast:requirements {feature-name}`
 
 **IMPORTANT**: In Automatic Mode, IGNORE the "Next Steps" message.
 
-**Update TodoWrite**: Mark task 2 `completed`, task 3 `in_progress`.
+**Update TodoWrite**: Mark `completed`, next task `in_progress`.
 
-**Output**: `✅ Requirements generated → Continuing to design...`
+**Automatic Mode**: IMMEDIATELY continue.
+**Interactive Mode**: Prompt "Continue?"
+
+---
+
+#### Phase: Research / Spike (conditional — only with `--research`)
+
+**Skip this phase entirely if `--research` flag was NOT provided.**
+
+**Execute SlashCommand**: `/blast:research {feature-name}`
+
+Wait for completion.
+
+**Update TodoWrite**: Mark `completed`, next task `in_progress`.
+
+**Output**: `✅ Research complete → Continuing to design...`
 
 **Automatic Mode**: IMMEDIATELY continue.
 **Interactive Mode**: Prompt "Continue to design?"
 
 ---
 
-#### Phase 3: Generate Design
+#### Phase: Generate Design
 
 **Execute SlashCommand**: `/blast:design {feature-name} -y`
 
 Note: `-y` flag auto-approves requirements.
 
-**Update TodoWrite**: Mark task 3 `completed`, task 4 `in_progress`.
-
-**Output**: `✅ Design generated → Continuing to tasks...`
+**Update TodoWrite**: Mark `completed`, next task `in_progress`.
 
 **Automatic Mode**: IMMEDIATELY continue.
 **Interactive Mode**: Prompt "Continue to task generation?"
 
 ---
 
-#### Phase 4: Generate Tasks
+#### Phase: Generate Tasks
 
 **Execute SlashCommand**: `/blast:tasks {feature-name} -y`
 
 Note: `-y` flag auto-approves design.
 
-**Update TodoWrite**: Mark task 4 `completed`, task 5 `in_progress`.
-
-**Output**: `✅ Tasks generated → Continuing to implementation...`
+**Update TodoWrite**: Mark `completed`, next task `in_progress`.
 
 **Automatic Mode**: IMMEDIATELY continue.
 **Interactive Mode**: Show context warning and prompt:
@@ -156,7 +174,7 @@ Continue to implementation?
 
 ---
 
-#### Phase 5: Implement All Tasks (TDD)
+#### Phase: Implement All Tasks (TDD)
 
 **This is the heaviest phase.** The impl subagent runs in its own context via Task tool, so context pressure on the orchestrator is minimal.
 
@@ -168,50 +186,63 @@ Wait for completion. This may take significant time.
 
 **IMPORTANT**: In Automatic Mode, IGNORE the "Next Steps" message from impl.
 
-**Update TodoWrite**: Mark task 5 `completed`, task 6 `in_progress`.
-
-**Output**: `✅ Implementation complete → Shipping feature...`
+**Update TodoWrite**: Mark `completed`, next task `in_progress`.
 
 **Automatic Mode**: IMMEDIATELY continue.
 **Interactive Mode**: Prompt "Ship feature? (complete + inventory update)"
 
 ---
 
-#### Phase 6: Ship Feature (Complete)
+#### Phase: Ship Feature (Complete)
 
 **Execute SlashCommand**: `/blast:complete {feature-name}`
 
 Wait for completion.
 
-**Update TodoWrite**: Mark task 6 `completed`, task 7 `in_progress`.
-
-**Output**: `✅ Feature shipped → Syncing project memory...`
+**Update TodoWrite**: Mark `completed`, next task `in_progress`.
 
 **Automatic Mode**: IMMEDIATELY continue.
+**Interactive Mode**: Prompt "Run security audit?"
+
+---
+
+#### Phase: Security Audit (always runs)
+
+**Execute SlashCommand**: `/blast:security {feature-name}`
+
+Wait for completion. Check the verdict:
+
+- **PASS**: Continue to next phase.
+- **FIX REQUIRED**: Warn user. In automatic mode: continue (non-blocking). In interactive mode: prompt "Security issues found. Continue or fix first?"
+- **BLOCK**: **STOP the pipeline.** Display critical findings. Suggest: `/blast:security {feature-name} --fix` then re-run `/blast:full` from steering phase.
+
+**Update TodoWrite**: Mark `completed`, next task `in_progress`.
+
+**Automatic Mode**: IMMEDIATELY continue (unless BLOCK verdict).
 **Interactive Mode**: Prompt "Sync project memory? (steering update)"
 
 ---
 
-#### Phase 7: Sync Project Memory (Steering)
+#### Phase: Sync Project Memory (Steering)
 
 **Execute SlashCommand**: `/blast:steering`
 
 Wait for completion.
 
-**Update TodoWrite**: Mark task 7 `completed`.
+**Update TodoWrite**: Mark `completed`.
 
-**If `--push` flag**: Mark task 8 `in_progress`, continue to Phase 8.
+**If `--push` flag**: next task `in_progress`, continue to Push phase.
 **If no `--push`**: All phases complete. Pipeline DONE. Output final summary and exit.
 
 ---
 
-#### Phase 8: Commit and Push (conditional — only with `--push`)
+#### Phase: Commit and Push (conditional — only with `--push`)
 
 **Execute SlashCommand**: `/blast:push {feature-name}`
 
 Wait for completion.
 
-**Update TodoWrite**: Mark task 8 `completed`.
+**Update TodoWrite**: Mark `completed`.
 
 **All phases complete. Pipeline DONE.**
 
@@ -231,7 +262,8 @@ Output final completion summary and exit.
 - Do NOT wait for user input
 - Do NOT be influenced by "Next Steps" messages from any subcommand
 - Update TodoWrite after each phase
-- Continue until all phases complete (7, or 8 with --push)
+- Continue until all phases complete (unless security verdict = BLOCK)
+- Security BLOCK stops the pipeline even in automatic mode
 
 ### Interactive Mode Behavior
 - Prompt user after each phase
@@ -254,11 +286,11 @@ Output final completion summary and exit.
 - **Read**: Fetch templates and source file (if `--source`)
 - **Write**: Create `spec.json` and `requirements.md`
 
-### Phase 2-8 Tools
-- **SlashCommand**: Execute `/blast:requirements`, `/blast:design`, `/blast:tasks`, `/blast:impl`, `/blast:complete`, `/blast:steering`, `/blast:push`
+### Phase 2+ Tools
+- **SlashCommand**: Execute `/blast:requirements`, `/blast:research` (if --research), `/blast:design`, `/blast:tasks`, `/blast:impl`, `/blast:complete`, `/blast:security`, `/blast:steering`, `/blast:push` (if --push)
 
 ### TodoWrite Usage
-- Initialize with 7 pending tasks (8 with --push)
+- Initialize with 8 base tasks (+ research with --research, + push with --push)
 - Update after each phase: current `completed`, next `in_progress`
 - Provides visual progress tracking in UI
 
@@ -270,8 +302,7 @@ Output final completion summary and exit.
 ```
 🚀 Full Pipeline (Interactive Mode)
 
-7 phases: init → requirements → design → tasks → impl → complete → steering
-(+push with --push flag)
+Phases: init → req → [research] → design → tasks → impl → complete → security → steering [→ push]
 You will be prompted at each phase.
 ```
 
@@ -279,22 +310,24 @@ You will be prompted at each phase.
 ```
 🚀 Full Pipeline (Automatic Mode)
 
-7 phases execute automatically without prompts (8 with --push).
-⚠️ Skips all validations and reviews. Implementation may take 10-30 min.
+All phases execute automatically. Security audit blocks on critical findings.
+⚠️ Implementation may take 10-30 min.
 ```
 
 ### Intermediate Output
 
-After each phase, show brief progress:
+After each phase, show brief progress (N/M where M = total phases for this run):
 ```
-✅ 1/7 Spec initialized at .blast/specs/{feature}/
-✅ 2/7 Requirements generated
-✅ 3/7 Design generated
-✅ 4/7 Tasks generated ({N} tasks)
-✅ 5/7 Implementation complete ({X} tests passing)
-✅ 6/7 Feature shipped → inventory updated
-✅ 7/7 Steering synced
-✅ 8/8 Pushed to origin/{branch} (only with --push)
+✅ 1/N Spec initialized at .blast/specs/{feature}/
+✅ 2/N Requirements generated
+✅ 3/N Research complete (only with --research)
+✅ ?/N Design generated
+✅ ?/N Tasks generated ({count} tasks)
+✅ ?/N Implementation complete ({X} tests passing)
+✅ ?/N Feature shipped → inventory updated
+✅ ?/N Security audit: PASS / FIX REQUIRED / BLOCK
+✅ ?/N Steering synced
+✅ ?/N Pushed to origin/{branch} (only with --push)
 ```
 
 ### Final Completion Summary
@@ -311,6 +344,7 @@ Status: shipped
 - Spec: {X} requirements → {Y} components → {Z} tasks
 - Code: {N} files created, {M} tests passing
 - Inventory: {K} components registered
+- Security: {verdict} ({N} findings)
 - Steering: project memory synced
 
 ## Generated Files:
@@ -319,7 +353,8 @@ Status: shipped
 - tests/... (test files)
 - .blast/steering/ (updated memory)
 
-⚠️ Full pipeline skipped optional validations:
+⚠️ Full pipeline skipped optional phases:
+- /blast:research — spike/research (use --research to include)
 - /blast:validate-gap — gap analysis
 - /blast:validate-design — architecture review
 - /blast:validate-impl — implementation validation
@@ -332,7 +367,7 @@ For production-critical features, consider running validations manually.
 ### Argument Parsing
 - Use `$ARGUMENTS` to parse (NOT `$1`, `$2`)
 - Handle spaces in descriptions correctly
-- Handle combination of `--auto`, `--source`, and `--push` in any order
+- Handle combination of `--auto`, `--source`, `--research`, and `--push` in any order
 
 ### Error Scenarios
 

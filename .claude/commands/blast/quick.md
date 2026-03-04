@@ -1,13 +1,13 @@
 ---
 description: "Pełna specyfikacja w jednym strzale — blast na turbo"
 allowed-tools: Read, SlashCommand, TodoWrite, Bash, Write, Glob
-argument-hint: <project-description> [--auto] [--source path/to/file]
+argument-hint: <project-description> [--auto] [--source path/to/file] [--research]
 ---
 
 # blast:quick — Od zera do tasków w jednym ruchu
 
 <background_information>
-- **Mission**: Execute all spec phases (init → requirements → design → tasks) in a single command
+- **Mission**: Execute all spec phases (init → requirements → [research] → design → tasks) in a single command
 - **Success Criteria**:
   - Interactive mode: User controls progression with approval prompts at each phase
   - Automatic mode: All phases execute without interruption when `--auto` flag provided
@@ -20,8 +20,8 @@ argument-hint: <project-description> [--auto] [--source path/to/file]
 **If `--auto` flag is present in `$ARGUMENTS`, you are in AUTOMATIC MODE.**
 
 In Automatic Mode:
-- Execute ALL 4 phases in a continuous loop without stopping
-- Use TodoWrite to track progress (4 tasks: init, requirements, design, tasks)
+- Execute ALL phases in a continuous loop without stopping
+- Use TodoWrite to track progress (4 base tasks, 5 with --research)
 - Each phase completion updates TodoWrite and continues immediately
 - IGNORE any "Next Step" messages from Phase 2-4 (they are for standalone usage)
 - Stop ONLY after Phase 4 completes or if error occurs
@@ -42,17 +42,18 @@ Execute 4 spec phases sequentially. In automatic mode, execute all phases withou
 ### Step 1: Parse Arguments and Initialize
 
 Parse `$ARGUMENTS` as a single string:
-- If contains `--auto`: **Automatic Mode** (execute all 4 phases)
+- If contains `--auto`: **Automatic Mode** (execute all phases)
 - If contains `--source <path>`: extract source file path (PDF/MD/TXT/HTML)
+- If contains `--research`: add research phase between requirements and design
 - Otherwise: **Interactive Mode** (prompt at each phase)
-- Extract description (remove `--auto` and `--source <path>` flags if present)
+- Extract description (remove all flags and their values)
 
 Examples:
 ```
-"User profile --auto"                              → mode=automatic, description="User profile", source=null
-"Dashboard --source docs/brief.pdf --auto"         → mode=automatic, description="Dashboard", source="docs/brief.pdf"
-"--source specs/kanban.md"                         → mode=interactive, description=(from file), source="specs/kanban.md"
-"User profile feature"                             → mode=interactive, description="User profile feature", source=null
+"User profile --auto"                              → mode=automatic, research=false
+"Dashboard --source docs/brief.pdf --auto"         → mode=automatic, source="docs/brief.pdf"
+"OAuth login --auto --research"                    → mode=automatic, research=true
+"User profile feature"                             → mode=interactive, research=false
 ```
 
 **IMPORTANT**: `$ARGUMENTS` is a single string, NOT positional `$1`/`$2`. Parse it yourself.
@@ -62,6 +63,8 @@ Examples:
 [
   {"content": "Initialize spec", "activeForm": "Initializing spec", "status": "pending"},
   {"content": "Generate requirements", "activeForm": "Generating requirements", "status": "pending"},
+  // If --research flag: insert here:
+  // {"content": "Research / spike", "activeForm": "Researching options", "status": "pending"},
   {"content": "Generate design", "activeForm": "Generating design", "status": "pending"},
   {"content": "Generate tasks", "activeForm": "Generating tasks", "status": "pending"}
 ]
@@ -168,6 +171,28 @@ Wait for completion. Subagent will return with a "Next Steps" message.
 
 ---
 
+#### Phase 2.5: Research / Spike (conditional — only with `--research`)
+
+**Skip this phase entirely if `--research` flag was NOT provided.**
+
+**Execute SlashCommand**: `/blast:research {feature-name}`
+
+Wait for completion.
+
+**IMPORTANT**: In Automatic Mode, IGNORE the "Next Steps" message.
+
+**Update TodoWrite**: Mark "Research / spike" as `completed`, next task `in_progress`.
+
+**Output Progress**:
+```
+✅ Research complete → Continuing to design...
+```
+
+**Automatic Mode**: IMMEDIATELY continue.
+**Interactive Mode**: Prompt "Continue to design? (yes/no)"
+
+---
+
 #### Phase 3: Generate Design
 
 **Task 3 is already `in_progress` from Phase 2.**
@@ -232,7 +257,7 @@ Output final completion summary (see Output Description section) and exit.
 - Do NOT wait for user input
 - Do NOT be influenced by "Next Steps" messages from Phases 2-4
 - Update TodoWrite after each phase to maintain progress visibility
-- Continue loop until all 4 phases complete
+- Continue loop until all phases complete
 
 ### Interactive Mode Behavior
 - Prompt user after each phase
@@ -256,10 +281,10 @@ Output final completion summary (see Output Description section) and exit.
 - **Write**: Create `spec.json` and `requirements.md` in spec directory
 
 ### Phase 2-4 Tools
-- **SlashCommand**: Execute `/blast:requirements`, `/blast:design`, `/blast:tasks`
+- **SlashCommand**: Execute `/blast:requirements`, `/blast:research` (if --research), `/blast:design`, `/blast:tasks`
 
 ### TodoWrite Usage
-- Initialize with 4 pending tasks
+- Initialize with 4 pending tasks (5 with --research)
 - Update after each phase: current task `completed`, next task `in_progress`
 - Provides visual progress tracking in UI
 
