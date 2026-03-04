@@ -91,7 +91,27 @@ Update the following fields:
 3. Add delivered components to "Component Registry" table
 4. Update "Cross-Spec Dependencies" if this spec resolved any
 
-### Step 6: Post-Completion Actions
+### Step 6: Update CHANGELOG.md
+
+1. Check if `CHANGELOG.md` exists at project root
+   - If not: create with header:
+     ```markdown
+     # Changelog
+
+     All notable changes to this project will be documented in this file.
+     Format based on [Keep a Changelog](https://keepachangelog.com/).
+     ```
+2. Read `requirements.md` to extract feature summary (first 1-2 sentences of project description)
+3. Prepend new entry under latest version or "Unreleased" section:
+   ```markdown
+   ## [Unreleased]
+
+   ### Added
+   - **{feature-name}**: {one-line summary from requirements} ({N} components, coverage {X}%)
+   ```
+4. If components include APIs/endpoints, add under relevant subsection (Changed, Fixed, etc.)
+
+### Step 7: Post-Completion Actions
 
 Suggest next steps:
 - `/blast:security {feature}` — security audit before deployment (recommended)
