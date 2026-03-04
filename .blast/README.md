@@ -35,7 +35,7 @@ blast wymusza zestaw zasad na każdym etapie (pełna lista w `.blast/settings/ru
 └── specs/                 ← specyfikacje ficzerów (generowane przez /blast:init)
 
 .claude/
-├── agents/blast/          ← 12 agentów (steering, requirements, design, tasks, impl, complete, review, walidacje)
+├── agents/blast/          ← 13 agentów (steering, requirements, research, design, tasks, impl, complete, review, walidacje)
 ├── commands/blast/        ← 20 slash commands (interfejs użytkownika)
 └── settings.local.json    ← uprawnienia bash (git-ignored)
 
