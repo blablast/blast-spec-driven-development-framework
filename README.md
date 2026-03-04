@@ -88,7 +88,7 @@ rm -rf .git && git init
 | `/blast:status {f}` | Check progress |
 | `/blast:help [cmd]` | Help and reference |
 
-**20 commands, 13 agents.** Full docs: `.blast/README.md`
+**20 commands, 14 agents.** Full docs: `.blast/README.md`
 
 ## Pipeline
 

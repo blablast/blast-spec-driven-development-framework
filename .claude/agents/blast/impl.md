@@ -61,6 +61,13 @@ Execute implementation tasks for feature using Test-Driven Development.
 - If task numbers provided: Execute specified task numbers (e.g., "1.1" or "1,2,3")
 - Otherwise: Execute all pending tasks (unchecked `- [ ]` in tasks.md)
 
+**Resume support** — skip already completed tasks:
+- Parse tasks.md and identify all `- [x]` (completed) vs `- [ ]` (pending) tasks
+- If specific task numbers were requested but some are already `[x]`: skip them, log "Task {N} already completed — skipping"
+- If "all pending" mode: only execute `- [ ]` tasks, skip all `- [x]`
+- If ALL tasks are already `[x]`: report "All tasks completed. Run `/blast:complete {feature}`" and stop
+- This enables safe re-runs after partial failure — impl picks up where it left off
+
 ### Step 3: Execute with TDD
 
 For each selected task, follow Kent Beck's TDD cycle:

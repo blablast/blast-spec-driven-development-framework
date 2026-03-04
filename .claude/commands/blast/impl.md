@@ -39,6 +39,8 @@ If validation fails, inform user to complete tasks generation first.
 **Parse task numbers** (perform this in Slash Command before invoking Subagent):
 - If task numbers provided: Parse them (e.g., "1.1", "1.1,1.2,1.3")
 - Otherwise: Read `.blast/specs/{feature}/tasks.md` and find all unchecked tasks (`- [ ]`)
+- **Resume check**: If some tasks are already `[x]`, only pass pending `[ ]` tasks to the agent. Log skipped tasks: "Skipping completed: {task numbers}"
+- If ALL tasks are `[x]`: skip agent invocation entirely, report "All tasks completed" and suggest `/blast:complete {feature}`
 
 ## Invoke Subagent
 
