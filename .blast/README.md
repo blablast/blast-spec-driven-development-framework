@@ -36,7 +36,7 @@ blast wymusza zestaw zasad na każdym etapie (pełna lista w `.blast/settings/ru
 
 .claude/
 ├── agents/blast/          ← 12 agentów (steering, requirements, design, tasks, impl, complete, review, walidacje)
-├── commands/blast/        ← 18 slash commands (interfejs użytkownika)
+├── commands/blast/        ← 20 slash commands (interfejs użytkownika)
 └── settings.local.json    ← uprawnienia bash (git-ignored)
 
 CLAUDE.md                  ← instrukcje dla AI (ładowane automatycznie)
@@ -81,6 +81,10 @@ Tworzy dodatkowe pliki (API standards, testing, security, database...).
 # Wymagania w formacie EARS
 /blast:requirements system-logowania-oauth2
 
+# Research / spike (opcjonalnie — gdy nie wiesz JAK)
+/blast:research system-logowania-oauth2
+/blast:research system-logowania-oauth2 --deep  # dogłębny z benchmarkami
+
 # Design techniczny (architektura, komponenty, interfejsy)
 /blast:design system-logowania-oauth2
 
@@ -108,6 +112,11 @@ Każdy etap wymaga review — idziesz dalej dopiero po aprovacie.
 
 # Sync pamięci projektu (rekomendowane po complete)
 /blast:steering
+
+# Audyt bezpieczeństwa (rekomendowane przed deployment)
+/blast:security system-logowania-oauth2
+/blast:security system-logowania-oauth2 --fix   # auto-fix bezpiecznych poprawek
+/blast:security --all                           # cały codebase
 ```
 
 ### Tryb szybki — tylko specyfikacja (prototyp / CRUD)
@@ -389,10 +398,12 @@ node_modules/
 | `/blast:steering-custom` | Dodaje custom steering | Gdy potrzebujesz API/DB/security guidelines |
 | `/blast:init "opis" [--source]` | Tworzy nowy spec (opcjonalnie z pliku) | Start nowej ficzerki |
 | `/blast:requirements {f}` | Generuje EARS requirements | Po init |
-| `/blast:design {f} [-y]` | Generuje design | Po requirements |
+| `/blast:research {f} [--deep]` | Spike/research — opcje, porównania | Po requirements (opcjonalnie) |
+| `/blast:design {f} [-y]` | Generuje design | Po requirements / research |
 | `/blast:tasks {f} [-y]` | Generuje taski | Po design |
 | `/blast:impl {f} [taski]` | Implementuje w TDD + ruff + docstrings | Po tasks |
 | `/blast:review {f} [--fix]` | Code review vs zasady + linting | Po impl / w dowolnym momencie |
+| `/blast:security {f} [--fix] [--all]` | Audyt bezpieczeństwa (OWASP, secrets) | Po complete / przed deployment |
 | `/blast:complete {f}` | Zamyka spec, aktualizuje inventory | Po implementacji |
 | `/blast:push [feature]` | Git commit + push (smart staging, English title) | Po complete / standalone |
 | `/blast:deprecate {f}` | Wycofuje ficzer z migration guide | Gdy ficzer do wymiany |

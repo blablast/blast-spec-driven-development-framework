@@ -32,6 +32,7 @@ Pełna dokumentacja: `.blast/README.md`
 |---|---|
 | `/blast:init "opis" [--source path]` | Inicjalizuje nowy spec — tworzy folder i metadane. `--source` importuje treść z pliku |
 | `/blast:requirements {feature}` | Generuje wymagania w formacie EARS |
+| `/blast:research {feature} [--deep]` | *(opcjonalne)* Spike/research — opcje, porównania, wnioski |
 | `/blast:validate-gap {feature}` | *(opcjonalne)* Analiza luki między wymaganiami a istniejącym kodem |
 | `/blast:design {feature} [-y]` | Generuje design techniczny |
 | `/blast:validate-design {feature}` | *(opcjonalne)* Review jakości designu |
@@ -43,6 +44,7 @@ Pełna dokumentacja: `.blast/README.md`
 |---|---|
 | `/blast:impl {feature} [tasks]` | Implementuje taski (TDD) z lintingiem (ruff/eslint) i docstrings |
 | `/blast:review {feature} [--fix]` | Code review vs zasady (Clean Code, SOLID, DRY, PEP8, ruff...) |
+| `/blast:security {feature} [--fix] [--all]` | Audyt bezpieczeństwa (OWASP, secrets, injection) |
 | `/blast:validate-impl {feature}` | *(opcjonalne)* Walidacja implementacji vs spec |
 | `/blast:complete {feature}` | Zamyka spec, aktualizuje inventory — ficzer shipped! |
 | `/blast:push [feature]` | Git commit + push (smart staging, English title) |
@@ -110,14 +112,15 @@ Kiedy użytkownik pyta "co dalej?" lub wydaje komendę blast, AI MUSI sprawdzić
 | Brak steering (`steering/` pusty) | → `/blast:steering` |
 | Brak speców (`specs/` pusty) | → `/blast:init "opis"` |
 | `phase: "initialized"` | → `/blast:requirements {feature}` |
-| `phase: "requirements-generated"`, requirements approved | → `/blast:design {feature}` (lub `/blast:validate-gap` dla złożonych) |
+| `phase: "requirements-generated"`, requirements approved | → `/blast:research {feature}` (lub `/blast:design` jeśli research niepotrzebny) |
+| `phase: "research-completed"` | → `/blast:design {feature}` (lub `/blast:validate-gap` dla złożonych) |
 | `phase: "requirements-generated"`, requirements NOT approved | → Poproś o review requirements |
 | `phase: "design-generated"`, design approved | → `/blast:tasks {feature}` |
 | `phase: "design-generated"`, design NOT approved | → Poproś o review designu (lub `/blast:validate-design`) |
 | `phase: "tasks-generated"`, tasks approved | → `/blast:impl {feature}` |
 | `phase: "tasks-generated"`, tasks NOT approved | → Poproś o review tasków |
 | Wszystkie taski `[x]` w tasks.md | → `/blast:complete {feature}` |
-| `status: "shipped"` | → Ficzer gotowy. `/blast:steering` do sync lub nowy `/blast:init` |
+| `status: "shipped"` | → `/blast:security {feature}` (rekomendowane) lub nowy `/blast:init` |
 
 **Phase guards** — jeśli użytkownik próbuje przeskoczyć fazę (np. `/blast:impl` bez approved tasks), AI ostrzega i sugeruje brakujący krok. Nie blokuje, ale jasno komunikuje ryzyko.
 

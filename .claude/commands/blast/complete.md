@@ -43,7 +43,29 @@ Mark the parsed feature as shipped — update spec metadata, populate inventory,
    - If uncompleted tasks exist: warn user and ask for confirmation
 3. Read `.blast/specs/{feature}/design.md` to extract delivered components
 
-### Step 2: Extract Deliverables
+### Step 2: Coverage Check
+
+Run test coverage and record results:
+
+**Python**:
+```bash
+pytest --cov=src --cov-report=term-missing --cov-report=json 2>/dev/null || true
+```
+
+**JavaScript/TypeScript**:
+```bash
+npx jest --coverage --coverageReporters=text 2>/dev/null || true
+```
+
+- Extract total coverage % from output
+- If coverage < 80%: **warn** user ("Coverage is {X}% — consider adding tests before shipping")
+- If coverage ≥ 80%: note in completion summary
+- If no test runner configured: skip with note
+- Store coverage % in spec.json `coverage` field
+
+This is a **soft gate** — low coverage warns but doesn't block shipping.
+
+### Step 3: Extract Deliverables
 
 From `design.md`, identify all delivered components:
 - Components, services, modules, endpoints
@@ -52,15 +74,16 @@ From `design.md`, identify all delivered components:
 
 Build a `provides` list from these deliverables.
 
-### Step 3: Update spec.json
+### Step 4: Update spec.json
 
 Update the following fields:
 - `status`: `"shipped"`
 - `completed_at`: current ISO 8601 timestamp
-- `provides`: array of delivered component names (from Step 2)
+- `provides`: array of delivered component names (from Step 3)
+- `coverage`: coverage percentage from Step 2 (if available, e.g. `"82%"`)
 - `updated_at`: current timestamp
 
-### Step 4: Update INVENTORY.md
+### Step 5: Update INVENTORY.md
 
 1. Check if `.blast/steering/INVENTORY.md` exists
    - If not: copy from `.blast/settings/templates/steering/inventory.md`
@@ -68,11 +91,13 @@ Update the following fields:
 3. Add delivered components to "Component Registry" table
 4. Update "Cross-Spec Dependencies" if this spec resolved any
 
-### Step 5: Post-Completion Actions
+### Step 6: Post-Completion Actions
 
 Suggest next steps:
+- `/blast:security {feature}` — security audit before deployment (recommended)
 - `/blast:steering` — sync project memory with new patterns from implementation
 - Review if any active specs depend on components just shipped
+- If coverage < 80%: suggest creating a new spec for test improvements
 
 </instructions>
 
@@ -87,9 +112,10 @@ Suggest next steps:
 Provide output in the language specified in spec.json:
 
 1. **Shipped Feature**: Name and brief summary
-2. **Delivered Components**: List of components added to inventory
-3. **Inventory Updated**: Confirm INVENTORY.md changes
-4. **Next Steps**: Recommend `/blast:steering` sync
+2. **Coverage**: Test coverage % (with warning if < 80%)
+3. **Delivered Components**: List of components added to inventory
+4. **Inventory Updated**: Confirm INVENTORY.md changes
+5. **Next Steps**: Recommend `/blast:security` + `/blast:steering` sync
 
 **Format**: Concise (under 200 words)
 

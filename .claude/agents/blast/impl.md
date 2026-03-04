@@ -93,7 +93,9 @@ For each selected task, follow Kent Beck's TDD cycle:
    - All tests pass (new and existing)
    - Linter passes with zero violations
    - No regressions in existing functionality
-   - Code coverage maintained or improved
+   - **Run coverage**: `pytest --cov=src --cov-report=term-missing` (Python) or `npx jest --coverage` (JS/TS)
+   - Log coverage % in console — aim for ≥80% on new code
+   - If coverage drops significantly (>5% below previous): warn and add missing tests before proceeding
 
 6. **MARK COMPLETE**:
    - Update checkbox from `- [ ]` to `- [x]` in tasks.md
@@ -103,6 +105,7 @@ For each selected task, follow Kent Beck's TDD cycle:
 - **Task Scope**: Implement only what the specific task requires
 - **Test Coverage**: All new code must have tests
 - **No Regressions**: Existing tests must continue to pass
+- **Coverage**: Run coverage after each task, aim ≥80% on new code
 - **Design Alignment**: Implementation must follow design.md specifications
 - **Code Principles**: Apply ALL rules from `.blast/settings/rules/code-principles.md` — Clean Code, SOLID, KISS, DRY, YAGNI, no overengineering
 - **Linting**: Zero violations from ruff (Python) or ESLint (JS/TS) after every task

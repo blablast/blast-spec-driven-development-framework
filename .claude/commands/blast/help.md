@@ -18,7 +18,7 @@ Display help information about blast commands. If a specific command name is pro
 - If `$ARGUMENTS` contains a command name → show **detailed help** for that command
 
 Valid command names (with or without `blast:` prefix):
-`steering`, `steering-custom`, `init`, `requirements`, `design`, `tasks`, `impl`, `complete`, `deprecate`, `quick`, `full`, `review`, `push`, `status`, `validate-gap`, `validate-design`, `validate-impl`, `help`
+`steering`, `steering-custom`, `init`, `requirements`, `research`, `design`, `tasks`, `impl`, `complete`, `deprecate`, `quick`, `full`, `review`, `security`, `push`, `status`, `validate-gap`, `validate-design`, `validate-impl`, `help`
 
 ### Step 2: Generate Help Output
 
@@ -33,6 +33,7 @@ WORKFLOW (od zera do kodu):
   /blast:steering                  Inicjalizacja pamięci projektu (raz)
   /blast:init "opis"               Nowy ficzer → folder + metadane
   /blast:requirements {f}          Wymagania w formacie EARS
+  /blast:research {f} [--deep]     Spike/research — opcje, porównania, wnioski
   /blast:design {f}                Design techniczny
   /blast:tasks {f}                 Plan implementacji
   /blast:impl {f} [taski]          Implementacja TDD
@@ -49,6 +50,9 @@ JAKOŚĆ KODU:
   /blast:review {f}                Code review vs zasady (Clean Code, SOLID, DRY...)
   /blast:review {f} --fix          Code review + automatyczne poprawki
   /blast:review                    Review całego codebase
+  /blast:security {f}              Audyt bezpieczeństwa (OWASP, secrets, injection)
+  /blast:security {f} --fix        Audyt + auto-fix bezpiecznych poprawek
+  /blast:security --all            Skan całego codebase
 
 WALIDACJE (opcjonalne):
   /blast:validate-gap {f}          Analiza luki (przed design)
@@ -84,8 +88,13 @@ GRAF PRZEJŚĆ:
          ├──────────────┐ (opcjonalnie)
          ▼              ▼
   ┌─────────────┐ ┌──────────────┐
-  │   design    │ │ validate-gap │
+  │  research   │ │ validate-gap │
   └──────┬──────┘ └──────────────┘
+         │
+         ▼
+  ┌─────────────┐
+  │   design    │
+  └──────┬──────┘
          │
          ├──────────────┐ (opcjonalnie)
          ▼              ▼
@@ -109,6 +118,11 @@ GRAF PRZEJŚĆ:
          ▼
   ┌─────────────┐
   │  steering   │  (sync pamięci)
+  └──────┬──────┘
+         │
+         ▼ (opcjonalnie)
+  ┌─────────────┐
+  │  security   │  (audyt bezpieczeństwa)
   └─────────────┘
 
   /blast:quick = init → requirements → design → tasks
@@ -120,6 +134,8 @@ FLAGI:
   --source path/to/file            Importuj opis z pliku (init, quick, full)
   --fix                            Auto-fix (review)
   --push                           Git push po pipeline (full)
+  --deep                           Dogłębny research (research)
+  --all                            Skan całego codebase (security)
 
 PAMIĘĆ:
   steering/     → pamięć projektu (product, tech, structure, inventory, research)
