@@ -1,0 +1,34 @@
+# Claude Code — pliki lokalne per-maszynę
+.claude/settings.local.json
+
+# Dane specyficzne per-projekt (opcjonalnie — odkomentuj jeśli chcesz czyste repo)
+# .blast/steering/
+# .blast/specs/
+
+# Python
+*.pyc
+__pycache__/
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+
+# Node.js
+node_modules/
+
+# Środowisko
+.env
+.env.local
+.env.*.local
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
