@@ -18,7 +18,7 @@ Display help information about blast commands. If a specific command name is pro
 - If `$ARGUMENTS` contains a command name → show **detailed help** for that command
 
 Valid command names (with or without `blast:` prefix):
-`steering`, `steering-custom`, `init`, `requirements`, `design`, `tasks`, `impl`, `complete`, `deprecate`, `quick`, `full`, `review`, `status`, `validate-gap`, `validate-design`, `validate-impl`, `help`
+`steering`, `steering-custom`, `init`, `requirements`, `design`, `tasks`, `impl`, `complete`, `deprecate`, `quick`, `full`, `review`, `push`, `status`, `validate-gap`, `validate-design`, `validate-impl`, `help`
 
 ### Step 2: Generate Help Output
 
@@ -54,6 +54,10 @@ WALIDACJE (opcjonalne):
   /blast:validate-gap {f}          Analiza luki (przed design)
   /blast:validate-design {f}       Review architektury (po design)
   /blast:validate-impl {f}         Walidacja impl vs spec (po impl)
+
+GIT:
+  /blast:push [feature]            Commit + push (smart staging, English title)
+  /blast:full "opis" --push        Pipeline + push na koniec
 
 ZARZĄDZANIE:
   /blast:status {f}                Status i postęp specyfikacji
@@ -108,13 +112,14 @@ GRAF PRZEJŚĆ:
   └─────────────┘
 
   /blast:quick = init → requirements → design → tasks
-  /blast:full  = init → req → design → tasks → impl → complete → steering
+  /blast:full  = init → req → design → tasks → impl → complete → steering [→ push]
 
 FLAGI:
   -y                               Auto-approve (design, tasks)
   --auto                           Pełny automat (quick, full)
   --source path/to/file            Importuj opis z pliku (init, quick, full)
   --fix                            Auto-fix (review)
+  --push                           Git push po pipeline (full)
 
 PAMIĘĆ:
   steering/     → pamięć projektu (product, tech, structure, inventory, research)

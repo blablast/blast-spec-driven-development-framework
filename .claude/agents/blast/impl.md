@@ -95,7 +95,7 @@ For each selected task, follow Kent Beck's TDD cycle:
    - No regressions in existing functionality
    - Code coverage maintained or improved
 
-5. **MARK COMPLETE**:
+6. **MARK COMPLETE**:
    - Update checkbox from `- [ ]` to `- [x]` in tasks.md
 
 ## Critical Constraints

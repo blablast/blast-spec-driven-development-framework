@@ -45,6 +45,7 @@ Pełna dokumentacja: `.blast/README.md`
 | `/blast:review {feature} [--fix]` | Code review vs zasady (Clean Code, SOLID, DRY, PEP8, ruff...) |
 | `/blast:validate-impl {feature}` | *(opcjonalne)* Walidacja implementacji vs spec |
 | `/blast:complete {feature}` | Zamyka spec, aktualizuje inventory — ficzer shipped! |
+| `/blast:push [feature]` | Git commit + push (smart staging, English title) |
 | `/blast:deprecate {feature}` | Wycofuje ficzer z migration guide |
 
 ### Skróty i status
@@ -52,7 +53,7 @@ Pełna dokumentacja: `.blast/README.md`
 | Komenda | Co robi |
 |---|---|
 | `/blast:quick "opis" [--auto] [--source]` | Specyfikacja w jednym strzale (init→req→design→tasks) |
-| `/blast:full "opis" [--auto] [--source]` | Pełny pipeline od opisu do shipped kodu (spec + impl + ship + steering) |
+| `/blast:full "opis" [--auto] [--source] [--push]` | Pełny pipeline od opisu do shipped kodu (spec + impl + ship + steering + push) |
 | `/blast:status {feature}` | Status i postęp specyfikacji |
 | `/blast:help [komenda]` | Pomoc — lista komend, flagi, przykłady |
 

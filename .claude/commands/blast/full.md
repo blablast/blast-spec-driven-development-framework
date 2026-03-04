@@ -1,7 +1,7 @@
 ---
 description: "Od zera do shipped kodu — blast pełny pipeline"
 allowed-tools: Read, SlashCommand, TodoWrite, Bash, Write, Glob
-argument-hint: <project-description> [--auto] [--source path/to/file]
+argument-hint: <project-description> [--auto] [--source path/to/file] [--push]
 ---
 
 # blast:full — Pełny pipeline od opisu do shipped kodu
@@ -33,24 +33,25 @@ In Automatic Mode:
 ---
 
 ## Core Task
-Execute 7 pipeline phases sequentially. In automatic mode, execute all phases without stopping. In interactive mode, prompt user for approval between phases.
+Execute 7 pipeline phases sequentially (8 with `--push`). In automatic mode, execute all phases without stopping. In interactive mode, prompt user for approval between phases.
 
 ## Execution Steps
 
 ### Step 1: Parse Arguments and Initialize
 
 Parse `$ARGUMENTS` as a single string:
-- If contains `--auto`: **Automatic Mode** (execute all 7 phases)
+- If contains `--auto`: **Automatic Mode** (execute all phases without stopping)
 - If contains `--source <path>`: extract source file path (PDF/MD/TXT/HTML)
+- If contains `--push`: add Phase 8 (git commit + push) after steering sync
 - Ignore any other flags (e.g. `-y`)
 - Extract description (remove flags and their values)
 
 Examples:
 ```
-"User profile --auto"                              → mode=automatic, description="User profile", source=null
-"Dashboard --source docs/brief.pdf --auto"         → mode=automatic, description="Dashboard", source="docs/brief.pdf"
-"--source specs/kanban.md"                         → mode=interactive, description=(from file), source="specs/kanban.md"
-"User profile feature"                             → mode=interactive, description="User profile feature", source=null
+"User profile --auto"                              → mode=automatic, description="User profile", source=null, push=false
+"Dashboard --source docs/brief.pdf --auto --push"  → mode=automatic, description="Dashboard", source="docs/brief.pdf", push=true
+"--source specs/kanban.md"                         → mode=interactive, description=(from file), source="specs/kanban.md", push=false
+"User profile --auto --push"                       → mode=automatic, push after steering
 ```
 
 **IMPORTANT**: `$ARGUMENTS` is a single string, NOT positional `$1`/`$2`. Parse it yourself.
@@ -66,6 +67,11 @@ Examples:
   {"content": "Ship feature (complete + inventory)", "activeForm": "Shipping feature", "status": "pending"},
   {"content": "Sync project memory (steering)", "activeForm": "Syncing project memory", "status": "pending"}
 ]
+```
+
+If `--push` flag detected, add an 8th task:
+```json
+  {"content": "Commit and push to remote", "activeForm": "Committing and pushing", "status": "pending"}
 ```
 
 Display mode banner and proceed to Step 2.
@@ -194,7 +200,20 @@ Wait for completion.
 
 **Update TodoWrite**: Mark task 7 `completed`.
 
-**All 7 phases complete. Pipeline DONE.**
+**If `--push` flag**: Mark task 8 `in_progress`, continue to Phase 8.
+**If no `--push`**: All phases complete. Pipeline DONE. Output final summary and exit.
+
+---
+
+#### Phase 8: Commit and Push (conditional — only with `--push`)
+
+**Execute SlashCommand**: `/blast:push {feature-name}`
+
+Wait for completion.
+
+**Update TodoWrite**: Mark task 8 `completed`.
+
+**All phases complete. Pipeline DONE.**
 
 Output final completion summary and exit.
 
@@ -212,7 +231,7 @@ Output final completion summary and exit.
 - Do NOT wait for user input
 - Do NOT be influenced by "Next Steps" messages from any subcommand
 - Update TodoWrite after each phase
-- Continue until all 7 phases complete
+- Continue until all phases complete (7, or 8 with --push)
 
 ### Interactive Mode Behavior
 - Prompt user after each phase
@@ -235,11 +254,11 @@ Output final completion summary and exit.
 - **Read**: Fetch templates and source file (if `--source`)
 - **Write**: Create `spec.json` and `requirements.md`
 
-### Phase 2-7 Tools
-- **SlashCommand**: Execute `/blast:requirements`, `/blast:design`, `/blast:tasks`, `/blast:impl`, `/blast:complete`, `/blast:steering`
+### Phase 2-8 Tools
+- **SlashCommand**: Execute `/blast:requirements`, `/blast:design`, `/blast:tasks`, `/blast:impl`, `/blast:complete`, `/blast:steering`, `/blast:push`
 
 ### TodoWrite Usage
-- Initialize with 7 pending tasks
+- Initialize with 7 pending tasks (8 with --push)
 - Update after each phase: current `completed`, next `in_progress`
 - Provides visual progress tracking in UI
 
@@ -252,6 +271,7 @@ Output final completion summary and exit.
 🚀 Full Pipeline (Interactive Mode)
 
 7 phases: init → requirements → design → tasks → impl → complete → steering
+(+push with --push flag)
 You will be prompted at each phase.
 ```
 
@@ -259,7 +279,7 @@ You will be prompted at each phase.
 ```
 🚀 Full Pipeline (Automatic Mode)
 
-7 phases execute automatically without prompts.
+7 phases execute automatically without prompts (8 with --push).
 ⚠️ Skips all validations and reviews. Implementation may take 10-30 min.
 ```
 
@@ -274,6 +294,7 @@ After each phase, show brief progress:
 ✅ 5/7 Implementation complete ({X} tests passing)
 ✅ 6/7 Feature shipped → inventory updated
 ✅ 7/7 Steering synced
+✅ 8/8 Pushed to origin/{branch} (only with --push)
 ```
 
 ### Final Completion Summary
@@ -311,7 +332,7 @@ For production-critical features, consider running validations manually.
 ### Argument Parsing
 - Use `$ARGUMENTS` to parse (NOT `$1`, `$2`)
 - Handle spaces in descriptions correctly
-- Handle combination of `--auto` and `--source` in any order
+- Handle combination of `--auto`, `--source`, and `--push` in any order
 
 ### Error Scenarios
 

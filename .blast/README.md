@@ -36,7 +36,7 @@ blast wymusza zestaw zasad na każdym etapie (pełna lista w `.blast/settings/ru
 
 .claude/
 ├── agents/blast/          ← 12 agentów (steering, requirements, design, tasks, impl, complete, review, walidacje)
-├── commands/blast/        ← 16 slash commands (interfejs użytkownika)
+├── commands/blast/        ← 18 slash commands (interfejs użytkownika)
 └── settings.local.json    ← uprawnienia bash (git-ignored)
 
 CLAUDE.md                  ← instrukcje dla AI (ładowane automatycznie)
@@ -134,9 +134,22 @@ Każdy etap wymaga review — idziesz dalej dopiero po aprovacie.
 
 # Z pliku źródłowego, automat
 /blast:full --source docs/brief.pdf --auto
+
+# Pełny automat + push na repo
+/blast:full "Formularz kontaktowy" --auto --push
 ```
 
-`/blast:full` wykonuje 7 faz: init → requirements → design → tasks → impl → complete → steering. W trybie interaktywnym przed implementacją rekomenduje wyczyszczenie kontekstu (`/clear`).
+`/blast:full` wykonuje 7 faz: init → requirements → design → tasks → impl → complete → steering (8 z `--push`). W trybie interaktywnym przed implementacją rekomenduje wyczyszczenie kontekstu (`/clear`).
+
+### Git push — wrzucanie na repo
+
+```bash
+# Push ficzera (smart staging, English commit title)
+/blast:push zoo-garden
+
+# Push wszystkich zmian (auto-detect)
+/blast:push
+```
 
 ### Code review — jakość kodu
 
@@ -381,9 +394,10 @@ node_modules/
 | `/blast:impl {f} [taski]` | Implementuje w TDD + ruff + docstrings | Po tasks |
 | `/blast:review {f} [--fix]` | Code review vs zasady + linting | Po impl / w dowolnym momencie |
 | `/blast:complete {f}` | Zamyka spec, aktualizuje inventory | Po implementacji |
+| `/blast:push [feature]` | Git commit + push (smart staging, English title) | Po complete / standalone |
 | `/blast:deprecate {f}` | Wycofuje ficzer z migration guide | Gdy ficzer do wymiany |
 | `/blast:quick "opis" [--auto] [--source]` | Specyfikacja w jednym (do tasków) | Prototyp / CRUD — spec |
-| `/blast:full "opis" [--auto] [--source]` | Pełny pipeline do shipped kodu | Prototyp / CRUD — od razu do kodu |
+| `/blast:full "opis" [--auto] [--source] [--push]` | Pełny pipeline do shipped kodu (+ push) | Prototyp / CRUD — od razu do kodu |
 | `/blast:status {f}` | Sprawdza postęp | W dowolnym momencie |
 | `/blast:validate-gap {f}` | Analiza luki | Przed design (opcjonalne) |
 | `/blast:validate-design {f}` | Review designu | Po design (opcjonalne) |
