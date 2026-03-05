@@ -41,9 +41,17 @@ Read all necessary context:
 1. Read `.blast/steering/structure.md`
 2. Glob for all source files (exclude node_modules, __pycache__, .venv, .git, .blast)
 
-### Step 2: Static Analysis — Automated Scans
+### Step 2: Two-Phase Security Analysis (via Task sub-agents)
 
-Run automated pattern-based scans using Grep and Bash:
+Analysis runs in **two phases**. Each sub-agent gets a clean, focused context — no implementation ballast.
+
+**Phase 1** — launch Sub-agent A and Sub-agent B **in parallel** (single message, two Task calls):
+
+#### Sub-agent A: Static Pattern Scanner (`model: "haiku"`)
+
+Mechanical pattern matching — doesn't need opus. Fast and cheap.
+
+**Prompt must include**: list of files in scope, tech stack from steering, project structure.
 
 **Python projects**:
 
@@ -79,22 +87,59 @@ Run automated pattern-based scans using Grep and Bash:
 4. **Dependency audit**:
    - Run `npm audit` if available
 
-### Step 3: Manual Code Review
+**Return format**: JSON array of findings, each with `{id, severity, category, file, line, description, impact, remediation}`.
 
-Read each source file in scope and check for:
+#### Sub-agent B: Deep Code Review — OWASP/CWE focus (`model: "opus"`)
 
-1. **Input validation**: Are all inputs validated at boundaries?
+This is the core value — opus with focused security context gives significantly better results than inline review.
+
+**Prompt must include**: full source code of files in scope, tech stack, project security standards (if exists at `.blast/settings/templates/steering-custom/security.md`).
+
+This sub-agent reads every source file in scope and performs deep semantic analysis — NOT pattern matching, but understanding code logic and data flow:
+
+1. **Input validation**: Are all inputs validated at boundaries? Trace data flow from entry points to storage/output
 2. **Output encoding**: Is output properly escaped for context (HTML, SQL, shell)?
-3. **Authentication**: Are auth checks present before sensitive operations?
-4. **Authorization**: Are permissions verified (not just authentication)?
-5. **Error handling**: Do errors leak sensitive info? (stack traces, DB details)
-6. **Secrets management**: Are secrets from env/config, not hardcoded?
-7. **Cryptography**: Are algorithms current? (no MD5/SHA1 for security, no ECB mode)
-8. **File operations**: Are paths validated? Open with minimal permissions?
-9. **Dependencies**: Are imports from trusted sources? Pinned versions?
+3. **Authentication**: Are auth checks present before sensitive operations? Look for missing auth middleware
+4. **Authorization**: Are permissions verified (not just authentication)? Check for IDOR vulnerabilities
+5. **Error handling**: Do errors leak sensitive info? (stack traces, DB details, internal paths)
+6. **Secrets management**: Are secrets from env/config, not hardcoded? Check for secrets in logs/responses
+7. **Cryptography**: Are algorithms current? (no MD5/SHA1 for security, no ECB mode, proper key sizes)
+8. **File operations**: Are paths validated? Open with minimal permissions? Check for path traversal via user input
+9. **Dependencies**: Are imports from trusted sources? Pinned versions? Known CVEs?
 10. **Logging**: Is PII/secret data excluded from logs?
+11. **Race conditions**: Are shared resources properly synchronized?
+12. **Business logic flaws**: Can application flow be manipulated? (e.g., skip payment, bypass validation)
 
-### Step 4: Generate Security Report
+**Return format**: JSON array of findings, same format as Sub-agent A.
+
+**Phase 2** — after Phase 1 completes, launch Sub-agent C with enriched context:
+
+#### Sub-agent C: Threat Modeling & Attack Surface (`model: "opus"`)
+
+**Prompt must include**: design.md, requirements.md, steering context, **plus Phase 1 outputs** — specifically Sub-agent A's discovered entry points (routes, endpoints, CLI commands, file handlers) and Sub-agent B's data flow findings.
+
+This sub-agent performs architectural threat analysis enriched with concrete data from Phase 1:
+
+1. **Attack surface mapping**: Validate and extend the entry points found by Sub-agent A (API endpoints, file uploads, WebSocket connections, CLI args, env vars) — add any missed by pattern scanning
+2. **STRIDE analysis**: For each entry point, evaluate: Spoofing, Tampering, Repudiation, Information Disclosure, Denial of Service, Elevation of Privilege
+3. **Trust boundary violations**: Where does data cross trust boundaries without validation?
+4. **Dependency chain risks**: Are third-party integrations properly sandboxed?
+5. **Data classification**: Is sensitive data (PII, credentials, tokens) properly protected at rest and in transit?
+6. **Missing security controls**: What OWASP Top 10 protections are absent from the design?
+
+**Return format**: JSON array of findings, same format as Sub-agents A/B, plus a `threat_model_summary` section.
+
+### Step 3: Merge & Deduplicate Findings
+
+After all three sub-agents complete:
+
+1. **Collect** all findings from sub-agents A, B, and C
+2. **Deduplicate**: Merge findings that reference the same file:line and same vulnerability type — keep the more detailed description
+3. **Cross-validate**: If sub-agent B found a vulnerability that sub-agent A missed (or vice versa), flag it as higher confidence
+4. **Severity calibration**: Adjust severity based on threat model context from sub-agent C (e.g., a Medium finding on a public-facing endpoint → High)
+5. **Sort**: Critical → High → Medium → Low
+
+### Step 4: Generate Security Report (orchestrator)
 
 Create security report at:
 - Feature-scoped: `.blast/specs/{feature}/security-report.md`

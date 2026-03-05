@@ -51,8 +51,10 @@ Quality gates run automatically before phase transitions. They don't block (user
 3. **Test existence**: Test files exist for components listed in design.md
 4. **No TODO/FIXME**: Grep codebase for TODO/FIXME/HACK in files modified by this feature
 5. **`provides` accuracy**: Components in `provides` array actually exist in codebase
+6. **Requirements→deliverables match**: Every file, document, and artifact explicitly named in requirements.md exists on disk. Grep for named files (README.md, etc.), verify quantitative thresholds (≥N tests, ≥N items), confirm documentation artifacts are non-trivial (>20 lines)
+7. **Smoke test**: Entry point runs without import/startup errors (see impl.md Step 4a for tech-specific commands)
 
-**Output**: Pass/Warn/Fail. Fail on #1 (incomplete tasks). Rest are warnings.
+**Output**: Pass/Warn/Fail. Fail on #1 (incomplete tasks), #6 (missing deliverables), #7 (app doesn't start). Rest are warnings.
 
 ## Reporting Format
 
