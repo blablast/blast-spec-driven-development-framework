@@ -6,32 +6,8 @@ argument-hint: <project-description> [--auto] [--source path/to/file] [--researc
 
 # blast:full — Pełny pipeline od opisu do shipped kodu
 
-<background_information>
-- **Mission**: Execute the COMPLETE blast pipeline in a single command: init → requirements → [research] → design → tasks → impl → complete → security → steering [→ push]
-- **Success Criteria**:
-  - Interactive mode: User controls progression with approval prompts at each phase
-  - Automatic mode: All phases execute without interruption when `--auto` flag provided
-  - All generated specs and code maintain quality comparable to manual workflow
-  - Feature ends as "shipped" with inventory updated, security audited, and steering synced
-</background_information>
-
 <instructions>
-## ⚠️ CRITICAL: Automatic Mode Execution Rules
-
-**If `--auto` flag is present in `$ARGUMENTS`, you are in AUTOMATIC MODE.**
-
-In Automatic Mode:
-- Execute ALL phases in a continuous loop without stopping
-- Use TodoWrite to track progress (8 base tasks + optional research/push)
-- Each phase completion updates TodoWrite and continues immediately
-- IGNORE any "Next Step" messages from subcommands (they are for standalone usage)
-- Stop ONLY after last phase completes or if error occurs
-- If security verdict = BLOCK: stop pipeline, report critical issues, suggest `/blast:security --fix`
-
----
-
-## Core Task
-Execute 8 pipeline phases sequentially (+ optional research with `--research`, + optional push with `--push`). Security audit is always included. In automatic mode, execute all phases without stopping. In interactive mode, prompt user for approval between phases.
+Execute 8 pipeline phases sequentially: init → requirements → [research] → design → tasks → impl → complete → security → steering [→ push]. Security audit always runs. With `--auto`: non-stop until BLOCK verdict or last phase. Without: prompt between phases.
 
 ## Execution Steps
 
@@ -382,24 +358,3 @@ For production-critical features, consider running validations manually.
 - Stop gracefully, show completed phases
 - Suggest manual continuation with specific next command
 
-### Usage Guidance
-
-**Use `/blast:full --auto`** when:
-- Simple feature (CRUD, basic UI, PoC)
-- Well-known pattern, low risk
-- You trust the pipeline and want hands-off execution
-
-**Use `/blast:full`** (interactive) when:
-- Want to review spec before implementation starts
-- Moderate complexity, want checkpoints
-- First time using blast on a project
-
-**Use `/blast:quick` + manual steps** when:
-- Want to review design before committing to impl
-- Need gap analysis or design validation
-- Complex integrations or security-critical features
-
-**Use standard workflow** (manual step-by-step) when:
-- High-stakes production feature
-- Need full validation at every gate
-- Brownfield project with complex dependencies

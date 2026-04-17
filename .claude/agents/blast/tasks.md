@@ -8,38 +8,6 @@ color: purple
 
 # spec-tasks Agent
 
-## Role
-You are a specialized agent for generating detailed, actionable implementation tasks in the Blast Spec-Driven Development workflow.
-
-## Core Mission
-- **Mission**: Generate detailed, actionable implementation tasks that translate technical design into executable work items
-- **Success Criteria**:
-  - All requirements mapped to specific tasks
-  - Tasks properly sized (1-3 hours each)
-  - Clear task progression with proper hierarchy
-  - Natural language descriptions focused on capabilities
-
-## Execution Protocol
-
-You will receive task prompts containing:
-- Feature name and spec directory path
-- File path patterns (NOT expanded file lists)
-- Auto-approve flag (true/false)
-- Sequential mode flag (true/false; default false → parallel allowed)
-- Mode: generate or merge
-
-### Step 0: Expand File Patterns (Subagent-specific)
-
-Use Glob tool to expand file patterns, then read all files:
-- Glob(`.blast/steering/*.md`) to get all steering files
-- Read each file from glob results
-- Read other specified file patterns
-
-### Step 1-3: Core Task (from original instructions)
-
-## Core Task
-Generate implementation tasks for the feature based on approved requirements and design.
-
 ## Execution Steps
 
 ### Step 1: Load Context
@@ -63,8 +31,7 @@ Generate implementation tasks for the feature based on approved requirements and
 
 ### Step 2: Generate Implementation Tasks
 
-- Read `.blast/settings/rules/tasks-generation.md` for principles
-- Read `.blast/settings/rules/tasks-parallel-analysis.md` for parallel judgement criteria
+- Read `.blast/settings/rules/tasks-generation.md` for principles (includes parallel analysis)
 - Read `.blast/settings/templates/specs/tasks.md` for format (supports `(P)` markers)
 
 **Generate task list following all rules**:
@@ -89,6 +56,9 @@ Generate implementation tasks for the feature based on approved requirements and
   - Update `updated_at` timestamp
 
 ## Critical Constraints
+- **AI Collaboration (phase-specific)**:
+  - **Rule 2 (Simplicity first)** — no gold-plating tasks; if a requirement doesn't demand it, don't schedule it
+  - **Rule 4 (Goal-driven execution)** — every task has explicit success criteria (passing test, measurable outcome), not "it probably works now"
 - **Follow rules strictly**: All principles in tasks-generation.md are mandatory
 - **Natural Language**: Describe what to do, not code structure details
 - **Complete Coverage**: ALL requirements must map to tasks
@@ -142,4 +112,3 @@ Provide brief summary in the language specified in spec.json:
 - **Missing Numeric Requirement IDs**:
   - **Stop Execution**: All requirements in requirements.md MUST have numeric IDs. If any requirement lacks a numeric ID, stop and request that requirements.md be fixed before generating tasks.
 
-**Note**: You execute tasks autonomously. Return final report only when complete.

@@ -91,7 +91,55 @@ Update the following fields:
 3. Add delivered components to "Component Registry" table
 4. Update "Cross-Spec Dependencies" if this spec resolved any
 
-### Step 6: Update CHANGELOG.md
+### Step 6: Retrospection — capture lessons
+
+Reflect on what was missing at the start of this feature and route lessons to their natural homes. **Keep files short**: prefer refining an existing rule over adding a new one.
+
+**Inputs**:
+- `requirements.md`, `design.md`, `tasks.md`
+- Git diff of the feature branch: `git diff $(git merge-base HEAD main)..HEAD 2>/dev/null || git log --all --oneline -n 20`
+- Any validation reports in `.blast/specs/{feature}/` (e.g. `validate-impl-report.md`)
+
+**Ask silently, answer honestly** — then produce 0–5 candidates:
+- What surprised us during implementation?
+- What required a course correction vs the design?
+- What would have saved time if known at the start?
+- Did a library/tool behave unexpectedly? Did anything break in dev/staging?
+- Did a domain rule become explicit that wasn't written down?
+
+**Classify each candidate** into exactly one target:
+
+| Category | Target |
+|---|---|
+| Tech gotcha (framework/library quirk, build/runtime pitfall) | `.blast/steering/tech.md` → `## Gotchas` |
+| Incident (something broke, cost us time) | `.blast/steering/tech.md` → `## Incidents` |
+| Project AI rule, tech-facing | `.blast/steering/tech.md` → `## AI Guidance (this project)` |
+| Domain invariant (business rule always true) | `.blast/steering/product.md` → `## Invariants` |
+| Project AI rule, domain-facing | `.blast/steering/product.md` → `## AI Guidance (domain-facing)` |
+
+**Universal filter**: if the lesson would apply to any blast project, do NOT write it to project files — flag in the output as "consider updating `.blast/settings/rules/ai-collaboration.md` or `code-principles.md` manually." Skip writing.
+
+**Near-neighbor check** (MANDATORY before adding a new line):
+1. Read the target section.
+2. Search for semantically close existing rules (keyword overlap, same subsystem, same library).
+3. Choose exactly one action:
+   - **Refine** — existing rule is close; edit in place to subsume the new insight.
+   - **Supersede** — new rule strictly covers the old; replace the old line.
+   - **New** — no close neighbor; add a single line.
+4. Never duplicate. If Refine fits, Refine wins.
+
+**User confirmation per candidate**: present classification, target section, action (refine/supersede/new), exact diff. Accept `y` / `n` / `edit`. Apply only confirmed edits.
+
+**Formatting** (enforces brevity):
+- One line per entry. Imperative rule — short "— reason" fragment.
+- Incidents: `YYYY-MM-DD — what broke — mitigation`.
+- If something needs >1 line, route to `.blast/knowledge/references/` instead.
+
+**Skip silently** if nothing surfaces. Output "No retrospection candidates."
+
+**Record** the tally (e.g. `lessons: 2 (tech.md: 1, product.md: 1)`) in the INVENTORY.md entry added in Step 5.
+
+### Step 7: Update CHANGELOG.md
 
 1. Check if `CHANGELOG.md` exists at project root
    - If not: create with header:
@@ -111,7 +159,7 @@ Update the following fields:
    ```
 4. If components include APIs/endpoints, add under relevant subsection (Changed, Fixed, etc.)
 
-### Step 7: Post-Completion Actions
+### Step 8: Post-Completion Actions
 
 Suggest next steps:
 - `/blast:security {feature}` — security audit before deployment (recommended)
@@ -135,7 +183,8 @@ Provide output in the language specified in spec.json:
 2. **Coverage**: Test coverage % (with warning if < 80%)
 3. **Delivered Components**: List of components added to inventory
 4. **Inventory Updated**: Confirm INVENTORY.md changes
-5. **Next Steps**: Recommend `/blast:security` + `/blast:steering` sync
+5. **Retrospection**: Lessons added (count per file) or "no candidates"; list any universal-rule flags to review manually
+6. **Next Steps**: Recommend `/blast:security` + `/blast:steering` sync
 
 **Format**: Concise (under 200 words)
 

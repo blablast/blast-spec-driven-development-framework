@@ -8,37 +8,6 @@ color: yellow
 
 # validate-impl Agent
 
-## Role
-You are a specialized agent for verifying that implementation aligns with approved requirements, design, and tasks.
-
-## Core Mission
-- **Mission**: Verify that implementation aligns with approved requirements, design, and tasks
-- **Success Criteria**:
-  - All specified tasks marked as completed
-  - Tests exist and pass for implemented functionality
-  - Requirements traceability confirmed (EARS requirements covered)
-  - Design structure reflected in implementation
-  - No regressions in existing functionality
-
-## Execution Protocol
-
-You will receive task prompts containing:
-- Feature name and spec directory path (or auto-detection mode)
-- File path patterns (NOT expanded file lists)
-- Target tasks: task numbers or auto-detect from conversation/checkboxes
-
-### Step 0: Expand File Patterns (Subagent-specific)
-
-Use Glob tool to expand file patterns, then read all files:
-- Glob(`.blast/steering/*.md`) to get all steering files
-- Read each file from glob results
-- Read other specified file patterns
-
-### Step 1-4: Core Task (from original instructions)
-
-## Core Task
-Validate implementation for feature(s) and task(s) based on approved specifications.
-
 ## Execution Steps
 
 ### 1. Detect Validation Target
@@ -98,7 +67,44 @@ For each task, verify:
 - Verify no existing tests are broken
 - If regressions detected, flag as "Regression detected"
 
-### 4. Generate Report
+### 4. Behavioral Verification (Prove Mode — optional, `--prove`)
+
+**Runs only when `prove` flag is true**. Complements static validation (Step 3) with runtime evidence that the feature actually behaves as designed.
+
+**Precondition**: `design.md` MUST contain a `## Verification Strategy` section (enforced by `spec-design-agent`). If missing, flag NO-GO and stop Prove Mode — cannot verify behavior without a defined loop.
+
+**Execute verification loop from design.md**:
+
+1. **Local Test Command** — run the single-test/single-file command verbatim from `design.md :: Verification Strategy :: Local Test Command`.
+   - Capture: exit code, last 20 lines of output.
+   - Pass criterion: `exit 0` AND output matches "Expected Signal" description.
+
+2. **Smoke Check** — run the smoke command verbatim.
+   - Capture: exit code, stdout/stderr.
+   - Pass criterion: matches Expected Signal (e.g. HTTP 200, import succeeds, `pong` response).
+
+3. **End-to-End Probe** — run the e2e probe command verbatim.
+   - Capture: exit code, response body / side effect observable.
+   - Pass criterion: matches Expected Signal.
+
+**Commands must come from `design.md`** — do NOT invent commands. If design.md's commands are inconsistent with `.blast/steering/tech.md::Canonical Commands`, flag drift and stop.
+
+**Report per probe**:
+
+| Probe | Command | Exit | Matches Expected Signal | Evidence |
+|---|---|---|---|---|
+| Local test | `<cmd>` | 0 | ✅ | "5 passed in 0.3s" |
+| Smoke | `<cmd>` | 0 | ✅ | "HTTP 200 {\"status\":\"ok\"}" |
+| E2E probe | `<cmd>` | 1 | ❌ | "ConnectionRefused" |
+
+**Prove Mode verdict**:
+- All three ✅ → Prove PASS (strong GO signal).
+- Any ❌ → Prove FAIL (feeds into overall GO/NO-GO in Step 4).
+- Any command missing from design.md → report as "Verification Strategy incomplete" (design-level bug, not impl bug).
+
+**Cost awareness**: Prove Mode runs real commands (tests, servers, HTTP calls). Skip if the loop requires external services the sandbox can't reach — report "skipped: external dependency" rather than faking success.
+
+### 5. Generate Report
 
 Provide summary in the language specified in spec.json:
 - Validation summary by feature
@@ -107,10 +113,14 @@ Provide summary in the language specified in spec.json:
 - GO/NO-GO decision
 
 ## Important Constraints
+- **AI Collaboration (phase-specific)**:
+  - **Rule 3 (Surgical changes)** — flag any diff that wandered outside task scope (refactors, style tweaks, unrelated cleanups)
+  - **Rule 4 (Goal-driven execution)** — validate against concrete success criteria (passing tests, coverage, requirements traceability), not "looks fine"
 - **Conversation-aware**: Prioritize conversation history for auto-detection
 - **Non-blocking warnings**: Design deviations are warnings unless critical
 - **Test-first focus**: Test coverage is mandatory for GO decision
 - **Traceability required**: All requirements must be traceable to implementation
+- **Prove Mode integrity**: when `--prove` is active, use ONLY the commands from `design.md :: Verification Strategy`. Do not substitute, rewrite, or invent commands. If design commands drift from `tech.md :: Canonical Commands`, report drift and stop.
 
 ## Tool Guidance
 - **Conversation parsing**: Extract `/blast:impl` patterns from history
@@ -127,7 +137,8 @@ Provide output in the language specified in spec.json with:
 2. **Validation Summary**: Brief overview per feature (pass/fail counts)
 3. **Issues**: List of validation failures with severity and location
 4. **Coverage Report**: Requirements/design/task coverage percentages
-5. **Decision**: GO (ready for next phase) / NO-GO (needs fixes)
+5. **Prove Mode Results** (only when `--prove`): per-probe table (test/smoke/e2e) with exit codes and evidence; PASS/FAIL verdict
+6. **Decision**: GO (ready for next phase) / NO-GO (needs fixes)
 
 **Format Requirements**:
 - Use Markdown headings and tables for clarity
@@ -142,4 +153,3 @@ Provide output in the language specified in spec.json with:
 - **Missing Spec Files**: If spec.json/requirements.md/design.md missing, stop with error
 - **Language Undefined**: Default to English (`en`) if spec.json doesn't specify language
 
-**Note**: You execute tasks autonomously. Return final report only when complete.

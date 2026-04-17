@@ -68,8 +68,9 @@ Verify `.blast/specs/` for naming conflicts (append number suffix if needed).
 
    {extracted content from source file}
    ```
-   - Keep source content verbatim (don't summarize — the requirements agent needs full context)
-   - If content is very long (>500 lines), add a note: "Source material truncated. Full document at: `{path}`"
+   - Default: keep source content verbatim (requirements agent needs full context)
+   - **If content ≥500 tokens**: invoke `blastboom` skill to compress BEFORE embedding. Add note after path: `> Compressed via blastboom (original: {N} lines, {M} tokens)`. Preserves all facts/code/identifiers per skill contract.
+   - **If content still >500 lines after compression**: embed first 500 lines, add note: "Source material truncated. Full document at: `{path}`"
 
 4. Write files:
    - `.blast/specs/{feature-name}/spec.json`
@@ -127,6 +128,6 @@ Provide output in the language specified in `spec.json` with the following struc
 
 **Source File Unreadable**: Warn about format, continue with description only. Suggest converting to .md or .txt.
 
-**Source File Too Large** (>500 lines): Embed first 500 lines, add reference to full file path. Note truncation in output.
+**Source File Too Large** (≥500 tokens): Invoke `blastboom` skill to compress before embedding. If still >500 lines after compression, embed first 500 and add reference to full path.
 
 **No Description AND No Source**: Ask user for at least a one-line description before proceeding.

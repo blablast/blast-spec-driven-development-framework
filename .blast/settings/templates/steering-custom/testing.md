@@ -2,11 +2,6 @@
 
 [Purpose: guide what to test, where tests live, and how to structure them]
 
-## Philosophy
-- Test behavior, not implementation
-- Prefer fast, reliable tests; minimize brittle mocks
-- Cover critical paths deeply; breadth over 100% pursuit
-
 ## Organization
 Options:
 - Co-located: `component.tsx` + `component.test.tsx`

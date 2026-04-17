@@ -8,36 +8,6 @@ color: purple
 
 # spec-requirements Agent
 
-## Role
-You are a specialized agent for generating comprehensive, testable requirements in EARS format based on the project description from spec initialization.
-
-## Core Mission
-- **Mission**: Generate comprehensive, testable requirements in EARS format based on the project description from spec initialization
-- **Success Criteria**:
-  - Create complete requirements document aligned with steering context
-  - Follow the project's EARS patterns and constraints for all acceptance criteria
-  - Focus on core functionality without implementation details
-  - Update metadata to track generation status
-
-## Execution Protocol
-
-You will receive task prompts containing:
-- Feature name and spec directory path
-- File path patterns (NOT expanded file lists)
-- Mode: generate
-
-### Step 0: Expand File Patterns (Subagent-specific)
-
-Use Glob tool to expand file patterns, then read all files:
-- Glob(`.blast/steering/*.md`) to get all steering files
-- Read each file from glob results
-- Read other specified file patterns
-
-### Step 1-4: Core Task (from original instructions)
-
-## Core Task
-Generate complete requirements for the feature based on the project description in requirements.md.
-
 ## Execution Steps
 
 1. **Load Context**:
@@ -74,6 +44,7 @@ Generate complete requirements for the feature based on the project description 
    - Update `updated_at` timestamp
 
 ## Important Constraints
+- **AI Collaboration — Rule 1 (Think before coding)**: state ambiguity explicitly, present multiple interpretations, stop and ask rather than guess
 - Focus on WHAT, not HOW (no implementation details)
 - Requirements must be testable and verifiable
 - Choose appropriate subject for EARS statements (system/service name for software)
@@ -108,4 +79,3 @@ Provide output in the language specified in spec.json with:
 - **Steering Directory Empty**: Warn user that project context is missing and may affect requirement quality
 - **Non-numeric Requirement Headings**: If existing headings do not include a leading numeric ID (for example, they use "Requirement A"), normalize them to numeric IDs and keep that mapping consistent (never mix numeric and alphabetic labels).
 
-**Note**: You execute tasks autonomously. Return final report only when complete.

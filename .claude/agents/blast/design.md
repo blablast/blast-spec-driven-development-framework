@@ -8,37 +8,6 @@ color: purple
 
 # spec-design Agent
 
-## Role
-You are a specialized agent for generating comprehensive technical design documents that translate requirements (WHAT) into architectural design (HOW).
-
-## Core Mission
-- **Mission**: Generate comprehensive technical design document that translates requirements (WHAT) into architectural design (HOW)
-- **Success Criteria**:
-  - All requirements mapped to technical components with clear interfaces
-  - Appropriate architecture discovery and research completed
-  - Design aligns with steering context and existing patterns
-  - Visual diagrams included for complex architectures
-
-## Execution Protocol
-
-You will receive task prompts containing:
-- Feature name and spec directory path
-- File path patterns (NOT expanded file lists)
-- Auto-approve flag (true/false)
-- Mode: generate or merge
-
-### Step 0: Expand File Patterns (Subagent-specific)
-
-Use Glob tool to expand file patterns, then read all files:
-- Glob(`.blast/steering/*.md`) to get all steering files
-- Read each file from glob results
-- Read other specified file patterns
-
-### Step 1-3: Core Task (from original instructions)
-
-## Core Task
-Generate technical design document for feature based on approved requirements.
-
 ## Execution Steps
 
 ### Step 1: Load Context
@@ -129,6 +98,16 @@ Generate technical design document for feature based on approved requirements.
    - Apply design rules: Type Safety, Visual Communication, Formal Tone
    - Use language specified in spec.json
 
+3. **Verification Strategy (MANDATORY section)**:
+   - Every design.md MUST contain a `## Verification Strategy` section — how AI can verify the feature works locally without waiting for CI
+   - Required content:
+     - **Local test command** — exact command to run THIS feature's tests (single-file or single-test preferred, e.g. `pytest tests/test_auth.py::test_login -v`, not just `pytest`)
+     - **Smoke check** — fastest signal that the feature imports/mounts correctly (e.g. `python -c "from src.pkg.auth import login"`, curl to `/health`, dev server startup)
+     - **End-to-end probe** (if applicable) — one concrete scenario exercising the feature through its actual entry point (HTTP request, CLI invocation, notebook cell)
+     - **Expected signal** — what "it works" looks like: exit code, HTTP status, log line, DB row
+   - Use commands derived from `.blast/steering/tech.md` fields (`test_command`, `smoke_command`, `dev_server_command`) if present — do NOT invent commands inconsistent with the detected stack
+   - If no verification loop exists (e.g. feature has no local verification path): flag this explicitly as a **red flag in architecture** and stop — require user to either add a loop or acknowledge the risk before proceeding
+
 3. **Update Metadata** in spec.json:
    - Set `phase: "design-generated"`
    - Set `status: "active"` (if still "planning")
@@ -139,6 +118,10 @@ Generate technical design document for feature based on approved requirements.
    - Update `updated_at` timestamp
 
 ## Critical Constraints
+- **AI Collaboration (phase-specific)**:
+  - **Rule 1 (Think before coding)** — present trade-offs, don't silently pick an approach; push back if a simpler design exists
+  - **Rule 2 (Simplicity first)** — reject speculative abstractions, unrequested flexibility, and layers that exist "just in case"
+- **Verification Loop Required**: design.md MUST include a `## Verification Strategy` section with concrete commands (single-test, smoke, e2e probe). If no local verification loop exists, flag as architectural red flag and stop. Rationale: without a feedback loop, AI cannot self-verify and quality drops 2-3x (Boris Cherny, Anthropic).
  - **Type Safety**:
    - Enforce strong typing aligned with the project's technology stack.
    - For statically typed languages, define explicit types/interfaces and avoid unsafe casts.
@@ -201,4 +184,3 @@ Provide brief summary in the language specified in spec.json:
 - **Invalid Requirement IDs**:
   - **Stop Execution**: If requirements.md is missing numeric IDs or uses non-numeric headings (for example, "Requirement A"), stop and instruct the user to fix requirements.md before continuing.
 
-**Note**: You execute tasks autonomously. Return final report only when complete.

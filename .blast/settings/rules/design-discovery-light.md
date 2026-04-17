@@ -1,49 +1,49 @@
-# Light Discovery Process for Extensions
+# Light Discovery Process (for simple extensions)
 
-## Objective
-Quickly analyze existing system and integration requirements for feature extensions.
+> Used for feature extensions that fit existing patterns. Escalate to `design-discovery-full.md` if any trigger below fires.
 
-## Focused Discovery Steps
+## Steps
 
 ### 1. Extension Point Analysis
-**Identify Integration Approach**:
-- Locate existing extension points or interfaces
-- Determine modification scope (files, components)
-- Check for existing patterns to follow
-- Identify backward compatibility requirements
+
+- Locate existing extension points / interfaces.
+- Determine modification scope (files, components).
+- Identify patterns to follow.
+- Backward compatibility requirements.
 
 ### 2. Dependency Check
-**Verify Compatibility**:
-- Check version compatibility of new dependencies
-- Validate API contracts haven't changed
-- Ensure no breaking changes in pipeline
 
-### 3. Quick Technology Verification
-**For New Libraries Only**:
-- Use WebSearch for official documentation
-- Verify basic usage patterns
-- Check for known compatibility issues
-- Confirm licensing compatibility
-- Record key findings in `research.md` (technology alignment section)
+- Version compatibility of new dependencies.
+- API contracts haven't changed.
+- No breaking changes in pipeline.
 
-### 4. Integration Risk Assessment
-**Quick Risk Check**:
-- Impact on existing functionality
-- Performance implications
-- Security considerations
-- Testing requirements
+### 3. Quick Technology Verification (new libraries only)
 
-## When to Escalate to Full Discovery
-Switch to full discovery if you find:
-- Significant architectural changes needed
-- Complex external service integrations
-- Security-sensitive implementations
-- Performance-critical components
-- Unknown or poorly documented dependencies
+- WebSearch for official documentation.
+- Basic usage patterns.
+- Known compatibility issues.
+- Licensing compatibility.
+- Record key findings in `research.md`.
 
-## Output Requirements
-- Clear integration approach (note boundary impacts in `research.md`)
-- List of files/components to modify
-- New dependencies with versions
-- Integration risks and mitigations
-- Testing focus areas
+### 4. Integration Risk
+
+- Impact on existing functionality.
+- Performance implications.
+- Security considerations.
+- Testing requirements.
+
+## Escalate to Full Discovery when
+
+- Significant architectural changes needed.
+- Complex external service integrations.
+- Security-sensitive implementations.
+- Performance-critical components.
+- Unknown or poorly documented dependencies.
+
+## Output
+
+- Clear integration approach (note boundary impacts in `research.md`).
+- List of files/components to modify.
+- New dependencies with versions.
+- Integration risks + mitigations.
+- Testing focus areas.

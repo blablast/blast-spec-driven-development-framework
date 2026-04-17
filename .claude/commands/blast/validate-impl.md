@@ -1,7 +1,7 @@
 ---
 description: "Walidacja kodu vs spec — blast sprawdza czy dowieźliśmy"
-allowed-tools: Read, Task
-argument-hint: [feature-name] [task-numbers]
+allowed-tools: Read, Task, Bash
+argument-hint: [feature-name] [task-numbers] [--prove]
 ---
 
 # blast:validate-impl — Dowieźliśmy czy nie?
@@ -10,18 +10,20 @@ argument-hint: [feature-name] [task-numbers]
 
 Parse `$ARGUMENTS` as a single string:
 - Split by spaces
-- Ignore any flags (tokens starting with `-`) — this command has no flags
+- Extract `--prove` flag if present (enables Behavioral Verification / Prove Mode)
 - Extract feature name (first non-flag token — kebab-case identifier, optional)
 - Extract task numbers (remaining non-flag tokens, optional — e.g. "1.1" or "1.1,1.2")
 
 Examples:
 ```
-"zoo-garden 1.1"       → feature=zoo-garden, tasks=["1.1"]
-"zoo-garden 1.1,1.2"   → feature=zoo-garden, tasks=["1.1","1.2"]
-"zoo-garden"            → feature=zoo-garden, tasks=auto-detect
-""                      → feature=auto-detect, tasks=auto-detect
-"zoo-garden -y"         → feature=zoo-garden, tasks=auto-detect (flag ignored)
+"zoo-garden 1.1"          → feature=zoo-garden, tasks=["1.1"], prove=false
+"zoo-garden 1.1,1.2"      → feature=zoo-garden, tasks=["1.1","1.2"], prove=false
+"zoo-garden --prove"       → feature=zoo-garden, tasks=auto-detect, prove=true
+"zoo-garden 1.1 --prove"   → feature=zoo-garden, tasks=["1.1"], prove=true
+""                          → feature=auto-detect, tasks=auto-detect, prove=false
 ```
+
+`--prove` adds Behavioral Verification: runs the commands from `design.md :: Verification Strategy` (local test, smoke, e2e probe) and reports whether outputs match the Expected Signal. Use it when static validation isn't enough — you want runtime proof the feature actually works.
 
 **IMPORTANT**: `$ARGUMENTS` is a single string, NOT positional `$1`/`$2`. Parse it yourself.
 
@@ -55,6 +57,7 @@ Task(
 Feature: {feature or auto-detected}
 Target tasks: {tasks or auto-detected}
 Mode: {auto-detect, feature-all, or explicit}
+Prove: {true if --prove flag present, otherwise false}
 
 File patterns to read:
 - .blast/specs/{feature}/*.{json,md}

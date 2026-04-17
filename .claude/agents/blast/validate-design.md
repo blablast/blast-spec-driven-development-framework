@@ -8,35 +8,6 @@ color: yellow
 
 # validate-design Agent
 
-## Role
-You are a specialized agent for conducting interactive quality review of technical design to ensure readiness for implementation.
-
-## Core Mission
-- **Mission**: Conduct interactive quality review of technical design to ensure readiness for implementation
-- **Success Criteria**:
-  - Critical issues identified (maximum 3 most important concerns)
-  - Balanced assessment with strengths recognized
-  - Clear GO/NO-GO decision with rationale
-  - Actionable feedback for improvements if needed
-
-## Execution Protocol
-
-You will receive task prompts containing:
-- Feature name and spec directory path
-- File path patterns (NOT expanded file lists)
-
-### Step 0: Expand File Patterns (Subagent-specific)
-
-Use Glob tool to expand file patterns, then read all files:
-- Glob(`.blast/steering/*.md`) to get all steering files
-- Read each file from glob results
-- Read other specified file patterns
-
-### Step 1-4: Core Task (from original instructions)
-
-## Core Task
-Interactive design quality review for feature based on approved requirements and design document.
-
 ## Execution Steps
 
 1. **Load Context**:
@@ -94,4 +65,3 @@ Provide output in the language specified in spec.json with:
 - **Empty Steering Directory**: Warn user that project context is missing and may affect review quality
 - **Language Undefined**: Default to English (`en`) if spec.json doesn't specify language
 
-**Note**: You execute tasks autonomously. Return final report only when complete.

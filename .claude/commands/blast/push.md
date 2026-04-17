@@ -78,19 +78,25 @@ If any potentially sensitive files are detected, **list them and ask user before
 <concise summary — only the meat, 2-5 lines>
 ```
 
+**Author rules** (strict):
+- Author = user only. Do NOT append `Co-Authored-By: Claude ...` trailer.
+- Do NOT add "Generated with Claude Code" footer or any AI-attribution line.
+- No emoji.
+
 **Title rules**:
 - English, imperative mood ("Add zoo management system", not "Added" or "Adding")
 - Descriptive — say WHAT was done, not just "update files"
 - Max 72 characters
 - No period at end
-- Prefix with scope if multi-feature repo: `feat(zoo): Add animal management system`
+- Scope prefix (`feat(zoo): ...`) ONLY if `git log --oneline -5` shows the repo already uses conventional/scoped format. Otherwise skip.
 
 **Summary rules**:
 - English, concise — every word must earn its place
-- What was built/changed and why — no filler, no "this commit does..."
-- Bullet points OK for multi-part changes
+- What was built/changed and why — no filler, no "this commit does...", no marketing language
+- Prefer one paragraph. Bullets only for genuinely multi-part changes (big feature rollup with distinct components)
 - Include key stats if useful: "90 tests passing, 6 modules"
 - If feature-scoped: reference spec name
+- Skip the summary entirely if the title alone suffices (trivial change)
 
 **Examples**:
 ```

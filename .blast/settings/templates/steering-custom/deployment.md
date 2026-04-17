@@ -2,11 +2,6 @@
 
 [Purpose: safe, repeatable releases with clear environment and pipeline patterns]
 
-## Philosophy
-- Automate; test before deploy; verify after deploy
-- Prefer incremental rollout with fast rollback
-- Production changes must be observable and reversible
-
 ## Environments
 - Dev: fast iteration; debugging enabled
 - Staging: mirrors prod; release validation
@@ -46,8 +41,7 @@ Choose per risk profile; document default.
 - Monitor latency, error rate, throughput, saturation
 - Alerts on SLO breaches/spikes; tune to avoid fatigue
 
-## Incident Response & DR
-- Standard playbook: detect → assess → mitigate → communicate → resolve → post-mortem
+## Backups & DR
 - Backups with retention; test restore; defined RPO/RTO
 
 ---

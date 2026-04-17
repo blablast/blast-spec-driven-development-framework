@@ -20,68 +20,22 @@ Pełna dokumentacja: `.blast/README.md`
 
 ## Komendy blast
 
-### Faza 0: Kontekst projektu (opcjonalna)
+Pełen wykaz komend, flag i przykładów → `/blast:help [komenda]`.
 
-| Komenda | Co robi |
-|---|---|
-| `/blast:steering` | Tworzy lub synchronizuje pamięć projektu |
-| `/blast:steering-custom` | Tworzy dodatkowe pliki steering (API, DB, security...) |
-
-### Faza 1: Specyfikacja
-
-| Komenda | Co robi |
-|---|---|
-| `/blast:init "opis" [--source path]` | Inicjalizuje nowy spec — tworzy folder i metadane. `--source` importuje treść z pliku |
-| `/blast:requirements {feature}` | Generuje wymagania w formacie EARS |
-| `/blast:research {feature} [--deep]` | *(opcjonalne)* Spike/research — opcje, porównania, wnioski |
-| `/blast:validate-gap {feature}` | *(opcjonalne)* Analiza luki między wymaganiami a istniejącym kodem |
-| `/blast:design {feature} [-y]` | Generuje design techniczny |
-| `/blast:validate-design {feature}` | *(opcjonalne)* Review jakości designu |
-| `/blast:tasks {feature} [-y]` | Generuje plan implementacji (taski) |
-
-### Faza 2: Implementacja
-
-| Komenda | Co robi |
-|---|---|
-| `/blast:impl {feature} [tasks]` | Implementuje taski (TDD) z lintingiem (ruff/eslint) i docstrings |
-| `/blast:review {feature} [--fix]` | Code review vs zasady (Clean Code, SOLID, DRY, PEP8, ruff...) |
-| `/blast:security {feature} [--fix] [--all]` | Audyt bezpieczeństwa (OWASP, secrets, injection) |
-| `/blast:validate-impl {feature}` | *(opcjonalne)* Walidacja implementacji vs spec |
-| `/blast:complete {feature}` | Zamyka spec, aktualizuje inventory — ficzer shipped! |
-| `/blast:push [feature]` | Git commit + push (smart staging, English title) |
-| `/blast:deprecate {feature}` | Wycofuje ficzer z migration guide |
-
-### Skróty i status
-
-| Komenda | Co robi |
-|---|---|
-| `/blast:quick "opis" [--auto] [--source] [--research]` | Specyfikacja w jednym strzale (init→req→[research]→design→tasks) |
-| `/blast:full "opis" [--auto] [--source] [--research] [--push]` | Pełny pipeline (spec + impl + security + steering + push) |
-| `/blast:status {feature}` | Status i postęp specyfikacji |
-| `/blast:help [komenda]` | Pomoc — lista komend, flagi, przykłady |
-
-## Workflow — od zera do kodu
+### Pipeline
 
 ```
-/blast:steering                    # raz na projekt
-/blast:init "nowa ficzerka"
-/blast:requirements {feature}
-/blast:design {feature}
-/blast:tasks {feature}
-/blast:impl {feature} 1.1
-/blast:complete {feature}          # zamyka spec, aktualizuje inventory
+steering → init → requirements → [research] → design → tasks → impl → [review] → [security] → complete → [push]
 ```
 
-Szybki tryb — tylko spec (prototyp / CRUD):
-```
-/blast:quick "opis ficzera" --auto
-```
+`[optional]` = fazy opcjonalne. Walidacje (`validate-gap`, `validate-design`, `validate-impl`) też opcjonalne — wchodzą po właściwej fazie.
 
-Pełny pipeline — od opisu do shipped kodu:
-```
-/blast:full "opis ficzera" --auto
-/blast:full "opis" --source docs/brief.pdf --auto
-```
+### Skróty
+
+- `/blast:quick "opis" [--auto] [--research]` — tylko spec (init→req→[research]→design→tasks)
+- `/blast:full "opis" [--auto] [--research] [--push]` — pełny pipeline (spec + impl + complete + security + steering)
+- `/blast:status [f]` — status i postęp specu
+- `/blast:help [cmd]` — szczegóły, flagi, przykłady
 
 ## Zasady gry
 
@@ -92,6 +46,14 @@ Pełny pipeline — od opisu do shipped kodu:
 5. **Język specyfikacji** — domyślnie polski (konfigurowalny w `spec.json`)
 6. **Autonomia w ramach instrukcji** — AI zbiera kontekst i dowozi, pyta tylko gdy brakuje krytycznych info
 
+## Verification
+
+Jak AI ma zweryfikować swoją pracę bez czekania na CI:
+
+- **Canonical commands** (install/test/lint/typecheck/dev/smoke) → `.blast/steering/tech.md :: Canonical Commands` (generowane przez `/blast:steering`)
+- **Per-feature probe** (single test + smoke + e2e) → `.blast/specs/{f}/design.md :: Verification Strategy`
+- **Runtime proof** → `/blast:validate-impl {f} --prove` (odpala Verification Strategy i sprawdza Expected Signal)
+
 ## Zasady kodowania
 
 blast wymusza zasady Clean Code, SOLID, KISS, DRY, YAGNI, odpowiednie wzorce projektowe, brak overengineeringu i SOTA rozwiązania. Pełna lista: `.blast/settings/rules/code-principles.md`
@@ -101,6 +63,7 @@ blast wymusza zasady Clean Code, SOLID, KISS, DRY, YAGNI, odpowiednie wzorce pro
 - Myśl po angielsku, odpowiadaj po angielsku. Cała treść Markdown zapisywana do plików projektowych (np. requirements.md, design.md, tasks.md, research.md, raporty walidacyjne) MUSI być napisana w języku docelowym skonfigurowanym dla danej specyfikacji (patrz spec.json.language).
 - Postępuj zgodnie z instrukcjami użytkownika i w ich zakresie działaj autonomicznie: zbieraj potrzebny kontekst i realizuj zadanie od A do Z, pytając tylko wtedy gdy brakuje krytycznych informacji.
 - Stosuj zasady z `.blast/settings/rules/code-principles.md` na etapie designu i implementacji.
+- **Core AI Rules** (załadowane na końcu tego pliku via `@.blast/settings/rules/ai-collaboration.md`) mają pierwszeństwo przed domyślnym "helpful" zachowaniem modelu.
 
 ## Smart Routing — automatyczna nawigacja
 
@@ -148,6 +111,21 @@ Workflow pamięci: `/blast:impl` → `/blast:complete` (aktualizuje inventory) �
 ## Aktywne specyfikacje
 
 Sprawdź `.blast/specs/` lub użyj `/blast:status [feature]`.
+
+## Compact Instructions
+
+Przy `/compact` zachowaj:
+
+- Nazwę aktywnego ficzera i `phase` z `.blast/specs/{f}/spec.json`
+- Otwarte taski (`- [ ]` w `tasks.md`) i lessons candidates z retrospekcji (jeśli są)
+- Ostatni run Verification Strategy (test / smoke / e2e + exit codes)
+- Decyzje architektoniczne podjęte w tej sesji
+
+Odrzuć: output `/blast:help`, duplikaty Read, stary kontekst innych feature'ów, pełne tool outputs po tym, jak konkluzja już jest w chacie.
+
+---
+
+@.blast/settings/rules/ai-collaboration.md
 
 ---
 

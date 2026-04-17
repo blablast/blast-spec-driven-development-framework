@@ -1,116 +1,24 @@
 # Task Generation Rules
 
-## Core Principles
+> blast-specific rules for generating `tasks.md`. Generic engineering principles are assumed — this file captures the **formats, hierarchy, and parallel-execution conventions unique to blast**.
+> Code-level principles live in `code-principles.md`; design conventions in `design-principles.md`.
 
-### 1. Natural Language Descriptions
-Focus on capabilities and outcomes, not code structure.
+## 1. Natural language, not code structure
 
-**Describe**:
-- What functionality to achieve
-- Business logic and behavior
-- Features and capabilities
-- Domain language and concepts
-- Data relationships and workflows
+Tasks describe the functional work — NOT file paths, function signatures, class names, or type definitions. Implementation details belong in `design.md`.
 
-**Avoid**:
-- File paths and directory structure
-- Function/method names and signatures
-- Type definitions and interfaces
-- Class names and API contracts
-- Specific data structures
+**Describe**: what capability/behavior to achieve, business logic, domain concepts, data relationships.
+**Avoid**: file paths, method signatures, type/class names, specific data structures.
 
-**Rationale**: Implementation details (files, methods, types) are defined in design.md. Tasks describe the functional work to be done.
+## 2. Task hierarchy (MANDATORY)
 
-### 2. Task Integration & Progression
+- **Max 2 levels**: Level 1 = major tasks (1, 2, 3…), Level 2 = sub-tasks (1.1, 1.2, 2.1…). No 1.1.1.
+- If a major task has only one actionable item, collapse it and promote the sub-task to the major level.
+- Major task exists purely as container → keep its description concise; put specifics in sub-tasks.
+- Sequential numbering: major tasks MUST increment. Sub-tasks reset per major (1.1, 1.2, then 2.1, 2.2).
 
-**Every task must**:
-- Build on previous outputs (no orphaned code)
-- Connect to the overall system (no hanging features)
-- Progress incrementally (no big jumps in complexity)
-- Validate core functionality early in sequence
-- Respect architecture boundaries defined in design.md (Architecture Pattern & Boundary Map)
-- Honor interface contracts documented in design.md
-- Use major task summaries sparingly—omit detail bullets if the work is fully captured by child tasks.
+### Checkbox format
 
-**End with integration tasks** to wire everything together.
-
-### 3. Flexible Task Sizing
-
-**Guidelines**:
-- **Major tasks**: As many sub-tasks as logically needed (group by cohesion)
-- **Sub-tasks**: 1-3 hours each, 3-10 details per sub-task
-- Balance between too granular and too broad
-
-**Don't force arbitrary numbers** - let logical grouping determine structure.
-
-### 4. Requirements Mapping
-
-**End each task detail section with**:
-- `_Requirements: X.X, Y.Y_` listing **only numeric requirement IDs** (comma-separated). Never append descriptive text, parentheses, translations, or free-form labels.
-- For cross-cutting requirements, list every relevant requirement ID. All requirements MUST have numeric IDs in requirements.md. If an ID is missing, stop and correct requirements.md before generating tasks.
-- Reference components/interfaces from design.md when helpful (e.g., `_Contracts: AuthService API`)
-
-### 5. Code Principles Enforcement
-
-> Full reference: `.blast/settings/rules/code-principles.md`
-
-Every task must implicitly enforce the project's code principles:
-- **Clean Code**: Task details should describe behavior in domain language, enabling clean implementations
-- **SOLID/DIP**: Tasks touching integrations must specify dependency injection boundaries
-- **DRY**: When multiple tasks share logic, create an explicit extraction task or note the shared contract
-- **YAGNI**: Never generate tasks for "future-proofing" unless the requirement is in the current spec
-- **No Overengineering**: If a task introduces an abstraction, it must serve at least the current feature's needs
-- **SOTA**: Tasks involving technology choices should reference `research.md` for rationale
-
-### 6. Code-Only Focus
-
-**Include ONLY**:
-- Coding tasks (implementation)
-- Testing tasks (unit, integration, E2E)
-- Technical setup tasks (infrastructure, configuration)
-
-**Exclude**:
-- Deployment tasks
-- Documentation tasks
-- User testing
-- Marketing/business activities
-
-### Optional Test Coverage Tasks
-
-- When the design already guarantees functional coverage and rapid MVP delivery is prioritized, mark purely test-oriented follow-up work (e.g., baseline rendering/unit tests) as **optional** using the `- [ ]*` checkbox form.
-- Only apply the optional marker when the sub-task directly references acceptance criteria from requirements.md in its detail bullets.
-- Never mark implementation work or integration-critical verification as optional—reserve `*` for auxiliary/deferrable test coverage that can be revisited post-MVP.
-
-## Task Hierarchy Rules
-
-### Maximum 2 Levels
-- **Level 1**: Major tasks (1, 2, 3, 4...)
-- **Level 2**: Sub-tasks (1.1, 1.2, 2.1, 2.2...)
-- **No deeper nesting** (no 1.1.1)
-- If a major task would contain only a single actionable item, collapse the structure and promote the sub-task to the major level (e.g., replace `1.1` with `1.`).
-- When a major task exists purely as a container, keep the checkbox description concise and avoid duplicating detailed bullets—reserve specifics for its sub-tasks.
-
-### Sequential Numbering
-- Major tasks MUST increment: 1, 2, 3, 4, 5...
-- Sub-tasks reset per major task: 1.1, 1.2, then 2.1, 2.2...
-- Never repeat major task numbers
-
-### Parallel Analysis (default)
-- Assume parallel analysis is enabled unless explicitly disabled (e.g. `--sequential` flag).
-- Identify tasks that can run concurrently when **all** conditions hold:
-  - No data dependency on other pending tasks
-  - No shared file or resource contention
-  - No prerequisite review/approval from another task
-- Validate that identified parallel tasks operate within separate boundaries defined in the Architecture Pattern & Boundary Map.
-- Confirm API/event contracts from design.md do not overlap in ways that cause conflicts.
-- Append `(P)` immediately after the task number for each parallel-capable task:
-  - Example: `- [ ] 2.1 (P) Build background worker`
-  - Apply to both major tasks and sub-tasks when appropriate.
-- If sequential mode is requested, omit `(P)` markers entirely.
-- Group parallel tasks logically (same parent when possible) and highlight any ordering caveats in detail bullets.
-- Explicitly call out dependencies that prevent `(P)` even when tasks look similar.
-
-### Checkbox Format
 ```markdown
 - [ ] 1. Major task description
 - [ ] 1.1 Sub-task description
@@ -118,26 +26,74 @@ Every task must implicitly enforce the project's code principles:
   - Detail item 2
   - _Requirements: X.X_
 
-- [ ] 1.2 Sub-task description
-  - Detail items...
-  - _Requirements: Y.Y_
-
-- [ ] 1.3 Sub-task description
-  - Detail items...
-  - _Requirements: Z.Z, W.W_
-
-- [ ] 2. Next major task (NOT 1 again!)
+- [ ] 2. Next major task
 - [ ] 2.1 Sub-task...
 ```
 
-## Requirements Coverage
+## 3. Requirements mapping (MANDATORY FORMAT)
 
-**Mandatory Check**:
-- ALL requirements from requirements.md MUST be covered
-- Cross-reference every requirement ID with task mappings
-- If gaps found: Return to requirements or design phase
-- No requirement should be left without corresponding tasks
+Each sub-task detail block ends with:
 
-Use `N.M`-style numeric requirement IDs where `N` is the top-level requirement number from requirements.md (for example, Requirement 1 → 1.1, 1.2; Requirement 2 → 2.1, 2.2), and `M` is a local index within that requirement group.
+```
+_Requirements: 2.1, 3.4_
+```
 
-Document any intentionally deferred requirements with rationale.
+- **Only numeric IDs, comma-separated.**
+- **No descriptive suffixes, parentheses, translations, or free-form labels** after the IDs.
+- For cross-cutting requirements, list every relevant ID.
+- All requirements MUST have numeric IDs in `requirements.md`. If one is missing, stop and fix `requirements.md` before generating tasks.
+- Format: `N.M` where `N` is the top-level requirement number from `requirements.md`.
+- Components/interfaces from `design.md` may be referenced separately, e.g. `_Contracts: AuthService API_`.
+
+## 4. Sizing
+
+- Sub-tasks: 1–3 hours of work each, 3–10 detail bullets.
+- Major tasks: as many sub-tasks as logical cohesion demands. Don't force arbitrary counts.
+- Use major task summaries sparingly — omit detail bullets when child tasks cover the work fully.
+
+## 5. Optional test-coverage marker `- [ ]*`
+
+When the design already guarantees functional coverage and MVP speed is prioritized, mark purely-test follow-up work as optional:
+
+```markdown
+- [ ]* 4.2 Add baseline rendering tests for PanelHeader
+```
+
+- Apply ONLY when the sub-task references acceptance criteria from `requirements.md` in its detail bullets.
+- Never mark implementation or integration-critical verification as optional.
+
+## 6. Parallel analysis — `(P)` marker
+
+Default is parallel-analysis enabled. Disabled via `--sequential` (then omit `(P)` markers entirely).
+
+Mark `(P)` immediately after the task number only when **all** hold:
+
+1. No data dependency on other pending tasks.
+2. No shared file or resource contention.
+3. No prerequisite review/approval from another task.
+4. Environment/setup already satisfied or covered within the task.
+5. Operates within boundaries defined in `design.md` § Architecture Pattern & Boundary Map.
+6. No overlapping API/event contracts from `design.md`.
+
+```markdown
+- [ ] 2.1 (P) Build background worker for emails
+```
+
+- Apply to both major and sub-tasks when appropriate.
+- Group parallel tasks under the same parent when theme matches.
+- Call out dependencies that prevent `(P)` even when tasks look similar.
+- Skip `(P)` on container-only major tasks — evaluate parallelism at the sub-task level.
+- Keep `(P)` **outside** checkbox brackets.
+
+## 7. Code-only focus
+
+**Include**: coding, testing (unit/integration/E2E), technical setup (infra, config).
+**Exclude**: deployment, documentation, user testing, marketing/business activities.
+
+## 8. Requirements coverage (MANDATORY CHECK)
+
+- Every requirement ID from `requirements.md` MUST appear in at least one task.
+- If gaps found → return to requirements or design phase.
+- Document any intentionally deferred requirements with rationale.
+- Tasks must respect architecture boundaries defined in `design.md`.
+- Tasks must honor interface contracts from `design.md`.

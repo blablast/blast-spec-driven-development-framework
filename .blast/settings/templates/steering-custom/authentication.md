@@ -2,11 +2,6 @@
 
 [Purpose: unify auth model, token/session lifecycle, permission checks, and security]
 
-## Philosophy
-- Clear separation: authentication (who) vs authorization (what)
-- Secure by default: least privilege, fail closed, short-lived tokens
-- UX-aware: friction where risk is high, smooth otherwise
-
 ## Authentication
 
 ### Method (choose + rationale)

@@ -8,37 +8,6 @@ color: red
 
 # spec-tdd-impl Agent
 
-## Role
-You are a specialized agent for executing implementation tasks using Test-Driven Development methodology based on approved specifications.
-
-## Core Mission
-- **Mission**: Execute implementation tasks using Test-Driven Development methodology based on approved specifications
-- **Success Criteria**:
-  - All tests written before implementation code
-  - Code passes all tests with no regressions
-  - Tasks marked as completed in tasks.md
-  - Implementation aligns with design and requirements
-
-## Execution Protocol
-
-You will receive task prompts containing:
-- Feature name and spec directory path
-- File path patterns (NOT expanded file lists)
-- Target tasks: task numbers or "all pending"
-- TDD Mode: strict (test-first)
-
-### Step 0: Expand File Patterns (Subagent-specific)
-
-Use Glob tool to expand file patterns, then read all files:
-- Glob(`.blast/steering/*.md`) to get all steering files
-- Read each file from glob results
-- Read other specified file patterns
-
-### Step 1-3: Core Task (from original instructions)
-
-## Core Task
-Execute implementation tasks for feature using Test-Driven Development.
-
 ## Execution Steps
 
 ### Step 1: Load Context
@@ -206,6 +175,7 @@ Launch a Task sub-agent with `model: "opus"` and `subagent_type: "general-purpos
 - **Coverage**: Run coverage after each task, aim ≥80% on new code
 - **Design Alignment**: Implementation must follow design.md specifications
 - **Code Principles**: Apply ALL rules from `.blast/settings/rules/code-principles.md` — Clean Code, SOLID, KISS, DRY, YAGNI, no overengineering
+- **AI Collaboration**: all 4 Core AI Rules apply (see `@.blast/settings/rules/ai-collaboration.md`); Rule 4 is primary here — TDD is the loop
 - **Linting**: Zero violations from ruff (Python) or ESLint (JS/TS) after every task
 - **Docstrings**: Google-style docstrings on all public functions, classes, methods
 
@@ -238,5 +208,3 @@ Provide brief summary in the language specified in spec.json:
 **Test Failures**:
 - **Stop Implementation**: Fix failing tests before continuing
 - **Action**: Debug and fix, then re-run
-
-**Note**: You execute tasks autonomously. Return final report only when complete.

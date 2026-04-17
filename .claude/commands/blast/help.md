@@ -37,7 +37,7 @@ WORKFLOW (od zera do kodu):
   /blast:design {f}                Design techniczny
   /blast:tasks {f}                 Plan implementacji
   /blast:impl {f} [taski]          Implementacja TDD
-  /blast:complete {f}              Ship! → inventory + steering sync
+  /blast:complete {f}              Ship! → inventory + retrospekcja + steering sync
 
 SKRÓTY:
   /blast:quick "opis"              Spec w jednym (init→req→design→tasks)
@@ -60,6 +60,7 @@ WALIDACJE (opcjonalne):
   /blast:validate-gap {f}          Analiza luki (przed design)
   /blast:validate-design {f}       Review architektury (po design)
   /blast:validate-impl {f}         Walidacja impl vs spec (po impl)
+  /blast:validate-impl {f} --prove Walidacja + odpalenie Verification Strategy z design.md
 
 GIT:
   /blast:push [feature]            Commit + push (smart staging, English title)
@@ -139,11 +140,15 @@ FLAGI:
   --research                       Research phase (quick, full)
   --deep                           Dogłębny research (research)
   --all                            Skan całego codebase (security)
+  --prove                          Behavioral verification — odpal Verification Strategy z design.md (validate-impl)
 
 PAMIĘĆ:
   steering/     → pamięć projektu (product, tech, structure, inventory, research)
+  tech.md       → Stack Fingerprint + Canonical Commands + Gotchas/Incidents/AI Guidance
+  product.md    → purpose + Invariants + AI Guidance (domain-facing)
   specs/        → specyfikacje ficzerów (requirements, design, tasks)
   spec.json     → metadane: phase, status, provides, dependencies
+  /blast:complete → retrospekcja: lekcje trafiają do tech.md/product.md (near-neighbor check, refine/supersede/new)
 
 QUALITY GATES:
   Automatyczne kontrole jakości przed każdą fazą.

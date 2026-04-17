@@ -8,35 +8,6 @@ color: green
 
 # spec-complete Agent
 
-## Role
-You are a specialized agent for closing shipped features — updating metadata, populating the project inventory, and ensuring project memory stays current.
-
-## Core Mission
-- **Mission**: Mark a feature as shipped, extract delivered components, update project inventory
-- **Success Criteria**:
-  - spec.json status set to "shipped" with completion timestamp
-  - All delivered components extracted and added to INVENTORY.md
-  - Cross-spec dependencies resolved and documented
-  - User guided to sync steering for full memory update
-
-## Execution Protocol
-
-You will receive task prompts containing:
-- Feature name and spec directory path
-- File path patterns (NOT expanded file lists)
-
-### Step 0: Expand File Patterns (Subagent-specific)
-
-Use Glob tool to expand file patterns, then read all files:
-- Glob(`.blast/steering/*.md`) to get all steering files
-- Read each file from glob results
-- Read other specified file patterns
-
-### Step 1-5: Core Task (from original instructions)
-
-## Core Task
-Mark feature as shipped and update project inventory.
-
 ## Execution Steps
 
 ### Step 1: Load and Validate
@@ -94,6 +65,7 @@ Preserve all existing fields. Only update the above.
    - **Shipped**: {date}
    - **Provides**: {component list}
    - **Spec**: `.blast/specs/{feature-name}/`
+   - **Lessons**: {count, e.g. "2 (tech.md: 1, product.md: 1)" — filled after Step 5}
    ```
 
 3. Add each component to **Component Registry** table:
@@ -106,7 +78,58 @@ Preserve all existing fields. Only update the above.
 
 5. Remove placeholder rows (`_none yet_`) when adding real data.
 
-### Step 5: Auto-Sync Steering
+### Step 5: Retrospection (lessons capture)
+
+**Purpose**: After every shipped feature, reflect on what was missing at the start and route lessons into their natural homes. Keep files short by refining existing rules before adding new ones.
+
+**Inputs**:
+- `requirements.md`, `design.md`, `tasks.md`
+- Git diff of the feature branch (`git diff $(git merge-base HEAD main)..HEAD` or equivalent)
+- Any validation reports in `.blast/specs/{feature}/` (e.g. `validate-impl-report.md`)
+
+**Reflection questions** (answer silently, then produce candidates):
+- What surprised us during implementation?
+- What required a course correction vs the design?
+- What would have saved time if known at the start?
+- Did any library/tool behave unexpectedly? Did anything break in dev/staging?
+- Did a domain rule become explicit that wasn't written down?
+
+**Produce 0–5 lesson candidates**. Each candidate must be classified into exactly one target:
+
+| Category | Target file → section |
+|---|---|
+| Tech gotcha (framework/library quirk, build/runtime pitfall) | `.blast/steering/tech.md` → `## Gotchas` |
+| Incident (something broke in dev/staging/prod, cost us time) | `.blast/steering/tech.md` → `## Incidents` |
+| Project-specific AI rule, tech-facing | `.blast/steering/tech.md` → `## AI Guidance (this project)` |
+| Domain invariant (business rule that must always hold) | `.blast/steering/product.md` → `## Invariants` |
+| Project-specific AI rule, domain-facing | `.blast/steering/product.md` → `## AI Guidance (domain-facing)` |
+
+**Universal rule filter**: if a lesson feels universal (applies to any blast project, not just this one), DO NOT write it to project files. Flag in output: "Candidate X looks universal — consider updating `.blast/settings/rules/ai-collaboration.md` or `code-principles.md` manually." Skip it.
+
+**Near-neighbor check** (MANDATORY before writing):
+1. Read the target section.
+2. Grep for semantically close existing rules (keyword overlap, same subsystem, same library).
+3. Decide one of:
+   - **Refine** — existing rule is close; edit it in place to subsume the new insight (preserves brevity).
+   - **Supersede** — new rule strictly covers the old; replace the old line.
+   - **New** — genuinely new territory, no close neighbor. Add a single line.
+4. Never duplicate. Never add a new bullet if Refine fits.
+
+**User confirmation per candidate**:
+- Present each candidate with: classification, target section, proposed action (refine/supersede/new), exact diff.
+- User answers: `y` / `n` / `edit` per candidate.
+- Apply only confirmed edits.
+
+**Formatting rules** (keep files short):
+- One line per entry. Lead with the rule in imperative form. Follow with a short "— reason" fragment.
+- Incidents: `YYYY-MM-DD — what broke — mitigation` (one line).
+- If an entry needs >1 line to be useful, it probably belongs in `.blast/knowledge/references/` instead.
+
+**Skip silently** if no lessons surface. Output: "No retrospection candidates."
+
+**Tally**: record count in Step 6 inventory update (e.g. `lessons-added: 2 (tech.md: 1, product.md: 1)`).
+
+### Step 6: Auto-Sync Steering
 
 **Automatic partial sync** (runs always, no user confirmation needed):
 - Read current `.blast/steering/structure.md` (if exists)
@@ -125,6 +148,8 @@ Preserve all existing fields. Only update the above.
 - **Preserve existing data**: Never overwrite existing INVENTORY.md entries — append only
 - **Accurate extraction**: Only list components that actually exist in the codebase
 - **Cross-reference**: Check if shipped components match what was planned in design.md
+- **AI Collaboration — Rule 2 (Simplicity first)**: retrospection MUST run the near-neighbor check before adding any new line; prefer refining an existing rule over appending. Steering files stay short.
+- **No universal rules in project files**: if a lesson would apply to any blast project, do NOT write it to `.blast/steering/`. Surface it as a manual-review flag in the output.
 
 ## Tool Guidance
 - **Read first**: Load all spec files and steering context
@@ -140,8 +165,9 @@ Provide output in the language specified in spec.json:
 1. **Shipped**: Feature name and completion date
 2. **Delivered**: Component list with types
 3. **Inventory**: Confirm INVENTORY.md updated
-4. **Dependencies**: Any resolved cross-spec dependencies
-5. **Next Steps**: `/blast:steering` recommendation + active specs affected
+4. **Retrospection**: Lessons added (count per file) or "no candidates"; list any universal-rule flags
+5. **Dependencies**: Any resolved cross-spec dependencies
+6. **Next Steps**: `/blast:steering` recommendation + active specs affected
 
 **Format**: Concise (under 200 words)
 
@@ -166,4 +192,3 @@ Provide output in the language specified in spec.json:
 - Create minimal INVENTORY.md with just the new entry
 - Warn about missing template
 
-**Note**: You execute tasks autonomously. Return final report only when complete.

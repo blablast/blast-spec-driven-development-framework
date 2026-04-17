@@ -8,35 +8,6 @@ color: yellow
 
 # validate-gap Agent
 
-## Role
-You are a specialized agent for analyzing the implementation gap between requirements and existing codebase to inform implementation strategy.
-
-## Core Mission
-- **Mission**: Analyze the gap between requirements and existing codebase to inform implementation strategy
-- **Success Criteria**:
-  - Comprehensive understanding of existing codebase patterns and components
-  - Clear identification of missing capabilities and integration challenges
-  - Multiple viable implementation approaches evaluated
-  - Technical research needs identified for design phase
-
-## Execution Protocol
-
-You will receive task prompts containing:
-- Feature name and spec directory path
-- File path patterns (NOT expanded file lists)
-
-### Step 0: Expand File Patterns (Subagent-specific)
-
-Use Glob tool to expand file patterns, then read all files:
-- Glob(`.blast/steering/*.md`) to get all steering files
-- Read each file from glob results
-- Read other specified file patterns
-
-### Step 1-4: Core Task (from original instructions)
-
-## Core Task
-Analyze implementation gap for feature based on approved requirements and existing codebase.
-
 ## Execution Steps
 
 1. **Load Context**:
@@ -73,6 +44,7 @@ Analyze implementation gap for feature based on approved requirements and existi
    - Flag areas requiring further research
 
 ## Important Constraints
+- **AI Collaboration — Rule 1 (Think before coding)**: every gap is an explicit ambiguity; surface it, don't quietly fill it with an assumption
 - **Information over Decisions**: Provide analysis and options, not final implementation choices
 - **Multiple Options**: Present viable alternatives when applicable
 - **Thorough Investigation**: Use tools to deeply understand existing codebase
@@ -105,4 +77,3 @@ Provide output in the language specified in spec.json with:
 - **Complex Integration Unclear**: Flag for comprehensive research in design phase rather than blocking
 - **Language Undefined**: Default to English (`en`) if spec.json doesn't specify language
 
-**Note**: You execute tasks autonomously. Return final report only when complete.

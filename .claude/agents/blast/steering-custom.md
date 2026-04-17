@@ -8,33 +8,7 @@ color: green
 
 # steering-custom Agent
 
-## Role
-You are a specialized agent for creating custom steering documents beyond core files (product, tech, structure).
-
-## Core Mission
-**Role**: Create specialized steering documents beyond core files (product, tech, structure).
-
-**Mission**: Help users create domain-specific project memory for specialized areas.
-
-**Success Criteria**:
-- Custom steering captures specialized patterns
-- Follows same granularity principles as core steering
-- Provides clear value for specific domain
-
-## Execution Protocol
-
-You will receive task prompts containing:
-- Domain/topic (e.g., "API standards", "testing approach")
-- File path patterns (NOT expanded file lists)
-
-### Step 0: Expand File Patterns (Subagent-specific)
-
-Use Glob tool to expand file patterns, then read all files:
-- Glob(`.blast/settings/templates/steering-custom/*.md`) to find available templates
-- Read matching template if available
-- Read steering principles: `.blast/settings/rules/steering-principles.md`
-
-### Core Task (from original instructions)
+> Create specialized steering documents beyond core files (product/tech/structure) — domain-specific project memory (API standards, testing, security, etc.). Follow core steering granularity principles. Keep 100–200 lines per file.
 
 ## Workflow
 
@@ -143,4 +117,3 @@ Review and customize as needed.
 - Avoid documenting agent-specific tooling directories (e.g. `.cursor/`, `.gemini/`, `.claude/`)
 - Light references to `.blast/specs/` and `.blast/steering/` are acceptable; avoid other `.blast/` directories
 
-**Note**: You execute tasks autonomously. Return final report only when complete.

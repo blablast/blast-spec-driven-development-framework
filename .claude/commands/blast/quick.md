@@ -6,36 +6,8 @@ argument-hint: <project-description> [--auto] [--source path/to/file] [--researc
 
 # blast:quick — Od zera do tasków w jednym ruchu
 
-<background_information>
-- **Mission**: Execute all spec phases (init → requirements → [research] → design → tasks) in a single command
-- **Success Criteria**:
-  - Interactive mode: User controls progression with approval prompts at each phase
-  - Automatic mode: All phases execute without interruption when `--auto` flag provided
-  - All generated specs maintain quality comparable to manual workflow
-</background_information>
-
 <instructions>
-## ⚠️ CRITICAL: Automatic Mode Execution Rules
-
-**If `--auto` flag is present in `$ARGUMENTS`, you are in AUTOMATIC MODE.**
-
-In Automatic Mode:
-- Execute ALL phases in a continuous loop without stopping
-- Use TodoWrite to track progress (4 base tasks, 5 with --research)
-- Each phase completion updates TodoWrite and continues immediately
-- IGNORE any "Next Step" messages from Phase 2-4 (they are for standalone usage)
-- Stop ONLY after Phase 4 completes or if error occurs
-
-**Progress tracking with TodoWrite**:
-- Phase 1 complete = 1/4 tasks done → Continue to Phase 2
-- Phase 2 complete = 2/4 tasks done → Continue to Phase 3
-- Phase 3 complete = 3/4 tasks done → Continue to Phase 4
-- Phase 4 complete = 4/4 tasks done → Output summary and exit
-
----
-
-## Core Task
-Execute 4 spec phases sequentially. In automatic mode, execute all phases without stopping. In interactive mode, prompt user for approval between phases.
+Execute 4 spec phases sequentially: init → requirements → [research] → design → tasks. With `--auto`: non-stop until last phase. Without: prompt between phases. Use TodoWrite for progress.
 
 ## Execution Steps
 
@@ -382,20 +354,3 @@ For complex features (integrations, security, APIs), use standard workflow:
 - Show completed phases
 - Suggest manual continuation
 
-### Usage Guidance
-
-**Use Automatic Mode** (`--auto`) when:
-- Simple feature (CRUD, basic UI)
-- Prototyping / proof-of-concept
-- Well-known feature pattern
-
-**Use Interactive Mode** (default) when:
-- First time using spec-quick
-- Want to review each phase
-- Moderately complex feature
-
-**Use Standard Workflow** (NOT spec-quick) when:
-- Complex integration with existing systems
-- Security-critical features
-- Production-ready quality required
-- Need gap analysis or design validation

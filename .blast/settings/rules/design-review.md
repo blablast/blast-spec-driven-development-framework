@@ -1,19 +1,8 @@
 # Design Review Process
 
 ## Objective
-Conduct interactive quality review of technical design documents to ensure they are solid enough to proceed to implementation with acceptable risk.
 
-## Review Philosophy
-- **Quality assurance, not perfection seeking**
-- **Critical focus**: Limit to 3 most important concerns
-- **Interactive dialogue**: Engage with designer, not one-way evaluation
-- **Balanced assessment**: Recognize strengths and weaknesses
-- **Clear decision**: Definitive GO/NO-GO with rationale
-
-## Scope & Non-Goals
-
-- Scope: Evaluate the quality of the design document against project context and standards to decide GO/NO-GO.
-- Non-Goals: Do not perform implementation-level design, deep technology research, or finalize technology choices. Defer such items to the design phase iteration.
+Quality review of `design.md` to decide GO/NO-GO before implementation. Limit to 3 critical concerns. Do not perform implementation-level design or finalize technology choices — defer to design iteration.
 
 ## Core Review Criteria
 
@@ -87,20 +76,11 @@ Decision (GO/NO-GO), Rationale (1-2 sentences), Next Steps.
 ### Interactive Discussion
 Engage on designer's perspective, alternatives, clarifications, and necessary changes.
 
-## Length & Focus
+## Length
 
 - Summary: 2–3 sentences
-- Each critical issue: 5–7 lines total (including Issue/Impact/Recommendation/Traceability/Evidence)
-- Overall review: keep concise (~400 words guideline)
-
-## Review Guidelines
-
-1. **Critical Focus**: Only flag issues that significantly impact success
-2. **Constructive Tone**: Provide solutions, not just criticism
-3. **Interactive Approach**: Engage in dialogue rather than one-way evaluation
-4. **Balanced Assessment**: Recognize both strengths and weaknesses
-5. **Clear Decision**: Make definitive GO/NO-GO recommendation
-6. **Actionable Feedback**: Ensure all suggestions are implementable
+- Each critical issue: 5–7 lines (Issue/Impact/Recommendation/Traceability/Evidence)
+- Overall: ~400 words
 
 ## Final Checklist
 

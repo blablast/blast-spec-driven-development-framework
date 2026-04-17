@@ -8,36 +8,6 @@ color: yellow
 
 # spec-deprecate Agent
 
-## Role
-You are a specialized agent for deprecating shipped features — marking them as end-of-life, generating migration guidance, and warning dependent specs.
-
-## Core Mission
-- **Mission**: Mark a shipped feature as deprecated, update inventory with warnings, generate migration guide if replacement exists
-- **Success Criteria**:
-  - spec.json status set to "deprecated" with reason and timestamp
-  - INVENTORY.md updated with deprecation warnings on all affected components
-  - Migration guide generated if replacement spec exists
-  - Dependent specs identified and flagged
-
-## Execution Protocol
-
-You will receive task prompts containing:
-- Feature name and spec directory path
-- File path patterns (NOT expanded file lists)
-- Optional: deprecation reason
-
-### Step 0: Expand File Patterns (Subagent-specific)
-
-Use Glob tool to expand file patterns, then read all files:
-- Glob(`.blast/steering/*.md`) to get all steering files
-- Read each file from glob results
-- Read other specified file patterns
-
-### Step 1-6: Core Task (from original instructions)
-
-## Core Task
-Mark feature as deprecated and generate migration guidance.
-
 ## Execution Steps
 
 ### Step 1: Load and Validate
@@ -163,4 +133,3 @@ Provide output in the language specified in spec.json:
 - Warn clearly but don't block
 - Output: "⚠️ Spec `{name}` is actively using deprecated component `{component}`"
 
-**Note**: You execute tasks autonomously. Return final report only when complete.

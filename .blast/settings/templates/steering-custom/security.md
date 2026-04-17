@@ -2,11 +2,6 @@
 
 [Purpose: define security posture with patterns for validation, authz, secrets, and data]
 
-## Philosophy
-- Defense in depth; least privilege; secure by default; fail closed
-- Validate at boundaries; sanitize for context; never trust input
-- Separate authentication (who) and authorization (what)
-
 ## Input & Output
 - Validate at API boundaries and UI forms; enforce types and constraints
 - Sanitize/escape based on destination (HTML, SQL, shell, logs)

@@ -51,7 +51,6 @@ File patterns to read:
 - .blast/specs/{feature}/*.{json,md}
 - .blast/steering/*.md
 - .blast/settings/rules/tasks-generation.md
-- .blast/settings/rules/tasks-parallel-analysis.md (include only when sequential mode is false)
 - .blast/settings/rules/quality-gates.md
 - .blast/settings/templates/specs/tasks.md
 
