@@ -29,7 +29,12 @@
       "Bash(awk:*)",
       "Bash(sort:*)",
       "Bash(uniq:*)",
-      "Bash(pip-audit:*)"
+      "Bash(pip-audit:*)",
+      "Task",
+      "SlashCommand",
+      "Skill",
+      "TodoWrite",
+      "Bash(*)"
     ]
   },
   "hooks": {
