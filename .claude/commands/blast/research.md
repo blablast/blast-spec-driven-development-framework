@@ -109,25 +109,6 @@ Update `spec.json`:
 
 </instructions>
 
-## Tool Guidance
-- **Read**: Load spec files, steering, existing code
-- **Grep/Glob**: Search codebase for existing patterns and implementations
-- **WebSearch**: Find current best practices, library comparisons, benchmarks
-- **WebFetch**: Read official documentation, API references
-- **Task**: Parallel research subagents (deep mode only)
-- **Write/Edit**: Create/update research.md and spec.json
-
-## Output Description
-
-Provide output in the language specified in `spec.json`:
-
-1. **Research Scope**: Standard or Deep, N questions investigated
-2. **Key Findings**: Top 3-5 findings (one line each)
-3. **Recommendation**: Recommended approach with one-sentence rationale
-4. **Next Step**: `/blast:design {feature}` (research informs design decisions)
-
-**Format**: Concise (under 200 words)
-
 ## Safety & Fallback
 
 ### Error Scenarios

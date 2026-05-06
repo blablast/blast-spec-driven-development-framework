@@ -169,25 +169,6 @@ Suggest next steps:
 
 </instructions>
 
-## Tool Guidance
-- **Read**: spec.json, tasks.md, design.md
-- **Glob**: Check for INVENTORY.md existence
-- **Write/Edit**: Update spec.json and INVENTORY.md
-- **Bash**: Generate timestamp with `date -u +"%Y-%m-%dT%H:%M:%SZ"`
-
-## Output Description
-
-Provide output in the language specified in spec.json:
-
-1. **Shipped Feature**: Name and brief summary
-2. **Coverage**: Test coverage % (with warning if < 80%)
-3. **Delivered Components**: List of components added to inventory
-4. **Inventory Updated**: Confirm INVENTORY.md changes
-5. **Retrospection**: Lessons added (count per file) or "no candidates"; list any universal-rule flags to review manually
-6. **Next Steps**: Recommend `/blast:security` + `/blast:steering` sync
-
-**Format**: Concise (under 200 words)
-
 ## Safety & Fallback
 
 ### Error Scenarios

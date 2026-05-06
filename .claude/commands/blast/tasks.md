@@ -31,6 +31,23 @@ Check that design has been completed:
 
 If validation fails, inform user to complete design phase first.
 
+## Approval Gate (Design -> Tasks)
+
+Read `.blast/specs/{feature}/spec.json` and inspect `approvals.design.approved`.
+
+Decision matrix:
+- **`approvals.design.approved === true`** -> gate PASS, continue.
+- **`approvals.design.approved !== true` AND `-y` flag present** -> gate BYPASS (the subagent will set `approvals.design.approved = true` after generating), continue.
+- **`approvals.design.approved !== true` AND no `-y`** -> gate **STOP**. Print:
+  ```
+  Approval gate failed: design not approved.
+
+  Review:    .blast/specs/{feature}/design.md
+  Approve:   /blast:approve {feature} design
+  Or skip:   /blast:tasks {feature} -y    (auto-approves design)
+  ```
+  Do NOT invoke the subagent. Exit cleanly.
+
 ## Invoke Subagent
 
 Delegate task generation to spec-tasks-agent:

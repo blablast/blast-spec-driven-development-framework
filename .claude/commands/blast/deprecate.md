@@ -92,24 +92,6 @@ For each spec that depends on deprecated components:
 
 </instructions>
 
-## Tool Guidance
-- **Read**: spec.json, design.md, INVENTORY.md, other specs
-- **Grep**: Find codebase usage of deprecated components
-- **Edit**: Update spec.json, INVENTORY.md
-- **Write**: Create MIGRATION.md if needed
-- **Bash**: Generate timestamp
-
-## Output Description
-
-Provide output in the language specified in spec.json:
-
-1. **Deprecated**: Feature name and reason
-2. **Impact**: Number of dependent specs and codebase references
-3. **Migration**: Guide created (or "no replacement identified")
-4. **Action Required**: List of dependent specs that need updating
-
-**Format**: Concise (under 250 words)
-
 ## Safety & Fallback
 
 ### Error Scenarios

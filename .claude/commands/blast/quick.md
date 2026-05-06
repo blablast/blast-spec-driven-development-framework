@@ -244,22 +244,6 @@ Output final completion summary (see Output Description section) and exit.
 
 </instructions>
 
-## Tool Guidance
-
-### Phase 1 Tools
-- **Glob**: Check `.blast/specs/*/` for existing feature names
-- **Bash**: Create directory with `mkdir -p`, generate timestamp with `date -u`
-- **Read**: Fetch templates from `.blast/settings/templates/specs/`
-- **Write**: Create `spec.json` and `requirements.md` in spec directory
-
-### Phase 2-4 Tools
-- **SlashCommand**: Execute `/blast:requirements`, `/blast:research` (if --research), `/blast:design`, `/blast:tasks`
-
-### TodoWrite Usage
-- Initialize with 4 pending tasks (5 with --research)
-- Update after each phase: current task `completed`, next task `in_progress`
-- Provides visual progress tracking in UI
-
 ## Output Description
 
 ### Mode Banners

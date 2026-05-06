@@ -144,27 +144,6 @@ Report:
 
 </instructions>
 
-## Tool Guidance
-- **Bash**: git commands (status, diff, add, commit, push, log)
-- **Read**: spec.json for feature context
-- **Glob**: find files to stage
-- **Grep**: check for sensitive patterns in files before staging
-
-## Output Description
-
-Provide concise output:
-
-```
-✅ Pushed to origin/{branch}
-
-Commit: {hash} {title}
-Files: {count} changed ({insertions}+, {deletions}-)
-
-{If feature branch, suggest PR}
-```
-
-**Format**: Under 100 words.
-
 ## Safety & Fallback
 
 ### Error Scenarios

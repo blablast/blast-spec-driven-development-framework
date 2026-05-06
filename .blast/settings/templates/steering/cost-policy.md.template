@@ -1,0 +1,45 @@
+# Cost Policy
+
+**Status**: szkielet. Hard limits **DISABLED** dopóki nie zbierzesz historycznych danych z `/blast:telemetry`.
+
+Filozofia: *tani default, drogie świadomie*. Po 1-2 miesiącach użytkowania ustaw `warning_at` na p75 historycznych, `block_at` na p95.
+
+## Hard limits (DISABLED — placeholder, fill in po zebraniu danych)
+
+```
+# Pojedynczy spec full pipeline:
+#   warning_at: $5
+#   block_at:   $10
+#
+# /blast:full --auto:
+#   block_at:   $20
+#
+# Single Agent call:
+#   warning_at: $1
+#
+# Jury N>3 (Pattern B):
+#   require_flag: --jury-large
+```
+
+## Soft warnings (active from day 1)
+
+- Każde użycie `model: opus` → log entry w telemetry z `expensive: true`
+- Jury z N≥3 → wymaga explicit flag `--jury-large`
+- Cost ceiling debate: `debate_max_tokens` w `spec.json` (default 100000)
+
+## Per-phase ceilings (skeleton — uzupełnij własnymi)
+
+| Phase / Composition | warning_at | block_at | Empirical median |
+|---|---:|---:|---:|
+| Solo Haiku | $0.02 | $0.05 | (TBD) |
+| Solo Sonnet | $0.10 | $0.25 | (TBD) |
+| Solo Opus | $0.30 | $0.75 | (TBD) |
+| HYBRID validate-impl | $0.20 | $0.50 | (TBD) |
+| JURY (security, high-stakes) | $0.40 | $1.00 | (TBD) |
+| `/blast:full` standard spec | $5 | $10 | (TBD) |
+
+Zastąp (TBD) wartościami z Twojego projektu po 10+ runach.
+
+## Free local-only mode (`spec.json.privacy: local-only`)
+
+Wszystkie external LLM calls blocked. Cost = $0 niezależnie od liczby calli.

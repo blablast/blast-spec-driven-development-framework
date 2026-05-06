@@ -32,3 +32,8 @@ node_modules/
 # OS
 .DS_Store
 Thumbs.db
+
+
+# blast runtime state (per-session, never commit)
+.blast/.session-state/
+.blast/logs/agent-runs.jsonl

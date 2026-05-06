@@ -18,7 +18,7 @@ Display help information about blast commands. If a specific command name is pro
 - If `$ARGUMENTS` contains a command name → show **detailed help** for that command
 
 Valid command names (with or without `blast:` prefix):
-`steering`, `steering-custom`, `init`, `requirements`, `research`, `design`, `tasks`, `impl`, `complete`, `deprecate`, `quick`, `full`, `review`, `security`, `push`, `status`, `validate-gap`, `validate-design`, `validate-impl`, `help`
+`steering`, `steering-custom`, `init`, `requirements`, `research`, `design`, `tasks`, `impl`, `complete`, `approve`, `evolve`, `graph`, `drift`, `lint`, `telemetry`, `debate`, `deprecate`, `quick`, `full`, `tiny`, `review`, `security`, `push`, `status`, `validate-gap`, `validate-design`, `validate-impl`, `help`
 
 ### Step 2: Generate Help Output
 
@@ -36,23 +36,31 @@ WORKFLOW (od zera do kodu):
   /blast:research {f} [--deep]     Spike/research — opcje, porównania, wnioski
   /blast:design {f}                Design techniczny
   /blast:tasks {f}                 Plan implementacji
-  /blast:impl {f} [taski]          Implementacja TDD
+  /blast:impl {f} [taski] [-y]     Implementacja TDD + post-impl audyt (smoke→requirements→verification→test cleanup→final lint)
+  /blast:approve {f} <phase>       Klepnięcie fazy (requirements|design|tasks)
   /blast:complete {f}              Ship! → inventory + retrospekcja + steering sync
+  /blast:evolve {f} "<change>"     Delta-spec dla shipped feature (iteracja, breaking change, refactor)
 
 SKRÓTY:
+  /blast:tiny "opis"               Fast path dla małych ficzerów (spec + impl, 1 strzał)
+  /blast:tiny "opis" --auto        Tiny bez confirm gate przed impl
   /blast:quick "opis"              Spec w jednym (init→req→design→tasks)
   /blast:quick "opis" --auto       Spec pełny automat
   /blast:quick --research          Spec z research phase
   /blast:full "opis"               Pełny pipeline (spec + impl + ship + security)
   /blast:full "opis" --auto        Pipeline pełny automat
+  /blast:full --auto --validate    Pipeline + validate-design + validate-impl (verdict-gated)
   /blast:full --research --push    Pipeline z research i pushem
-  /blast:full --source file --auto   Pipeline z pliku, automat
+  /blast:full --source file --auto Pipeline z pliku, automat
 
 JAKOŚĆ KODU:
   /blast:review {f}                Code review vs zasady (Clean Code, SOLID, DRY...)
   /blast:review {f} --fix          Code review + automatyczne poprawki
   /blast:review                    Review całego codebase
   /blast:security {f}              Audyt bezpieczeństwa (OWASP, secrets, injection)
+  /blast:drift {f}                 Wykryj drift między shipped spec a kodem (severity NONE/INFO/WARN/CRITICAL)
+  /blast:lint {f|--all}            Deterministyczny linter speców (EARS, IDs, traceability, V.S.)
+  /blast:debate {f} {topic}        Multi-agent debate (4 protokoły A/B/C/D, scratchpad-based)
   /blast:security {f} --fix        Audyt + auto-fix bezpiecznych poprawek
   /blast:security --all            Skan całego codebase
 
@@ -68,6 +76,8 @@ GIT:
 
 ZARZĄDZANIE:
   /blast:status {f}                Status i postęp specyfikacji
+  /blast:graph [f]                 Cross-spec dependency graph + status dashboard
+  /blast:telemetry [--since|--feature]  Raport agent runs (calls/verdicts/top features, meta-only)
   /blast:deprecate {f}             Wycofanie ficzera z migration guide
   /blast:steering-custom           Dodatkowe pliki steering (API, DB...)
   /blast:help [komenda]            Ta pomoc
@@ -129,15 +139,19 @@ GRAF PRZEJŚĆ:
   └─────────────┘
 
   /blast:quick = init → req → [research] → design → tasks
-  /blast:full  = init → req → [research] → design → tasks → impl → complete → security → steering [→ push]
+  /blast:full  = init → req → [research] → design → [validate-design] → tasks → impl → [validate-impl] → complete → security → steering [→ push]
+  /blast:tiny  = init → tiny-agent (compressed spec, self-approve) → impl
 
 FLAGI:
-  -y                               Auto-approve (design, tasks)
+  -y                               Auto-approve / bypass approval gate (design, tasks, impl)
+  --sequential                     Wymuś sekwencyjne wykonanie tasków, ignoruj `(P)` markery (impl)
+  --max-parallel N                 Cap concurrency dla wav `(P)`, default 4, range 1..8 (impl)
   --auto                           Pełny automat (quick, full)
   --source path/to/file            Importuj opis z pliku (init, quick, full)
   --fix                            Auto-fix (review)
   --push                           Git push po pipeline (full)
   --research                       Research phase (quick, full)
+  --validate                       Insert validate-design + validate-impl --prove (full); blokuje na FAIL+BLOCKING:true
   --deep                           Dogłębny research (research)
   --all                            Skan całego codebase (security)
   --prove                          Behavioral verification — odpal Verification Strategy z design.md (validate-impl)
@@ -150,9 +164,28 @@ PAMIĘĆ:
   spec.json     → metadane: phase, status, provides, dependencies
   /blast:complete → retrospekcja: lekcje trafiają do tech.md/product.md (near-neighbor check, refine/supersede/new)
 
-QUALITY GATES:
+QUALITY GATES (przed fazą):
   Automatyczne kontrole jakości przed każdą fazą.
   Reguły: .blast/settings/rules/quality-gates.md
+
+APPROVAL GATES (defense in depth):
+  Markdown gate (Fala 1) — slash command czyta spec.json, fail-fast z czytelnym błędem:
+    /blast:design feat       → STOP jeśli requirements.approved=false (bez -y)
+    /blast:tasks  feat       → STOP jeśli design.approved=false
+    /blast:impl   feat       → STOP jeśli tasks.approved=false
+  Bypass: -y (auto-approves prior phase) lub /blast:approve {f} <phase>
+  Hard gate (Fala 5) — PreToolUse hook .claude/hooks/blast-approval-gate.py
+    Egzekwuje to samo na poziomie SDK (exit 2). Działa nawet gdy markdown gate ominięty.
+    Bypass paths: prompt z "Auto-approve: true", spec.tiny=true, non-blast subagent.
+    Disable awaryjnie: usuń sekcję `hooks` z .claude/settings.json.
+
+POST-IMPL CHECKS (auto po /blast:impl gdy wszystkie taski [x]):
+  4a Smoke Test           — design.md::Verification Strategy → tech.md::smoke_command → generic
+  4b Requirements check   — sub-agent (opus) sprawdza czy każdy req ma pokrycie w plikach/kodzie
+  4c Verification probe   — test + e2e probe z design.md::Verification Strategy
+  4d Test Relevance Audit — sub-agent (haiku) audytuje testy: KEEP/DELETE/REFACTOR vs requirements
+  4e Final Lint Pass      — ruff/eslint na zmodyfikowanych plikach (cross-task sweep)
+  Dowolny step ❌ → impl nie marka feature jako done; user widzi konkretny błąd.
 
 Szczegóły komendy: /blast:help <nazwa-komendy>
 Pełna dokumentacja: .blast/README.md
@@ -209,15 +242,37 @@ POWIĄZANE:
 
 </instructions>
 
-## Tool Guidance
-- **Read**: Load command file from `.claude/commands/blast/{name}.md` for detailed help
-- **Glob**: List available commands if name not found
-
-## Output Description
-- Full help: reference card format (monospace block)
-- Detailed help: structured command info (under 200 words)
-- Always end with: "Pełna dokumentacja: `.blast/README.md`"
-
 ## Safety & Fallback
 - **Unknown command**: "Komenda `{name}` nie istnieje. Dostępne komendy:" → show full help
 - **Typo detection**: If close match found (e.g., "req" → "requirements"), suggest correction
+
+
+---
+
+## Setup before first run
+
+### Zero-config (default)
+Działa od razu — Claude Code subscription wystarczy. Pipeline (init→complete), review/security solo: zero env vars.
+
+### Multi-LLM (HYBRID, JURY_3_FLASH3, privacy mode)
+
+```bash
+cp .env.example .env             # wypełnij klucze które chcesz
+set -a; source .env; set +a
+# Restart Claude Code (MCP bridge re-reads env)
+/blast:ping-llm                  # smoke test
+```
+
+### Required env vars per use case
+
+| Use case | Vars |
+|---|---|
+| Plain pipeline | NONE |
+| `validate-impl --thorough` (HYBRID) | `BLAST_OLLAMA_UBUNTU` |
+| `security` + `validate-design --thorough` (jury) | `BLAST_OLLAMA_UBUNTU` + `GEMINI_API_KEY` |
+| Privacy mode | `BLAST_OLLAMA_UBUNTU` (cloud blocked) |
+| Spike reproduction | `ANTHROPIC_API_KEY` + `GEMINI_API_KEY` + `BLAST_OLLAMA_UBUNTU` |
+
+Pełen detail: `.env.example`. Lokalny Ollama setup: `.blast/knowledge/references/multi-llm-setup.md`.
+
+**NIE** ustawiaj `OLLAMA_KEEP_ALIVE` system-wide na >5min — używaj per-call `keep_alive: "30m"`. 24h+ blokuje VRAM.

@@ -29,6 +29,23 @@ Check that requirements have been completed:
 
 If validation fails, inform user to complete requirements phase first.
 
+## Approval Gate (Requirements -> Design)
+
+Read `.blast/specs/{feature}/spec.json` and inspect `approvals.requirements.approved`.
+
+Decision matrix:
+- **`approvals.requirements.approved === true`** -> gate PASS, continue.
+- **`approvals.requirements.approved !== true` AND `-y` flag present** -> gate BYPASS (the subagent will set `approvals.requirements.approved = true` after generating), continue.
+- **`approvals.requirements.approved !== true` AND no `-y`** -> gate **STOP**. Print:
+  ```
+  Approval gate failed: requirements not approved.
+
+  Review:    .blast/specs/{feature}/requirements.md
+  Approve:   /blast:approve {feature} requirements
+  Or skip:   /blast:design {feature} -y    (auto-approves requirements)
+  ```
+  Do NOT invoke the subagent. Exit cleanly.
+
 ## Invoke Subagent
 
 Delegate design generation to spec-design-agent:

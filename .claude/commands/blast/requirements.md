@@ -15,10 +15,12 @@ Parse `$ARGUMENTS` as a single string:
 Examples:
 ```
 "zoo-garden"     → feature=zoo-garden
-"zoo-garden -y"  → feature=zoo-garden (flag ignored)
+"zoo-garden -y"  → feature=zoo-garden (flag ignored — see note below)
 ```
 
 **IMPORTANT**: `$ARGUMENTS` is a single string, NOT positional `$1`. Parse it yourself.
+
+**Note on `-y`**: Requirements is the FIRST phase of the pipeline — there is no prior phase to auto-approve, so `-y` has no semantic meaning here and is silently ignored. The flag becomes meaningful from `/blast:design` onwards (where it auto-approves the previous phase). To approve generated requirements explicitly, use `/blast:approve {feature} requirements`.
 
 ## Validate
 Check that spec has been initialized:

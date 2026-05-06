@@ -1,5 +1,6 @@
 {
   "permissions": {
+    "defaultMode": "acceptEdits",
     "allow": [
       "Bash(mkdir:*)",
       "Bash(date:*)",
@@ -29,6 +30,39 @@
       "Bash(sort:*)",
       "Bash(uniq:*)",
       "Bash(pip-audit:*)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "^(Agent|Task)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 .claude/hooks/blast-approval-gate.py"
+          }
+        ]
+      },
+      {
+        "matcher": "^(Read|Glob|Grep|Agent|Task|mcp__.*)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 .claude/hooks/blast-privacy-gate.py"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "^(Agent|Task)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 .claude/hooks/blast-telemetry.py"
+          }
+        ]
+      }
     ]
   }
 }

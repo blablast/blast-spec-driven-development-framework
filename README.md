@@ -11,12 +11,42 @@ blast is a framework for AI-assisted development that enforces order: **first yo
 - Spec-driven pipeline with phase guards (requirements → design → tasks → code)
 - TDD implementation with ruff/ESLint in the cycle, not post-hoc
 - Security audit (OWASP/CWE) built into the pipeline
-- Code review with 9-point scorecard (Clean Code, SOLID, KISS, DRY, YAGNI...)
+- Code review with 9-point scorecard (Clean Code, SOLID, KISS, DRY, YAGNI, patterns, SOTA, lint, docstrings)
 - Test coverage tracking (≥80% target) as a soft gate
 - Research/spike phase for unknown-territory features
 - Cross-spec DRY via project inventory
 - Auto-changelog on feature completion
 - Git push with smart staging and descriptive English commits
+- **Multi-LLM compositions** (opt-in): HYBRID validate-impl (Sonnet ‖ qwen3.6 → Haiku judge) and JURY_3_FLASH3 for security/high-stakes review (Opus ‖ qwen3.6 ‖ Gemini-3-Flash → Haiku aggregator)
+- **MCP bridge for local Ollama** (`.claude/mcp/blast-llm-bridge.py`) — qwen3.6, qwen3-coder for free local critic/coder roles
+- **Privacy mode** (`spec.json.privacy: local-only`) — all external LLM calls blocked by hook, falls back to local-only routing
+- **Hard approval gate** via Claude Code hooks — deterministic phase-by-phase enforcement
+
+## Setup
+
+### Zero-config (default)
+
+blast works out-of-the-box via Claude Code subscription — **no API keys needed** for the basic pipeline (init → requirements → design → tasks → impl → review → security solo).
+
+### Multi-LLM mode (optional)
+
+To enable HYBRID validate-impl, JURY_3_FLASH3 for security/validate-design, or privacy mode:
+
+```bash
+cp .env.example .env
+# Fill in keys you want (GEMINI_API_KEY for jury; BLAST_OLLAMA_UBUNTU for local Qwen)
+set -a; source .env; set +a
+```
+
+Full quick reference in `.env.example`. Local Ollama setup: `.blast/knowledge/references/multi-llm-setup.md`.
+
+### Verification after setup
+
+```
+/blast:ping-llm      # smoke test MCP bridge (local models)
+/blast:help          # full command list + setup details
+/blast:status        # status of existing specs
+```
 
 ## Quick Start
 
@@ -88,7 +118,7 @@ rm -rf .git && git init
 | `/blast:status {f}` | Check progress |
 | `/blast:help [cmd]` | Help and reference |
 
-**20 commands, 14 agents.** Full docs: `.blast/README.md`
+**29 commands, 21 agents (17 top-level + 4 debate).** Full docs: `.blast/README.md`
 
 ## Pipeline
 
@@ -120,12 +150,17 @@ Full rules: `.blast/settings/rules/code-principles.md`
 
 ## Using as Template
 
-blast is designed as a **reusable template** — the `.blast/` and `.claude/` directories are 100% portable. Clone, delete `.git`, init your own repo, and start building.
+blast is designed as a **reusable template** — the `.blast/` and `.claude/` directories are 100% portable. See `MANIFEST.md` for the full classification of which files are FRAMEWORK (universal blast, ship as-is), HYBRID (framework path, project-specific content), and R&D (personal content, NOT for distribution).
+
+Clone, delete `.git`, remove R&D, init your own repo:
 
 ```bash
 gh repo clone blablast/claude_code-template my-new-project
 cd my-new-project
-rm -rf .git .blast/steering/ .blast/specs/ .blast/knowledge/research/ .blast/knowledge/decisions/
+rm -rf .git .blast/specs/ r_and_d/      # remove R&D content (spikes/decisions/INVENTORY snapshot)
+# Optional: replace HYBRID config with skeletons:
+cp .blast/settings/templates/steering/llm-routing.md.template .blast/steering/llm-routing.md
+cp .blast/settings/templates/steering/cost-policy.md.template .blast/steering/cost-policy.md
 git init && git add -A && git commit -m "Initial commit from blast template"
 ```
 

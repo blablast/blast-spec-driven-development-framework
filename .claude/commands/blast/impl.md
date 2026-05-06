@@ -1,7 +1,7 @@
 ---
 description: "Czas na kod — blast implementuje taski w TDD"
-allowed-tools: Read, Task
-argument-hint: <feature-name> [task-numbers]
+allowed-tools: Read, Edit, Task
+argument-hint: <feature-name> [task-numbers] [-y] [--max-parallel N] [--sequential]
 ---
 
 # blast:impl — Lecimy z kodem!
@@ -10,22 +10,29 @@ argument-hint: <feature-name> [task-numbers]
 
 Parse `$ARGUMENTS` as a single string:
 - Split by spaces
-- Ignore any flags (tokens starting with `-`): this command has no flags
+- Detect `-y` flag (boolean: present or not)
+- Detect `--sequential` flag (boolean: forces sequential execution, ignores `(P)` markers)
+- Detect `--max-parallel N` flag (integer; default `4` if absent; clamp to range `1..8`)
 - Extract feature name (first non-flag token — kebab-case identifier)
-- Extract task numbers (remaining non-flag tokens, if any)
+- Extract task numbers (remaining non-flag tokens that are not flag values, if any)
   - Format: "1.1" (single task), "1.1,1.2" (multiple tasks comma-separated), or "1,2,3" (major tasks)
   - If not provided: Execute all pending tasks
 
 Examples:
 ```
-"zoo-garden 1.1"       → feature=zoo-garden, tasks=["1.1"]
-"zoo-garden 1.1,1.2"   → feature=zoo-garden, tasks=["1.1","1.2"]
-"zoo-garden"            → feature=zoo-garden, tasks=all pending
-"zoo-garden 1,2,3"     → feature=zoo-garden, tasks=["1","2","3"]
-"zoo-garden -y"         → feature=zoo-garden, tasks=all pending (flag ignored)
+"zoo-garden 1.1"                     → feature=zoo-garden, tasks=["1.1"], y=false, max_parallel=4, sequential=false
+"zoo-garden"                         → feature=zoo-garden, tasks=all, max_parallel=4, sequential=false
+"zoo-garden -y"                      → feature=zoo-garden, tasks=all, y=true,  max_parallel=4, sequential=false
+"zoo-garden --sequential"            → feature=zoo-garden, tasks=all, max_parallel=4, sequential=true
+"zoo-garden --max-parallel 2"        → feature=zoo-garden, tasks=all, max_parallel=2, sequential=false
+"zoo-garden -y --max-parallel 6 1.1" → feature=zoo-garden, tasks=["1.1"], y=true, max_parallel=6, sequential=false
 ```
 
 **IMPORTANT**: `$ARGUMENTS` is a single string, NOT positional `$1`/`$2`. Parse it yourself.
+
+**Flag semantics:**
+- `--sequential` and `--max-parallel` are mutually exclusive in effect — if both supplied, `--sequential` wins (max-parallel ignored).
+- `--max-parallel N` caps the size of each wave. Per Anthropic 2026 best practices, 3–5 workers is the sweet spot; default 4.
 
 ## Validate
 Check that tasks have been generated:
@@ -33,6 +40,23 @@ Check that tasks have been generated:
 - Verify `.blast/specs/{feature}/tasks.md` exists
 
 If validation fails, inform user to complete tasks generation first.
+
+## Approval Gate (Tasks -> Implementation)
+
+Read `.blast/specs/{feature}/spec.json` and inspect `approvals.tasks.approved`.
+
+Decision matrix:
+- **`approvals.tasks.approved === true`** -> gate PASS, continue to Task Selection Logic.
+- **`approvals.tasks.approved !== true` AND `-y` flag present** -> gate BYPASS. Use the Edit tool to set `approvals.tasks.approved = true` in `.blast/specs/{feature}/spec.json` (also update `updated_at` to current ISO-8601 UTC timestamp). This satisfies the subagent's own approval check (see `agents/blast/impl.md` Step 1). Continue to Task Selection Logic.
+- **`approvals.tasks.approved !== true` AND no `-y`** -> gate **STOP**. Print:
+  ```
+  Approval gate failed: tasks not approved.
+
+  Review:    .blast/specs/{feature}/tasks.md
+  Approve:   /blast:approve {feature} tasks
+  Or skip:   /blast:impl {feature} -y    (bypass approval, e.g. for /blast:full --auto)
+  ```
+  Do NOT invoke the subagent. Exit cleanly.
 
 ## Task Selection Logic
 
@@ -56,6 +80,9 @@ Task(
 Feature: {feature}
 Spec directory: .blast/specs/{feature}/
 Target tasks: {parsed task numbers or "all pending"}
+
+Execution mode: {sequential ? "sequential" : "parallel"}
+Max parallel workers per wave: {max_parallel}    # honored only when execution mode=parallel; clamp 1..8
 
 File patterns to read:
 - .blast/specs/{feature}/*.{json,md}

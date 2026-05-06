@@ -1,0 +1,72 @@
+# LLM Routing Policy
+
+Centralna konfiguracja: która faza używa którego modelu, gdzie debate jest enabled, które ścieżki muszą iść tylko do lokalnego LLM (privacy).
+
+Plik czytany przez:
+- Wszystkie blast agents przed wyborem modelu (override domyślnego frontmatter)
+- `/blast:debate` przy doborze protokołu i jurorów
+- `blast-llm-bridge` MCP przy routing'u i privacy enforcement
+- `blast-privacy-gate.py` hook przed zewnętrznymi LLM calls
+
+---
+
+## Default routing per agent (skeleton — adjust to your project)
+
+| Agent | Default model |
+|---|---|
+| spec-design-agent | claude-opus |
+| spec-tdd-impl-agent | claude-sonnet (lub local qwen3-coder jeśli masz) |
+| spec-tasks-agent | claude-haiku |
+| spec-requirements-agent | claude-haiku |
+| validate-design-agent | claude-sonnet |
+| validate-impl-agent | claude-sonnet |
+| security-audit-agent | claude-opus (lub jury jeśli masz multi-LLM setup) |
+
+## debate_config — declarative composition for /blast:debate
+
+Ten config jest opcjonalny. Włącz go gdy chcesz HYBRID/JURY compositions.
+
+### Compositions (templates — uzupełnij modelami które masz dostępne)
+
+```yaml
+HYBRID:
+  protocol: B   # parallel jury, N=2
+  jurors: [claude-sonnet-X-Y, qwen3.6:latest]   # zastąp X-Y aktualną wersją
+  aggregator: claude-haiku-X-Y
+
+JURY_3:
+  protocol: B   # parallel jury, N=3
+  jurors: [claude-opus-X-Y, qwen3.6:latest, gemini-X-flash]
+  aggregator: claude-haiku-X-Y
+```
+
+### Per-phase config (uzupełnij według własnych preferencji)
+
+| Phase | Composition | Trigger |
+|---|---|---|
+| `validate-impl` | HYBRID (opcjonalne) | `--thorough` flag |
+| `validate-design` | JURY (opcjonalne) | high_stakes |
+| `security` | JURY (zalecane) | always |
+
+### Privacy mode override (jeśli masz lokalne modele)
+
+Gdy `spec.json.privacy: local-only`, wszystkie external LLM calls blocked. Routing fallback na lokalne modele via blast-llm-bridge MCP.
+
+```yaml
+privacy_mode_overrides:
+  validate-impl:
+    jurors: [qwen3.6:latest, qwen3-coder:30b]
+    aggregator: qwen3.6:latest
+```
+
+---
+
+## Empirical baselines (uzupełnij po pierwszych runach)
+
+| Composition | Recall | Precision | F1 | Cost/spec | Latency/spec |
+|---|---:|---:|---:|---:|---:|
+| HYBRID | (TBD) | (TBD) | (TBD) | (TBD) | (TBD) |
+| JURY_3 | (TBD) | (TBD) | (TBD) | (TBD) | (TBD) |
+| solo Sonnet | (TBD) | (TBD) | (TBD) | (TBD) | (TBD) |
+
+Po 10+ runach uzupełnij wartości i ustaw regression detection threshold (zwykle: jeśli recall drops >0.10 from baseline → investigate).

@@ -93,13 +93,6 @@ Provide output with:
 - Source file content is embedded as RAW INPUT — requirements agent will process it
 </instructions>
 
-## Tool Guidance
-- Use **Glob** to check existing spec directories for name uniqueness
-- Use **Read** to fetch templates AND source file (if `--source` provided)
-- Use **Write** to create spec.json and requirements.md after placeholder replacement
-- Use **Bash** for `mkdir -p` and timestamp generation
-- Perform validation before any file write operation
-
 ## Output Description
 Provide output in the language specified in `spec.json` with the following structure:
 

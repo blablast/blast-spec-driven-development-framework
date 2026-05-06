@@ -21,8 +21,8 @@ Filozofia kodowania (Clean Code, SOLID, KISS, DRY, YAGNI, wzorce projektowe, bra
 └── specs/                 ← specyfikacje ficzerów (generowane przez /blast:init)
 
 .claude/
-├── agents/blast/          ← 14 agentów
-├── commands/blast/        ← 20 slash commands
+├── agents/blast/          ← 17 agentów + 4 debate sub-agents
+├── commands/blast/        ← 29 slash commands
 └── settings.local.json    ← uprawnienia bash (git-ignored)
 
 CLAUDE.md                  ← instrukcje dla AI (ładowane automatycznie)
@@ -170,6 +170,15 @@ Po `/blast:complete`:
 - `INVENTORY.md` → nowe wpisy w rejestrze komponentów
 - Następnym razem gdy odpalisz `/blast:requirements nowy-ficzer`, agent sprawdzi inventory i ostrzeże jeśli próbujesz zbudować coś co już istnieje. **To jest DRY na poziomie cross-spec.**
 
+## Multi-LLM (opcjonalne)
+
+Post Spike-3 blast obsługuje multi-LLM compositions:
+- **HYBRID** dla `validate-impl --thorough` (Sonnet + qwen3.6 → Haiku)
+- **JURY_3_FLASH3** dla `security` + high-stakes (Opus + qwen3.6 + Gemini-3-Flash → Haiku)
+- **Privacy mode** (`spec.json.privacy: local-only`) blokuje external calls
+
+Setup: `cp .env.example .env`, fill keys, see `MANIFEST.md` + `.blast/steering/llm-routing.md`.
+
 ## Pamięć projektu i DRY cross-spec
 
 blast pilnuje żebyś nie pisał tego samego dwa razy:
@@ -182,11 +191,12 @@ Workflow pamięci: `/blast:impl` → `/blast:complete` (aktualizuje inventory) �
 
 ## Użycie jako szablon
 
-blast jest reusable template — 70% plików jest generycznych:
-- `.blast/settings/` — 100% reusable (rules + templates)
-- `.blast/steering/`, `.blast/specs/` — puste, generuje się per-projekt
-- `.claude/agents/blast/`, `.claude/commands/blast/` — 100% reusable
-- `CLAUDE.md` — generyczna wersja (bez project-specific treści)
+blast jest reusable template. Pełna klasyfikacja FRAMEWORK / HYBRID / R&D w `MANIFEST.md` na repo root.
+
+- **FRAMEWORK (universal)**: `.blast/settings/`, `.claude/agents/blast/`, `.claude/commands/blast/`, `.claude/scripts/`, `.claude/hooks/`, `.claude/mcp/` — 100% reusable
+- **HYBRID** (project-specific content w framework path): `.blast/steering/{cost-policy,llm-routing}.md` — replace z `.blast/settings/templates/steering/*.template` na nowy projekt
+- **Per-project**: `.blast/{specs,knowledge,steering}/` — puste/.gitkeep, generuje się per-projekt
+- **R&D (NIE ship)**: `r_and_d/` — personal content tego repo, exclude przy distribution
 
 Workflow nowego projektu:
 
