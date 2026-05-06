@@ -140,6 +140,17 @@ def main():
     state_path = cwd_path / STATE_DIR / STATE_FILE
     routing_path = cwd_path / ROUTING_PATH
 
+    # Fallback: if cwd-relative paths don't resolve, derive project root from
+    # this script's location. Same robustness fix as approval-gate hook —
+    # handles Claude Code event variations and edge cases on Windows
+    # (OneDrive folders, em-dash paths, copied directories).
+    if not routing_path.exists():
+        script_root = Path(__file__).resolve().parent.parent.parent
+        fallback_routing = script_root / ROUTING_PATH
+        if fallback_routing.exists():
+            routing_path = fallback_routing
+            state_path = script_root / STATE_DIR / STATE_FILE
+
     patterns = parse_local_only_patterns(routing_path)
     if not patterns:
         return 0  # No privacy patterns configured → allow everything

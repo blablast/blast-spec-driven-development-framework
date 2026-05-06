@@ -1,6 +1,6 @@
 ---
 name: debate-judge
-description: Debate verdict-giver — reads scratchpad, weighs Author vs Critic, emits verdict envelope. Used in Protocol A and as final round in Protocol C.
+description: Judge — Debate verdict-giver — reads scratchpad, weighs Author vs Critic, emits verdict envelope. Used in Protocol A and as final round in Protocol C.
 tools: Read, Write, Edit, Glob, Grep
 model: haiku
 color: yellow

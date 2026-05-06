@@ -104,15 +104,26 @@ def main():
     cwd = event.get("cwd") or "."
     spec_path = Path(cwd) / ".blast" / "specs" / feature / "spec.json"
 
-    # 7. Spec must exist for gated agents
+    # 7. Spec must exist for gated agents — try cwd-relative first, fallback to
+    #    project root derived from this script's location. Robust against
+    #    Claude Code event format changes that may not pass cwd reliably,
+    #    or against shells that spawn hook with unexpected cwd (Windows OneDrive
+    #    folders with Unicode chars sometimes resolve cwd to user profile dir).
     if not spec_path.exists():
-        log_block(
-            f"spec.json not found for {subagent_type}.\n"
-            f"  feature:  {feature}\n"
-            f"  expected: {spec_path}\n"
-            f"  Fix:      run /blast:init first, or check feature name."
-        )
-        return 2
+        # Hook lives in .claude/hooks/ — project root is 3 parents up
+        script_root = Path(__file__).resolve().parent.parent.parent
+        fallback_path = script_root / ".blast" / "specs" / feature / "spec.json"
+        if fallback_path.exists():
+            spec_path = fallback_path
+        else:
+            log_block(
+                f"spec.json not found for {subagent_type}.\n"
+                f"  feature:        {feature}\n"
+                f"  tried (cwd):    {Path(cwd) / '.blast/specs' / feature / 'spec.json'}\n"
+                f"  tried (script): {fallback_path}\n"
+                f"  Fix:            run /blast:init first, or check feature name."
+            )
+            return 2
 
     # 8. Parse spec.json
     try:

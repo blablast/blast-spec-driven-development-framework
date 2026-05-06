@@ -1,6 +1,6 @@
 ---
 name: debate-aggregator
-description: Jury vote consolidator — collects independent juror verdicts, computes majority, captures dissent. Used in Protocol B (Multi-Jury) and Round 5 Synthesis.
+description: Aggregator — Jury vote consolidator — collects independent juror verdicts, computes majority, captures dissent. Used in Protocol B (Multi-Jury) and Round 5 Synthesis.
 tools: Read, Write, Edit, Glob
 model: haiku
 color: orange

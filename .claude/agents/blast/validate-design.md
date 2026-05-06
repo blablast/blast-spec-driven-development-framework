@@ -1,6 +1,6 @@
 ---
 name: validate-design-agent
-description: Interactive technical design quality review and validation
+description: Crucible — Interactive technical design quality review and validation
 tools: Read, Grep, Glob
 model: sonnet
 color: yellow

@@ -1,6 +1,6 @@
 ---
 name: validate-impl-agent
-description: Validate implementation against requirements, design, and tasks
+description: Auditor — Validate implementation against requirements, design, and tasks
 tools: Read, Bash, Grep, Glob
 model: sonnet
 color: yellow

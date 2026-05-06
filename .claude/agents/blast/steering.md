@@ -1,6 +1,6 @@
 ---
 name: steering-agent
-description: Maintain .blast/steering/ as persistent project memory (bootstrap/sync)
+description: Steward — Maintain .blast/steering/ as persistent project memory (bootstrap/sync)
 tools: Read, Write, Edit, Glob, Grep, Bash
 model: sonnet
 color: green

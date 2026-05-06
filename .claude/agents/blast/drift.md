@@ -1,6 +1,6 @@
 ---
 name: spec-drift-agent
-description: Detect drift between shipped spec and actual codebase — report what changed, suggest remediation
+description: Tracker — Detect drift between shipped spec and actual codebase — report what changed, suggest remediation
 tools: Read, Write, Bash, Glob, Grep, mcp__blast-llm-bridge__ask_ubuntu_qwen36
 model: haiku
 color: yellow

@@ -1,6 +1,6 @@
 ---
 name: spec-requirements-agent
-description: Generate EARS-format requirements based on project description and steering context
+description: Scribe — Generate EARS-format requirements based on project description and steering context
 tools: Read, Write, Edit, Glob, WebSearch, WebFetch
 model: haiku
 color: purple

@@ -1,6 +1,6 @@
 ---
 name: spec-evolve-agent
-description: Generate delta-spec (evolution) for shipped feature — describes ONLY changes vs parent, not full new spec
+description: Delta — Generate delta-spec (evolution) for shipped feature — describes ONLY changes vs parent, not full new spec
 tools: Read, Write, Edit, Glob, Grep, Bash
 model: haiku
 color: cyan

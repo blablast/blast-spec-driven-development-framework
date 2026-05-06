@@ -1,6 +1,6 @@
 ---
 name: research-spike-agent
-description: Research and spike investigations — explore options, compare approaches, produce structured findings
+description: Oracle — Research and spike investigations — explore options, compare approaches, produce structured findings
 tools: Read, Bash, Grep, Glob, WebSearch, WebFetch, Write, Edit
 model: sonnet
 color: green

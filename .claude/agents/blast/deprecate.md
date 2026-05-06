@@ -1,6 +1,6 @@
 ---
 name: spec-deprecate-agent
-description: Mark shipped feature as deprecated, generate migration guide, update inventory warnings
+description: Curator — Mark shipped feature as deprecated, generate migration guide, update inventory warnings
 tools: Read, Write, Edit, Glob, Grep, Bash
 model: haiku
 color: yellow

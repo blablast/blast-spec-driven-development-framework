@@ -1,6 +1,6 @@
 ---
 name: spec-design-agent
-description: Generate comprehensive technical design translating requirements (WHAT) into architecture (HOW) with discovery process
+description: Atlas — Generate comprehensive technical design translating requirements (WHAT) into architecture (HOW) with discovery process
 tools: Read, Write, Edit, Grep, Glob, WebSearch, WebFetch
 model: opus
 color: purple

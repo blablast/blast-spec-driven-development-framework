@@ -1,6 +1,6 @@
 ---
 name: security-audit-agent
-description: Security audit — scan code for vulnerabilities, secrets, and unsafe patterns (OWASP/CWE)
+description: Sentinel — Security audit — scan code for vulnerabilities, secrets, and unsafe patterns (OWASP/CWE)
 tools: Read, Bash, Glob, Grep, Edit, Write, Task
 model: opus
 color: yellow

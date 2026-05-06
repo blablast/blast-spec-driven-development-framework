@@ -91,6 +91,14 @@ def main():
 
     cwd = event.get("cwd") or "."
     log_dir = Path(cwd) / LOG_DIR_NAME
+
+    # Fallback: derive project root from this script's location if cwd-relative
+    # path doesn't make sense (Claude Code event variations, Windows OneDrive
+    # quirks). Same robustness fix as approval-gate and privacy-gate hooks.
+    if not log_dir.parent.exists():
+        script_root = Path(__file__).resolve().parent.parent.parent
+        if (script_root / ".blast").exists():
+            log_dir = script_root / LOG_DIR_NAME
     try:
         log_dir.mkdir(parents=True, exist_ok=True)
     except Exception as e:

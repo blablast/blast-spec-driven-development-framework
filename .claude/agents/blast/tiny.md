@@ -1,6 +1,6 @@
 ---
 name: spec-tiny-agent
-description: Fast-path agent — generate condensed requirements + design + tasks for tiny features in a single pass
+description: Sprint — Fast-path agent — generate condensed requirements + design + tasks for tiny features in a single pass
 tools: Read, Write, Edit, Glob, Grep, Bash
 model: haiku
 color: cyan

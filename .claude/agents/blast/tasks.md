@@ -1,6 +1,6 @@
 ---
 name: spec-tasks-agent
-description: Generate implementation tasks from requirements and design
+description: Loom — Generate implementation tasks from requirements and design
 tools: Read, Write, Edit, Glob, Grep
 model: haiku
 color: purple

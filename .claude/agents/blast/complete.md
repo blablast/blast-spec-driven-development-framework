@@ -1,6 +1,6 @@
 ---
 name: spec-complete-agent
-description: Mark feature as shipped, update inventory with delivered components, sync project memory
+description: Ledger — Mark feature as shipped, update inventory with delivered components, sync project memory
 tools: Read, Write, Edit, Glob, Bash, Grep
 model: haiku
 color: green

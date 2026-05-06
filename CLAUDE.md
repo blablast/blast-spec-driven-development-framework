@@ -131,7 +131,7 @@ Workflow pamięci: `/blast:impl` → `/blast:complete` (aktualizuje inventory) �
 
 Te zakresy są wskazówką, nie egzekwowanym kontraktem — agent może doczytać więcej jeśli zadanie tego wymaga.
 
-## Model routing (Fala 3)
+## Model routing
 
 Każdy agent w `.claude/agents/blast/` ma jawnie ustawiony `model:` zamiast `inherit`. Mapping (na 2026-05):
 
@@ -143,7 +143,7 @@ Każdy agent w `.claude/agents/blast/` ma jawnie ustawiony `model:` zamiast `inh
 
 Override per-call: zmień `model:` w odpowiednim pliku agenta. Jeśli nie wiesz — zostaw routing default'owy.
 
-## Hard approval gate via Claude Code hooks (Fala 5)
+## Hard approval gate via Claude Code hooks
 
 blast ma teraz **deterministyczny gate** na poziomie SDK, nie tylko prompt-level. Konfiguracja w `.claude/settings.json` rejestruje hook PreToolUse na matcherze `^(Agent|Task)$`, który odpala `.claude/hooks/blast-approval-gate.py` przed każdym wywołaniem subagenta.
 
@@ -175,7 +175,7 @@ Współistnienie z markdown-level gate (Fala 1): markdown gate w slash commands 
 
 **Tymczasowy disable**: usuń sekcję `hooks` z `.claude/settings.json`, hook nie odpali.
 
-## Multi-LLM compositions (post Spike-3, opt-in)
+## Multi-LLM compositions (opt-in)
 
 blast obsługuje wieloprovider'owy code review przez `debate_config:` w `.blast/steering/llm-routing.md`. Source of truth dla routingu i kompozycji.
 
@@ -192,10 +192,6 @@ blast obsługuje wieloprovider'owy code review przez `debate_config:` w `.blast/
 ### MCP bridge
 
 `.claude/mcp/blast-llm-bridge.py` exposes lokalne Ollama models jako MCP tools (`ask_ubuntu_qwen36`, `ask_ubuntu_qwen3_coder`). Bridge registered w `.mcp.json`. Win11 wrappers DISABLED 2026-05-06 (VRAM constraint).
-
-### Empirical baselines
-
-`llm-routing.md::Empirical baselines` ma recall/precision/F1/cost numbers ze Spike-3. Jeśli future regression — porównaj z tymi numerami.
 
 ## R&D vs Framework separation
 
