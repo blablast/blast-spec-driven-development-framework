@@ -39,7 +39,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 .claude/hooks/blast-approval-gate.py"
+            "command": "python .claude/hooks/blast-approval-gate.py"
           }
         ]
       },
@@ -48,7 +48,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 .claude/hooks/blast-privacy-gate.py"
+            "command": "python .claude/hooks/blast-privacy-gate.py"
           }
         ]
       }
@@ -59,7 +59,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 .claude/hooks/blast-telemetry.py"
+            "command": "python .claude/hooks/blast-telemetry.py"
           }
         ]
       }

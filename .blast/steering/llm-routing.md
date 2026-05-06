@@ -88,14 +88,14 @@ Per-spec override: `spec.json.debate.{phase}` wins.
 
 ```yaml
 HYBRID:
- protocol: B # parallel jury, N=2
- jurors: [claude-sonnet-4-6, qwen3.6:latest]
- aggregator: claude-haiku-4-5-20251001
+  protocol: B   # parallel jury, N=2
+  jurors: [claude-sonnet-4-6, qwen3.6:latest]
+  aggregator: claude-haiku-4-5-20251001
 
 JURY_3_FLASH3:
- protocol: B # parallel jury, N=3
- jurors: [claude-opus-4-6, qwen3.6:latest, gemini-3-flash-preview]
- aggregator: claude-haiku-4-5-20251001
+  protocol: B   # parallel jury, N=3
+  jurors: [claude-opus-4-6, qwen3.6:latest, gemini-3-flash-preview]
+  aggregator: claude-haiku-4-5-20251001
 ```
 
 ### Per-phase config
@@ -105,29 +105,29 @@ spawns the debate flow only when `enabled: true` AND the trigger condition is me
 
 ```yaml
 debate_config:
- validate-impl:
- enabled: true
- trigger: thorough_flag # fires when --thorough flag passed
- composition: HYBRID
- cost_ceiling_usd: 0.50
+  validate-impl:
+    enabled: true
+    trigger: thorough_flag        # fires when --thorough flag passed
+    composition: HYBRID
+    cost_ceiling_usd: 0.50
 
- validate-design:
- enabled: true
- trigger: high_stakes # fires when risk_level=high OR security_critical=true
- composition: JURY_3_FLASH3
- cost_ceiling_usd: 1.00
+  validate-design:
+    enabled: true
+    trigger: high_stakes          # fires when risk_level=high OR security_critical=true
+    composition: JURY_3_FLASH3
+    cost_ceiling_usd: 1.00
 
- security:
- enabled: true
- trigger: always # security always uses jury (cross-corpus diversity matters most here)
- composition: JURY_3_FLASH3
- cost_ceiling_usd: 1.50
+  security:
+    enabled: true
+    trigger: always               # security always uses jury (cross-corpus diversity matters most here)
+    composition: JURY_3_FLASH3
+    cost_ceiling_usd: 1.50
 
- review:
- enabled: true
- trigger: high_stakes # PR touches auth/payments/schema/data-mutating
- composition: JURY_3_FLASH3
- cost_ceiling_usd: 1.00
+  review:
+    enabled: true
+    trigger: high_stakes          # PR touches auth/payments/schema/data-mutating
+    composition: JURY_3_FLASH3
+    cost_ceiling_usd: 1.00
 ```
 
 Compositions (HYBRID, JURY_3_FLASH3) defined above. To **disable** debate for a phase
