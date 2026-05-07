@@ -57,7 +57,7 @@ Use the Task tool to invoke the Subagent with file path patterns:
 ```
 Task(
   subagent_type="spec-tasks-agent",
-  description="Generate implementation tasks",
+  description="Loom — Generate implementation tasks",
   prompt="""
 Feature: {feature}
 Spec directory: .blast/specs/{feature}/

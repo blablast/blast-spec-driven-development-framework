@@ -24,7 +24,7 @@ Use the Task tool to invoke the Subagent with file path patterns:
 ```
 Task(
   subagent_type="steering-agent",
-  description="Manage steering files",
+  description="Steward — Manage steering files",
   prompt="""
 Mode: {bootstrap or sync based on detection}
 

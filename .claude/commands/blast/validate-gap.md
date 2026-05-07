@@ -36,7 +36,7 @@ Use the Task tool to invoke the Subagent with file path patterns:
 ```
 Task(
   subagent_type="validate-gap-agent",
-  description="Analyze implementation gap",
+  description="Bridge — Analyze implementation gap",
   prompt="""
 Feature: {feature}
 Spec directory: .blast/specs/{feature}/

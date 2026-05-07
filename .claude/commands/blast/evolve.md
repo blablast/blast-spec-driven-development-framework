@@ -77,7 +77,7 @@ Delegate evolution generation to spec-evolve-agent:
 ```
 Task(
   subagent_type="spec-evolve-agent",
-  description="Generate delta-spec for shipped feature",
+  description="Delta — Generate delta-spec for shipped feature",
   prompt="""
 Parent feature: {parent_feature}
 Change description: {change_description}

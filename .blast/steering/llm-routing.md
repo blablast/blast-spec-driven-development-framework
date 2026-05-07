@@ -149,24 +149,19 @@ spawns the debate flow only when `enabled: true` AND the trigger condition is me
 debate_config:
   validate-impl:
     enabled: true
-    trigger: thorough_flag        # fires when --debate flag passed
+    trigger: debate_default       # SOTA #1: debate ON by default; downgrade only if --no-debate flag passed
     composition: HYBRID
     cost_ceiling_usd: 0.50
 
   validate-tasks:
     enabled: true
-    trigger: thorough_flag_or_high_complexity  # auto-fires on heuristics
+    trigger: debate_default       # SOTA #1: debate ON by default; downgrade only if --no-debate flag passed
     composition: HYBRID
     cost_ceiling_usd: 0.40
-    auto_fire_when:
-      - tasks_count_gt: 8
-      - external_dep_not_in_tech_md_whitelist: true
-      - spec_complexity_hint: "high"
-      - security_critical: true
 
   validate-design:
     enabled: true
-    trigger: high_stakes          # fires when risk_level=high OR security_critical=true
+    trigger: debate_default       # SOTA #1: debate ON by default; downgrade only if --no-debate flag passed
     composition: JURY_3_FLASH3
     cost_ceiling_usd: 1.00
 
@@ -178,13 +173,17 @@ debate_config:
 
   review:
     enabled: true
-    trigger: high_stakes          # PR touches auth/payments/schema/data-mutating
+    trigger: debate_default       # SOTA #1: debate ON by default; downgrade only if --no-debate flag passed
     composition: JURY_3_FLASH3
     cost_ceiling_usd: 1.00
 ```
 
-Compositions (HYBRID, JURY_3_FLASH3) defined above. To **disable** debate for a phase
-without removing config: set `enabled: false`. To **force always**: set `trigger: always`.
+Compositions (HYBRID, JURY_3_FLASH3) defined above. **Trigger semantics**:
+- `debate_default` — SOTA #1 default: fire debate UNLESS the calling slash command injected `No-debate: true` into the agent prompt (user passed `--no-debate`).
+- `always` — fire debate unconditionally (e.g. security; ignores --no-debate).
+- `high_stakes` — fire only when risk_level=high or security_critical=true (legacy; prefer `debate_default`).
+
+To **disable** debate for a phase without removing config: set `enabled: false`. To **force always-on** (ignore --no-debate): set `trigger: always`.
 
 ### Privacy mode override (`spec.json.privacy: local-only`)
 

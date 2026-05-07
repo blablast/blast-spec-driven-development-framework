@@ -64,7 +64,7 @@ Delegate drift detection to spec-drift-agent:
 ```
 Task(
   subagent_type="spec-drift-agent",
-  description="Detect drift between spec and codebase",
+  description="Tracker — Detect drift between spec and codebase",
   prompt="""
 Feature: {feature}
 Spec directory: .blast/specs/{feature}/

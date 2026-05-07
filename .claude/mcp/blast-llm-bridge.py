@@ -119,15 +119,20 @@ async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
     endpoint = CONFIG["endpoints"][machine]
     prompt = arguments.get("prompt", "")
     system = arguments.get("system", "").strip()
-    max_tokens = arguments.get("max_tokens", 4096)
+    # qwen3.6:latest is a thinking model — reasoning chain consumes the budget before output.
+    # Default is 32k to give 8x headroom over the spike-3 fix (16k). Local model = zero token cost,
+    # latency only on actually generated tokens (model stops at natural completion).
+    max_tokens = arguments.get("max_tokens", 32768)
 
     # Build Ollama API payload
     payload = {
         "model": model,
         "prompt": prompt,
         "stream": False,
+        "keep_alive": "30m",  # keep model warm across jury cycle (validate-* calls bridge ~3x in a row)
         "options": {
             "num_predict": max_tokens,
+            "think": False,   # disable Qwen3 reasoning chain — we want the answer, not the working
         },
     }
     if system:
@@ -147,10 +152,26 @@ async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
             eval_duration_s = eval_duration_ns / 1_000_000_000 if eval_duration_ns else 0
             tokens_per_sec = eval_count / eval_duration_s if eval_duration_s > 0 else 0
 
+            # Empty-response retry: if Ollama burned the budget on reasoning and returned nothing,
+            # retry once with double budget. Belt and suspenders since think:False should already prevent this.
+            if not generated.strip() and eval_count >= max_tokens * 0.9:
+                payload["options"]["num_predict"] = max_tokens * 2
+                response = await client.post(f"{endpoint}/api/generate", json=payload)
+                response.raise_for_status()
+                data = response.json()
+                generated = data.get("response", "")
+                eval_count = data.get("eval_count", 0)
+                eval_duration_ns = data.get("eval_duration", 0)
+                eval_duration_s = eval_duration_ns / 1_000_000_000 if eval_duration_ns else 0
+                tokens_per_sec = eval_count / eval_duration_s if eval_duration_s > 0 else 0
+                retry_note = " | retried@2x"
+            else:
+                retry_note = ""
+
             # Format response with metadata header
             metadata = (
                 f"[{model} @ {machine} | {eval_count} tokens | "
-                f"{eval_duration_s:.1f}s | {tokens_per_sec:.1f} tok/s]"
+                f"{eval_duration_s:.1f}s | {tokens_per_sec:.1f} tok/s{retry_note}]"
             )
             return [TextContent(type="text", text=f"{metadata}\n\n{generated}")]
 

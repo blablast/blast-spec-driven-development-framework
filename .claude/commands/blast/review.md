@@ -44,7 +44,7 @@ Use the Task tool to invoke the Subagent:
 ```
 Task(
   subagent_type="code-review-agent",
-  description="Code review against principles",
+  description="Compass — Code review against principles",
   prompt="""
 Feature: {feature or "full codebase"}
 Fix mode: {true/false}

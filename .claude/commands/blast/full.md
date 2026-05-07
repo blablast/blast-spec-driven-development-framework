@@ -1,6 +1,6 @@
 ---
 description: "Od zera do shipped kodu — blast pełny pipeline"
-allowed-tools: Read, SlashCommand, TodoWrite, Bash, Write, Glob
+allowed-tools: Read, Skill, TodoWrite, Bash, Write, Glob
 argument-hint: <project-description> [--auto] [--source path/to/file] [--research] [--validate] [--push]
 ---
 
@@ -97,7 +97,7 @@ Execute phases in order. Phase numbering is dynamic based on flags — use TodoW
 
 #### Phase: Generate Requirements
 
-**Execute SlashCommand**: `/blast:requirements {feature-name}`
+**Invoke via Skill tool** (literal — do NOT use Task tool to spawn the agent directly): call `Skill` with `skill: "blast:requirements"` and `args: "{feature-name}"`
 
 **IMPORTANT**: In Automatic Mode, IGNORE the "Next Steps" message.
 
@@ -112,7 +112,7 @@ Execute phases in order. Phase numbering is dynamic based on flags — use TodoW
 
 **Skip this phase entirely if `--research` flag was NOT provided.**
 
-**Execute SlashCommand**: `/blast:research {feature-name}`
+**Invoke via Skill tool** (literal — do NOT use Task tool to spawn the agent directly): call `Skill` with `skill: "blast:research"` and `args: "{feature-name}"`
 
 Wait for completion.
 
@@ -127,7 +127,7 @@ Wait for completion.
 
 #### Phase: Generate Design
 
-**Execute SlashCommand**: `/blast:design {feature-name} -y`
+**Invoke via Skill tool** (literal — do NOT use Task tool to spawn the agent directly): call `Skill` with `skill: "blast:design"` and `args: "{feature-name} -y"`
 
 Note: `-y` flag auto-approves requirements.
 
@@ -142,7 +142,7 @@ Note: `-y` flag auto-approves requirements.
 
 **Skip this phase entirely if `--validate` flag was NOT provided.**
 
-**Execute SlashCommand**: `/blast:validate-design {feature-name}`
+**Invoke via Skill tool** (literal — do NOT use Task tool to spawn the agent directly): call `Skill` with `skill: "blast:validate-design"` and `args: "{feature-name}"`
 
 Wait for completion. **Parse the Verdict Envelope** at the tail of the subagent output (lines between `---VERDICT---` and `---END---`):
 
@@ -161,7 +161,7 @@ Wait for completion. **Parse the Verdict Envelope** at the tail of the subagent 
 
 #### Phase: Generate Tasks
 
-**Execute SlashCommand**: `/blast:tasks {feature-name} -y`
+**Invoke via Skill tool** (literal — do NOT use Task tool to spawn the agent directly): call `Skill` with `skill: "blast:tasks"` and `args: "{feature-name} -y"`
 
 Note: `-y` flag auto-approves design.
 
@@ -186,9 +186,7 @@ Continue to implementation?
 
 **With `--validate` flag**: always runs (HYBRID composition).
 
-```
-SlashCommand: /blast:validate-tasks {feature} [--debate if validate flag]
-```
+**Invoke via Skill tool**: call `Skill` with `skill: "blast:validate-tasks"` and `args: "{feature}"`. Do NOT use Task tool to spawn validate-tasks-agent directly — the slash command must run as orchestrator.
 
 Read agent verdict envelope:
 - `VERDICT: PASS` → continue to impl normally
@@ -200,7 +198,7 @@ Read agent verdict envelope:
 
 **This is the heaviest phase.** The impl subagent runs in its own context via Task tool, so context pressure on the orchestrator is minimal.
 
-**Execute SlashCommand**: `/blast:impl {feature-name} -y`
+**Invoke via Skill tool** (literal — do NOT use Task tool to spawn the agent directly): call `Skill` with `skill: "blast:impl"` and `args: "{feature-name} -y"`
 
 Note: No task numbers = execute ALL pending tasks. The `-y` flag bypasses the tasks-approval gate (necessary for --auto mode since tasks were just generated and not manually reviewed).
 
@@ -219,7 +217,7 @@ Wait for completion. This may take significant time.
 
 **Skip this phase entirely if `--validate` flag was NOT provided.**
 
-**Execute SlashCommand**: `/blast:validate-impl {feature-name} --prove`
+**Invoke via Skill tool** (literal — do NOT use Task tool to spawn the agent directly): call `Skill` with `skill: "blast:validate-impl"` and `args: "{feature-name} --prove"`
 
 The `--prove` flag triggers Behavioral Verification (runs Verification Strategy from design.md). Wait for completion. **Parse the Verdict Envelope** at the tail:
 
@@ -238,7 +236,7 @@ The `--prove` flag triggers Behavioral Verification (runs Verification Strategy 
 
 #### Phase: Ship Feature (Complete)
 
-**Execute SlashCommand**: `/blast:complete {feature-name}`
+**Invoke via Skill tool** (literal — do NOT use Task tool to spawn the agent directly): call `Skill` with `skill: "blast:complete"` and `args: "{feature-name}"`
 
 Wait for completion.
 
@@ -251,7 +249,7 @@ Wait for completion.
 
 #### Phase: Security Audit (always runs)
 
-**Execute SlashCommand**: `/blast:security {feature-name}`
+**Invoke via Skill tool** (literal — do NOT use Task tool to spawn the agent directly): call `Skill` with `skill: "blast:security"` and `args: "{feature-name}"`
 
 Wait for completion. **Parse the Verdict Envelope** at the tail (`---VERDICT---` … `---END---`):
 
@@ -269,7 +267,7 @@ Wait for completion. **Parse the Verdict Envelope** at the tail (`---VERDICT---`
 
 #### Phase: Sync Project Memory (Steering)
 
-**Execute SlashCommand**: `/blast:steering`
+**Invoke via Skill tool** (literal — do NOT use Task tool to spawn the agent directly): call `Skill` with `skill: "blast:steering"`
 
 Wait for completion.
 
@@ -282,7 +280,7 @@ Wait for completion.
 
 #### Phase: Commit and Push (conditional — only with `--push`)
 
-**Execute SlashCommand**: `/blast:push {feature-name}`
+**Invoke via Skill tool** (literal — do NOT use Task tool to spawn the agent directly): call `Skill` with `skill: "blast:push"` and `args: "{feature-name}"`
 
 Wait for completion.
 
@@ -295,6 +293,27 @@ Output final completion summary and exit.
 ---
 
 ## Important Constraints
+
+
+### Routing discipline — orchestrator pattern (CRITICAL)
+
+For phases that have an orchestrator slash command (validate-design, validate-impl, validate-tasks, security), you MUST invoke the slash command via the Skill tool — NEVER spawn the underlying `*-agent` directly via Task tool. The slash command is the orchestrator that decides FIRE/SKIP for debate routing; bypassing it forces solo Sonnet and silently disables the debate composition the user configured.
+
+Forbidden (breaks debate routing):
+```
+Task(subagent_type="validate-design-agent", description="...", prompt="...")  # WRONG
+Task(subagent_type="security-audit-agent", description="...", prompt="...")    # WRONG
+```
+
+Required (preserves orchestrator):
+```
+Skill: blast:validate-design   args: "<feature>"
+Skill: blast:validate-impl     args: "<feature> --prove"
+Skill: blast:validate-tasks    args: "<feature>"
+Skill: blast:security          args: "<feature>"
+```
+
+This rule applies even when you (orchestrator Sonnet) believe a custom prompt would yield better results. The slash command's routing decision is the contract — your job is to invoke it, not optimize past it.
 
 ### Orchestrator Weight
 - Keep orchestrator outputs MINIMAL — only status lines between phases

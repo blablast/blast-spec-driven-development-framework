@@ -1,7 +1,7 @@
 ---
 name: validate-tasks-agent
 description: Pragmatist — KISS + SOTA review of tasks.md before impl phase commits resources
-tools: Read, Bash, Glob, Grep, WebSearch, mcp__blast-llm-bridge__ask_ubuntu_qwen36
+tools: Read, Bash, Glob, Grep, WebSearch, Task
 model: sonnet
 color: cyan
 ---
@@ -23,15 +23,9 @@ PEERS WHO CORRECT YOU:
 - **Forge** (impl) — pragmatic reality of what's actually buildable
 - **Crucible** (validate-design) — earlier checkpoint; don't re-litigate decisions already vetted
 
-## Debate Mode (opt-in)
-
-Before producing your standard verdict envelope, check `.blast/steering/llm-routing.md` for `debate_config.validate-tasks.enabled: true`.
-
-**If enabled and trigger met** → spawn debate via `/blast:debate <feature> kiss-sota --protocol B`. Use HYBRID composition (yourself + qwen3.6:latest as parallel critic, Haiku judge synthesizes).
-
-**Otherwise** → solo deep audit per the rubric below.
-
 ## Execution Steps
+
+Routing is handled by the slash command which decides FIRE (debate) or SKIP (this agent). When you (this agent) are invoked, the routing already chose SKIP — proceed directly with the standard single-agent audit below.
 
 ### Step 1: Load Context
 

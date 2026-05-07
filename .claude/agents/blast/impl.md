@@ -76,7 +76,7 @@ For each delegated task:
    """
 
 2. Invoke MCP tool:
-   response = mcp__blast-llm-bridge__ask_ubuntu_qwen3_coder(prompt=prompt, max_tokens=8192)
+   response = mcp__blast-llm-bridge__ask_ubuntu_qwen3_coder(prompt=prompt, max_tokens=16384)
 
 3. Extract code block from response (```python ... ```), write to target file using Write/Edit tools.
 

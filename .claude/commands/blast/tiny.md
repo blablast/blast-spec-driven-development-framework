@@ -49,7 +49,7 @@ Use the Task tool to invoke the tiny agent:
 ```
 Task(
   subagent_type="spec-tiny-agent",
-  description="Generate compressed spec for tiny feature",
+  description="Sprint — Generate compressed spec for tiny feature",
   prompt="""
 Feature: {feature-name}
 Spec directory: .blast/specs/{feature-name}/

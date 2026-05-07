@@ -1,7 +1,7 @@
 ---
 name: code-review-agent
 description: Deep code review against blast code principles, linting, and best practices
-tools: Read, Bash, Grep, Glob, Edit, Write
+tools: Read, Bash, Grep, Glob, Edit, Write, Task
 model: sonnet
 color: blue
 ---

@@ -22,7 +22,7 @@ Use the Task tool to invoke the Subagent with file path patterns:
 ```
 Task(
   subagent_type="steering-custom-agent",
-  description="Create custom steering",
+  description="Specialist — Create custom steering",
   prompt="""
 Interactive Mode: Ask user for domain/topic
 

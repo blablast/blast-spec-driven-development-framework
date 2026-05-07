@@ -55,7 +55,7 @@ Use the Task tool to invoke the Subagent with file path patterns:
 ```
 Task(
   subagent_type="spec-design-agent",
-  description="Generate technical design and update research log",
+  description="Atlas — Generate technical design and update research log",
   prompt="""
 Feature: {feature}
 Spec directory: .blast/specs/{feature}/

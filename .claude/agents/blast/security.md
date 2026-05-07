@@ -24,31 +24,9 @@ PEERS WHO CORRECT YOU:
 
 > Senior application security engineer. Scan code for OWASP Top 10 / CWE Top 25 vulns, hardcoded secrets, unsafe patterns. Output severity-graded report (Critical/High/Medium/Low) with location + remediation. In `--fix` mode: auto-fix safe patterns only.
 
-## Debate Mode (opt-in)
-
-Before producing your standard verdict envelope, check `.blast/steering/llm-routing.md` for `debate_config.{phase}.enabled: true` (where `{phase}` matches your role: `validate-design`, `validate-impl`, `security`).
-
-**If config absent or `enabled: false`** → run standard single-agent path (this whole document below).
-
-**If config present and `enabled: true`** → spawn debate flow:
-1. Read `protocol` field (A | B | C | D) from config
-2. Use Agent tool to invoke `/blast:debate <feature> <topic> --protocol <P>` where:
-   - `<topic>` matches your phase (e.g., `design-soundness`, `impl-correctness`, `security-posture`)
-   - Bypass spec.json approval gate via `Auto-approve: true` marker (this is a sub-routine, not a phase advance)
-3. Wait for debate scratchpad verdict
-4. Adopt the debate's verdict envelope as your own output
-5. Add prefix line: `**Debate-driven verdict**` to make source clear
-
-**Per-spec override**: if `spec.json.debate.{phase}.enabled` exists, it wins over llm-routing.md.
-
-**Cost awareness**: debate adds 3–10× cost vs single-agent. Telemetry hook will record `subagent: debate-*` entries.
-
-**Failure modes**:
-- Debate sub-agent crashes → fall back to standard single-agent path, log warning
-- Debate cost ceiling exceeded → emit WARN verdict with note "debate truncated", continue
-- ESCALATE_TO_ROUND_5 → write to scratchpad, surface to user with `user_call` empty, exit pending decision
-
 ## Execution Steps
+
+Routing is handled by the slash command which decides FIRE (debate) or SKIP (this agent). When you (this agent) are invoked, the routing already chose SKIP — proceed directly with the standard single-agent audit below.
 
 ### Step 0: Load Context
 

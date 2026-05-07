@@ -75,7 +75,7 @@ Use the Task tool to invoke the Subagent with file path patterns:
 ```
 Task(
   subagent_type="spec-tdd-impl-agent",
-  description="Execute TDD implementation",
+  description="Forge — Execute TDD implementation",
   prompt="""
 Feature: {feature}
 Spec directory: .blast/specs/{feature}/

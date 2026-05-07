@@ -134,7 +134,7 @@ OUTPUT RULES:
 - End with literal line: ---END---
 """
 
-result = mcp__blast-llm-bridge__ask_ubuntu_qwen36(prompt=prompt, max_tokens=800)
+result = mcp__blast-llm-bridge__ask_ubuntu_qwen36(prompt=prompt, max_tokens=2048)
 ```
 
 ### Output format

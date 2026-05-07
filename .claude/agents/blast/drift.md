@@ -211,7 +211,7 @@ EVIDENCE: <2-3 sentences citing specific differences>
 SUGGESTED_REMEDIATION: <one of: 'no action', '/blast:evolve {feature}', 'update code to match spec', 'human review'>
 """
 
-result = mcp__blast-llm-bridge__ask_ubuntu_qwen36(prompt=prompt, max_tokens=512)
+result = mcp__blast-llm-bridge__ask_ubuntu_qwen36(prompt=prompt, max_tokens=4096)
 ```
 
 Why this MCP tool for this step:

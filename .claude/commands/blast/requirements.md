@@ -38,7 +38,7 @@ Use the Task tool to invoke the Subagent with file path patterns:
 ```
 Task(
   subagent_type="spec-requirements-agent",
-  description="Generate EARS requirements",
+  description="Scribe — Generate EARS requirements",
   prompt="""
 Feature: {feature}
 Spec directory: .blast/specs/{feature}/

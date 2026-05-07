@@ -21,22 +21,86 @@ Examples:
 **IMPORTANT**: `$ARGUMENTS` is a single string, NOT positional `$1`. Parse it yourself.
 
 ## Validate
-Check that design has been completed:
-- Verify `.blast/specs/{feature}/` exists
+
+Check that design exists:
+- Verify `.blast/specs/{feature}/spec.json` exists
 - Verify `.blast/specs/{feature}/design.md` exists
 
-If validation fails, inform user to complete design phase first.
+If missing, instruct user to complete `/blast:design` first.
 
-## Invoke Subagent
+## Routing Decision (deterministic — execute in order, do NOT skip)
 
-Delegate design validation to validate-design-agent:
+This slash command is a **deterministic router**. Before invoking any subagent, you MUST:
 
-Use the Task tool to invoke the Subagent with file path patterns:
+### Step 1: Parse `--no-debate` flag
+
+Check `$ARGUMENTS` for the literal token `--no-debate`. Set:
+- `NO_DEBATE = true` if found, else `false`
+- Remove the flag from feature name extraction
+
+### Step 2: Read debate routing config
+
+Use the Read tool on `.blast/steering/llm-routing.md`. Locate the YAML block under `debate_config.validate-design`. Extract:
+- `enabled` (true | false)
+- `trigger` (always | debate_default | high_stakes | thorough_flag | thorough_flag_or_high_complexity)
+
+### Step 3: Compute routing decision (algorithm — first match wins)
+
+```
+if enabled == false:
+    DECISION = SKIP    reason = "config disabled"
+elif NO_DEBATE == true:
+    DECISION = SKIP    reason = "user passed --no-debate"
+elif trigger == "always":
+    DECISION = FIRE    reason = "trigger=always"
+elif trigger == "debate_default":
+    DECISION = FIRE    reason = "SOTA #1 default trigger"
+elif trigger == "high_stakes":
+    # legacy — read spec.json + design.md, fire only if risk_level=high or security_critical=true
+    DECISION = FIRE if (high_risk or security_critical) else SKIP
+elif trigger in ("thorough_flag", "thorough_flag_or_high_complexity"):
+    # legacy — fire only on explicit Force-debate hint (not used by default)
+    DECISION = SKIP    reason = "legacy trigger; no Force-debate signal"
+else:
+    DECISION = SKIP    reason = "unknown trigger, defaulting safe"
+```
+
+### Step 4: Emit routing line (required, before any tool invocation)
+
+Output this exact line to the user:
+
+```
+Routing: <FIRE|SKIP> — <reason>
+```
+
+This is non-negotiable. The user must see your routing decision BEFORE any subagent runs.
+
+### Step 5: Branch on DECISION
+
+#### Path FIRE: spawn debate via Task tool
+
+```
+Task(
+  subagent_type="general-purpose",
+  description="Crucible — debate path (design-soundness)",
+  prompt="""
+Run the slash command: /blast:debate {feature} design-soundness --protocol B
+
+Auto-approve: true
+
+Adopt the debate's verdict envelope as the final output. Prefix it with `**Debate-driven verdict**`.
+"""
+)
+```
+
+After debate returns, display its verdict to the user. STOP — do NOT also invoke the solo agent.
+
+#### Path SKIP: invoke solo agent
 
 ```
 Task(
   subagent_type="validate-design-agent",
-  description="Interactive design review",
+  description="Crucible — Interactive design review",
   prompt="""
 Feature: {feature}
 Spec directory: .blast/specs/{feature}/
@@ -50,6 +114,8 @@ File patterns to read:
 """
 )
 ```
+
+After agent returns, display its verdict to the user.
 
 ## Display Result
 
