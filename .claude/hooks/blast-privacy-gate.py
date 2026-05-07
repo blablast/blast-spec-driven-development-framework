@@ -11,7 +11,7 @@ Specifically:
     - When a subsequent Agent/Task call invokes a known external-LLM tool
       (ask_openrouter_*, ask_anthropic_* — currently external = cloud),
       checks if recent privacy-flagged files were read; blocks if so
-    - Local Ollama tools (ask_ubuntu_*, ask_win11_*, ask_local_*) are always allowed
+    - Local Ollama tools (ask_ubuntu_*, ask_local_*) are always allowed
 
 This is a best-effort defense. It is NOT a substitute for keeping secrets out
 of the working tree (use `.gitignore`), but it catches accidental cloud LLM
@@ -53,7 +53,6 @@ EXTERNAL_RES = [re.compile(p) for p in EXTERNAL_TOOL_PATTERNS]
 LOCAL_TOOL_PATTERNS = [
     r"^ask_local_",
     r"^ask_ubuntu_",
-    r"^ask_win11_",
 ]
 LOCAL_RES = [re.compile(p) for p in LOCAL_TOOL_PATTERNS]
 
@@ -197,7 +196,7 @@ def main():
                 f"Privacy violation: agent prompt references external LLM tool(s) "
                 f"{external_hits} but recent privacy-flagged paths were touched.\n"
                 f"  Touched: {recent_paths[:5]}\n"
-                f"  Allowed: only local-* tools (ask_local_*, ask_ubuntu_*, ask_win11_*).\n"
+                f"  Allowed: only local-* tools (ask_local_*, ask_ubuntu_*).\n"
                 f"  Fix: re-run agent without external LLM, or remove privacy flag from "
                 f"those paths in .blast/steering/llm-routing.md if intentional."
             )

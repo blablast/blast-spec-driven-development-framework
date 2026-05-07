@@ -172,7 +172,7 @@ Po `/blast:complete`:
 
 ## Multi-LLM (opcjonalne)
 
-Post Spike-3 blast obsługuje multi-LLM compositions:
+blast obsługuje multi-LLM compositions:
 - **HYBRID** dla `validate-impl --thorough` (Sonnet + qwen3.6 → Haiku)
 - **JURY_3_FLASH3** dla `security` + high-stakes (Opus + qwen3.6 + Gemini-3-Flash → Haiku)
 - **Privacy mode** (`spec.json.privacy: local-only`) blokuje external calls

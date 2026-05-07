@@ -47,9 +47,8 @@ except ImportError:
 
 ENDPOINTS = {
     "ubuntu": "http://192.168.5.60:11434",
-    # win11 (4090, 24 GB) removed 2026-05-06 — 32B models spill VRAM, KV cache
-    # forces CPU offload (~5 tok/s, frequent timeouts). Re-add when quant/context
-    # are tuned for 24 GB or smaller models are picked.
+    # win11 (4090) absent — 32B models hit VRAM ceiling on 24 GB card
+    # (CPU offload ~5 tok/s). Re-add when smaller models or Q3 quants tested.
 }
 
 # (machine, model_tag, roles, thinking)

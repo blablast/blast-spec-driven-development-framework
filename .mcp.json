@@ -7,7 +7,6 @@
       ],
       "env": {
         "BLAST_OLLAMA_UBUNTU": "http://192.168.5.60:11434",
-        "BLAST_OLLAMA_WIN11": "http://192.168.5.70:11434",
         "BLAST_LLM_TIMEOUT_S": "240"
       }
     }

@@ -42,8 +42,8 @@ MANIFEST.md                                            — this file
 Te pliki LIVE w framework path bo framework je czyta, ale ich CONTENT jest moim project-specific config'iem. Przy distribution: replace z template'ami.
 
 ```
-.blast/steering/llm-routing.md          — moja routing config (post Spike-3 baselines)
-.blast/steering/cost-policy.md          — moje cost caps (recalibrated post Spike-3)
+.blast/steering/llm-routing.md          — routing config (per-phase model + debate compositions)
+.blast/steering/cost-policy.md          — cost caps (per-phase ceilings, calibratable)
 .blast/specs/{f}/spec.json              — per-feature spec metadata (NIE istnieje w template, generuje się per project)
 .blast/specs/{f}/{requirements,design,tasks,research}.md — per-feature artifacts (generuje się per project)
 .blast/steering/{product,tech,structure,INVENTORY}.md   — generuje się przez /blast:steering / /blast:complete per project
@@ -57,7 +57,7 @@ Wszystko w `r_and_d/` — pure project-specific content. Nigdy nie powinno trafi
 
 ```
 r_and_d/README.md                                      — explains r_and_d structure
-r_and_d/INVENTORY.md                                   — snapshot stanu post Spike-3
+r_and_d/INVENTORY.md                                   — snapshot stanu projektu
 r_and_d/decisions/2026-05-05-sdd-number-one-roadmap.md — strategic plan
 r_and_d/research/spike-1/{README,results-*.json}       — local cluster benchmark
 r_and_d/research/spike-2/README.md                     — bridge MVP spike

@@ -24,7 +24,7 @@ PEERS WHO CORRECT YOU:
 
 > Senior application security engineer. Scan code for OWASP Top 10 / CWE Top 25 vulns, hardcoded secrets, unsafe patterns. Output severity-graded report (Critical/High/Medium/Low) with location + remediation. In `--fix` mode: auto-fix safe patterns only.
 
-## Debate Mode (Fala 9 — opt-in)
+## Debate Mode (opt-in)
 
 Before producing your standard verdict envelope, check `.blast/steering/llm-routing.md` for `debate_config.{phase}.enabled: true` (where `{phase}` matches your role: `validate-design`, `validate-impl`, `security`).
 

@@ -3,23 +3,24 @@
 blast-llm-bridge — MCP server exposing local Ollama models as Claude Code tools.
 
 Spike #2 MVP scope:
-- Eksponuje 4 lokalne modele (Ubuntu 5090 + Win 11 4090) jako MCP tools
+- Eksponuje 2 lokalne modele (Ubuntu 5090) jako MCP tools
 - Read-only, sync inference via Ollama HTTP API
-- Foundation dla Fala 10 (multi-LLM via MCP)
+- Foundation for blast multi-LLM routing
 
 Usage:
   python3 blast-llm-bridge.py     # Run as MCP stdio server (Claude Code starts it)
 
 Environment variables (override config):
   BLAST_OLLAMA_UBUNTU=http://192.168.5.60:11434
-  BLAST_OLLAMA_WIN11=http://192.168.5.70:11434
   BLAST_LLM_TIMEOUT_S=120
+
 
 Tools exposed:
   ask_ubuntu_qwen36          — qwen3.6:latest @ Ubuntu/5090 (general critic, ~24s warm @ 177 tok/s)
   ask_ubuntu_qwen3_coder     — qwen3-coder:30b @ Ubuntu/5090 (code critic, ~0.9s warm @ 246 tok/s)
-  ask_win11_qwen3_32b        — [DISABLED 2026-05-06] qwen3:32b @ Win11/4090 (VRAM constraint)
-  ask_win11_deepseek_r1      — [DISABLED 2026-05-06] deepseek-r1:32b @ Win11/4090 (VRAM + thinking budget)
+
+Win11 wrappers absent — RTX 4090 24 GB cannot host 32B Q4 + KV cache without
+CPU offload. Re-add to CONFIG when hardware permits (>32 GB VRAM or Q3 quants).
 
 Dependencies:
   pip install mcp httpx
@@ -42,7 +43,8 @@ from mcp.types import Tool, TextContent
 CONFIG = {
     "endpoints": {
         "ubuntu": os.environ.get("BLAST_OLLAMA_UBUNTU", "http://192.168.5.60:11434"),
-        "win11":  os.environ.get("BLAST_OLLAMA_WIN11",  "http://192.168.5.70:11434"),
+        # win11 endpoint absent — re-add when 4090 hardware swap or Q3 quants
+        # make 32B models viable (currently CPU offload, ~5 tok/s).
     },
     "models": {
         # tool_name → (machine, ollama_model_tag, description)
@@ -55,16 +57,6 @@ CONFIG = {
             "ubuntu",
             "qwen3-coder:30b",
             "Code critic — Qwen3-Coder 30B (specialized, ~12s warm). Use for validate-impl, review.",
-        ),
-        "ask_win11_qwen3_32b": (
-            "win11",
-            "qwen3:32b",
-            "General fallback — Qwen3 32B Instruct (~1m45s cold, ~30s warm).",
-        ),
-        "ask_win11_deepseek_r1": (
-            "win11",
-            "deepseek-r1:32b",
-            "Reasoning specialist — DeepSeek-R1-Distill-Qwen 32B (chain-of-thought, ~1m35s cold). Use for security jury.",
         ),
     },
     "timeout_s": int(os.environ.get("BLAST_LLM_TIMEOUT_S", "120")),

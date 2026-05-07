@@ -169,12 +169,12 @@ QUALITY GATES (przed fazą):
   Reguły: .blast/settings/rules/quality-gates.md
 
 APPROVAL GATES (defense in depth):
-  Markdown gate (Fala 1) — slash command czyta spec.json, fail-fast z czytelnym błędem:
+  Markdown gate — slash command czyta spec.json, fail-fast z czytelnym błędem:
     /blast:design feat       → STOP jeśli requirements.approved=false (bez -y)
     /blast:tasks  feat       → STOP jeśli design.approved=false
     /blast:impl   feat       → STOP jeśli tasks.approved=false
   Bypass: -y (auto-approves prior phase) lub /blast:approve {f} <phase>
-  Hard gate (Fala 5) — PreToolUse hook .claude/hooks/blast-approval-gate.py
+  Hard gate — PreToolUse hook .claude/hooks/blast-approval-gate.py
     Egzekwuje to samo na poziomie SDK (exit 2). Działa nawet gdy markdown gate ominięty.
     Bypass paths: prompt z "Auto-approve: true", spec.tiny=true, non-blast subagent.
     Disable awaryjnie: usuń sekcję `hooks` z .claude/settings.json.

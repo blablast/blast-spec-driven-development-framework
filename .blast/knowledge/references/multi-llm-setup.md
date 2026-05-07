@@ -1,8 +1,4 @@
-# Multi-LLM Setup (Fala 10)
-
-**Źródło**: własne notatki + Spike #1 + Spike #2 results
-**Data**: 2026-05-06
-**Tagi**: multi-llm, mcp, ollama, privacy, setup, fala-10
+# Multi-LLM Setup
 
 ## Architektura
 
@@ -38,7 +34,7 @@ sudo systemctl edit ollama.service
 # Environment="OLLAMA_KEEP_ALIVE=5m"
 # Default 5m is correct for normal use. For bench/spike runs use 30m via per-call
 # `keep_alive` field in /api/generate payload, NOT system-wide. 24h+ powoduje
-# VRAM hog (sprawdzone w spike-3 debugging 2026-05-06: qwen3-coder-next 30 GB
+# VRAM hog (qwen3-coder-next 30 GB
 # zostało w VRAM przez >24h, blokując inne modele).
 sudo systemctl daemon-reload
 sudo systemctl restart ollama
@@ -205,16 +201,6 @@ tail -f /var/log/blast-llm-bridge.log
 /blast:ping-llm
 ```
 
-## Roadmap (post-Fala 10)
-
-- OpenRouter wrapper w bridge (cloud, opt-in)
-- Auto-pricing display (`/blast:telemetry --cost`)
-- Health check service (background poll co 60s)
-- Migrate from Ollama to vLLM dla concurrent jury (Pattern B z N=4)
-
-
----
-
 ## Environment variables — what goes where
 
 Source: `.env.example` na repo root. Skopiuj do `.env`, wypełnij, source przed użyciem.
@@ -225,7 +211,7 @@ Source: `.env.example` na repo root. Skopiuj do `.env`, wypełnij, source przed 
 |---|---|---|
 | `GEMINI_API_KEY` | JURY_3_FLASH3 (security, validate-design --thorough, review --thorough), spike-3 driver | https://aistudio.google.com/app/apikey |
 | `ANTHROPIC_API_KEY` | spike-3 driver standalone (CLI mode = NOT needed for normal blast) | https://console.anthropic.com/settings/keys |
-| `OPENROUTER_API_KEY` | OPTIONAL — reserved for Fala 10 v2 unified dispatcher (~100 models) | https://openrouter.ai/keys |
+| `OPENROUTER_API_KEY` | OPTIONAL — reserved for future unified cloud LLM dispatcher (~100 models) | https://openrouter.ai/keys |
 | `DEEPSEEK_API_KEY` | OPTIONAL — reserved for future N=4 jury (4 cloud providers) | https://platform.deepseek.com/api_keys |
 
 ### Required for local Ollama (HYBRID, privacy mode)

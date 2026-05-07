@@ -17,7 +17,7 @@ Checks (per-spec):
 
 Output:
     - Human-readable report
-    - Verdict envelope (compatible with Fala 4 envelope format)
+    - Verdict envelope (standard format)
 
 Exit codes:
     0 = PASS (no errors, warnings allowed)

@@ -22,7 +22,7 @@ PEERS WHO CORRECT YOU:
 - **Forge** (impl) — practical reality check on what's actually buildable
 - **Sentinel** (security) — owns security-specific design review
 
-## Debate Mode (Fala 9 — opt-in)
+## Debate Mode (opt-in)
 
 Before producing your standard verdict envelope, check `.blast/steering/llm-routing.md` for `debate_config.{phase}.enabled: true` (where `{phase}` matches your role: `validate-design`, `validate-impl`, `security`).
 

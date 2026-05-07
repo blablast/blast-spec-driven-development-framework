@@ -165,7 +165,7 @@ Reakcja na FAIL:
 
 Performance: ~15ms per invocation (Python startup + I/O). Niewidoczny dla użytkownika nawet przy częstych wywołaniach.
 
-Współistnienie z markdown-level gate (Fala 1): markdown gate w slash commands daje fast-fail z czytelnym komunikatem zanim Claude w ogóle spróbuje wywołać Agent. Hook to last line of defense — zatrzyma wywołanie nawet jeśli markdown gate zostanie ominięty (zmodyfikowany slash command, bezpośrednie wywołanie Task).
+Współistnienie z markdown-level gate: markdown gate w slash commands daje fast-fail z czytelnym komunikatem zanim Claude w ogóle spróbuje wywołać Agent. Hook to last line of defense — zatrzyma wywołanie nawet jeśli markdown gate zostanie ominięty (zmodyfikowany slash command, bezpośrednie wywołanie Task).
 
 **Defense in depth**: command-level prompt gate → hook-level SDK gate.
 
@@ -191,7 +191,7 @@ blast obsługuje wieloprovider'owy code review przez `debate_config:` w `.blast/
 
 ### MCP bridge
 
-`.claude/mcp/blast-llm-bridge.py` exposes lokalne Ollama models jako MCP tools (`ask_ubuntu_qwen36`, `ask_ubuntu_qwen3_coder`). Bridge registered w `.mcp.json`. Win11 wrappers DISABLED 2026-05-06 (VRAM constraint).
+`.claude/mcp/blast-llm-bridge.py` exposes lokalne Ollama models jako MCP tools (`ask_ubuntu_qwen36`, `ask_ubuntu_qwen3_coder`). Bridge registered w `.mcp.json`. Tylko Ubuntu/5090 wrappers (Win11/4090 wrapper'y nie istnieją — VRAM constraint na 32B Q4).
 
 ## R&D vs Framework separation
 

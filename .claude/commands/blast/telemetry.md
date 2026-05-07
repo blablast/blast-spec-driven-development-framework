@@ -80,7 +80,7 @@ Per Agent/Task call:
 
 ```json
 {
-  "ts": "2026-05-06T12:34:56Z",
+  "ts": "<ISO-8601 UTC timestamp>",
   "tool": "Agent",
   "subagent": "spec-design-agent",
   "feature": "auth-basic",
@@ -103,7 +103,7 @@ Per Agent/Task call:
 
 - Plik jest tracked w git (decyzja Runda 1 #4) — cross-machine continuity
 - Jeśli sensitive feature names wyciekają → użyj `--feature` filter w lokalnych raportach
-- Cost analysis: skoro to meta-only, dolary nie są tu obliczane. Patrz `.blast/steering/cost-policy.md` dla polityki kosztów (placeholder Fala 8.2 — hard limits aktywne post-baseline)
+- Cost analysis: skoro to meta-only, dolary nie są tu obliczane. Patrz `.blast/steering/cost-policy.md` dla polityki kosztów (hard limits aktywne post-baseline)
 
 ## Następny krok
 

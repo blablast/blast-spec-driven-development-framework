@@ -136,7 +136,7 @@ Use /blast:impl {feature-name} directly, or pick a different name.
 
 ### Verification Strategy Missing in Generated design.md
 
-Tiny-agent SHOULD always produce a Verification Strategy section. If somehow missing, impl will warn (per Fala 2 wiring) but proceed. Not a hard error.
+Tiny-agent SHOULD always produce a Verification Strategy section. If somehow missing, impl will warn (per impl wiring) but proceed. Not a hard error.
 
 ### When to NOT use /blast:tiny
 

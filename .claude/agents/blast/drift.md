@@ -186,7 +186,7 @@ If `spec.status != "shipped"`:
 - If individual component check times out, mark as "INDETERMINATE" severity, include in report with note "LLM analysis incomplete — manual review recommended"
 
 
-## Step 4 (UPDATED 2026-05-06): Delegate semantic comparison to Qwen via MCP
+## Step 4: Delegate semantic comparison to Qwen via MCP
 
 **For each suspicious component** (where static pre-check found a name match but signature/structure differs from design.md):
 
@@ -217,7 +217,7 @@ result = mcp__blast-llm-bridge__ask_ubuntu_qwen36(prompt=prompt, max_tokens=512)
 Why this MCP tool for this step:
 - **Free** ($0 marginal cost) — drift checks may run on cron (`/blast:drift --all` weekly), unlimited frequency
 - **Fast** — local Ollama at ~177 tok/s, ~5-10s per component vs Haiku's variable API latency
-- **Quality fit** — Spike-3 confirmed local Qwen comparable to Claude on comparison/review tasks (recall 0.72 overall, except observability/parser blind spot)
+- **Quality fit** — local Qwen comparable to Claude on comparison/review tasks (~0.72 recall in benchmarks, with blind spot on observability/parser code)
 - **Indirection**: tool name `mcp__blast-llm-bridge__ask_ubuntu_qwen36` is stable; the actual model behind it is configured in `.claude/mcp/blast-llm-bridge.py CONFIG["models"]` and may evolve without changing this agent prompt
 - **Sub-second wall-time at scale** — drift over 50 components × Qwen ≈ 4 min total; same with Haiku ≈ $0.10 + API rate limits
 

@@ -41,7 +41,7 @@ Każdy plik powinien mieć nagłówek:
 Tagi pomagają agentowi w wyszukiwaniu relevantnych plików.
 
 
-## Note about R&D content (post 2026-05-06)
+## Note about R&D content
 
 Pliki **research/, decisions/** w tym katalogu są tworzone **per project**:
 - `decisions/{date}-{topic}.md` — Twoje architektoniczne decyzje

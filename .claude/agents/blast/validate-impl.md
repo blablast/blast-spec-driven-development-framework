@@ -22,7 +22,7 @@ PEERS WHO CORRECT YOU:
 - **Crucible** (validate-design) — earlier in the pipeline, often answers your "why"
 - **Tracker** (drift) — owns post-ship drift detection
 
-## Debate Mode (Fala 9 — opt-in)
+## Debate Mode (opt-in)
 
 Before producing your standard verdict envelope, check `.blast/steering/llm-routing.md` for `debate_config.{phase}.enabled: true` (where `{phase}` matches your role: `validate-design`, `validate-impl`, `security`).
 
