@@ -26,6 +26,7 @@ Plik czytany przez:
 | validate-gap-agent | Bridge | claude-sonnet |
 | validate-design-agent | Crucible | claude-sonnet |
 | validate-impl-agent | Auditor | claude-sonnet |
+| validate-tasks-agent | Pragmatist | claude-sonnet |
 | security-audit-agent | Sentinel | claude-opus |
 | code-review-agent | Compass | claude-sonnet |
 | spec-drift-agent | Tracker | claude-haiku |
@@ -35,6 +36,43 @@ Plik czytany przez:
 Zmiana defaults: edytuj frontmatter `model:` w `.claude/agents/blast/{agent}.md`. Ten plik jest **referencyjny**, nie autoritative dla single-agent path.
 
 ---
+
+
+## Tiered impl routing (Spike-4 verdict)
+
+`spec-tdd-impl-agent` (Forge) uses tiered model selection — empirical evidence (Spike-4, 2026-05-07) shows qwen3-coder:30b is competitive with claude-sonnet on most tasks, but pozostaje w tyle on async-heavy code.
+
+```yaml
+spec-tdd-impl-agent:
+  default_model: qwen3-coder:30b      # via mcp__blast-llm-bridge__ask_ubuntu_qwen3_coder
+  escalate_to: claude-sonnet-4-6
+  escalation_triggers:
+    - tasks_md_contains:
+        - "async"
+        - "asyncio"
+        - "concurrent.futures"
+        - "trio"
+        - "anyio"
+    - design_complexity_high:
+        # design.md has >8 components OR >3 classes with state
+    - flag_passed: "--thorough"
+    - spec_json:
+        complexity_hint: "high"
+        security_critical: true
+```
+
+Empirical baselines (Spike-4):
+- qwen pass rate: 30/30 (100%) across 5 tasks
+- qwen composite quality: 3.80/5
+- qwen async-task quality: 2.6/5 (significant drop, looks_correct: false)
+- sonnet composite quality: 4.00/5
+- sonnet async-task quality: 3.6/5 (still has correctness concerns)
+
+Cost trade-off per impl phase:
+- Default (qwen): $0, ~4× faster than sonnet
+- Escalated (sonnet): ~$0.04 per task, +0.5-1.0 composite quality
+
+If pattern repeats across more specs, validate via `/blast:learn --routing` periodically.
 
 ## Privacy patterns
 
@@ -110,6 +148,17 @@ debate_config:
     trigger: thorough_flag        # fires when --thorough flag passed
     composition: HYBRID
     cost_ceiling_usd: 0.50
+
+  validate-tasks:
+    enabled: true
+    trigger: thorough_flag_or_high_complexity  # auto-fires on heuristics
+    composition: HYBRID
+    cost_ceiling_usd: 0.40
+    auto_fire_when:
+      - tasks_count_gt: 8
+      - external_dep_not_in_tech_md_whitelist: true
+      - spec_complexity_hint: "high"
+      - security_critical: true
 
   validate-design:
     enabled: true

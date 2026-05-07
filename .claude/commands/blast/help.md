@@ -67,6 +67,7 @@ JAKOŚĆ KODU:
 WALIDACJE (opcjonalne):
   /blast:validate-gap {f}          Analiza luki (przed design)
   /blast:validate-design {f}       Review architektury (po design)
+  /blast:validate-tasks {f}        KISS + SOTA review tasks.md (po tasks, przed impl)
   /blast:validate-impl {f}         Walidacja impl vs spec (po impl)
   /blast:validate-impl {f} --prove Walidacja + odpalenie Verification Strategy z design.md
 

@@ -60,3 +60,17 @@ Show Subagent summary to user:
 - Avoid documenting agent-specific tooling directories (e.g. `.cursor/`, `.gemini/`, `.claude/`)
 - `.blast/settings/` content should NOT be documented in steering files (settings are metadata, not project knowledge)
 - Light references to `.blast/specs/` and `.blast/steering/` are acceptable; avoid other `.blast/` directories
+
+
+## --learn flag (post-feature lessons aggregation)
+
+When invoked with `--learn`, before running standard steering:
+
+1. Run `python .claude/scripts/blast-learn.py --lessons --apply`
+2. Read `.blast/steering/lessons.md` (just generated)
+3. Review recurring themes (bigram frequency ≥ 2)
+4. Promote relevant lessons to `tech.md::Gotchas` section (concise bullets)
+5. Continue with normal steering refresh
+
+This closes the spec → project feedback loop: per-spec retrospections aggregated
+→ recurring patterns identified → project-wide guidance updated.

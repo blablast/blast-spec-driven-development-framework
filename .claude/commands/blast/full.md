@@ -177,6 +177,25 @@ Continue to implementation?
 
 ---
 
+#### Phase: Validate Tasks (conditional — auto-fires on heuristics OR `--validate`)
+
+**Auto-fire conditions** (validate-tasks runs even WITHOUT `--validate` flag):
+- tasks.md has >8 major tasks (heuristic for over-engineering risk)
+- design.md references external dep NOT in `.blast/steering/tech.md::Allowed Dependencies`
+- `spec.json.complexity_hint == "high"` OR `security_critical == true`
+
+**With `--validate` flag**: always runs (HYBRID composition).
+
+```
+SlashCommand: /blast:validate-tasks {feature} [--thorough if validate flag]
+```
+
+Read agent verdict envelope:
+- `VERDICT: PASS` → continue to impl normally
+- `VERDICT: WARN` → show findings to user, continue (non-blocking)
+- `VERDICT: FAIL + BLOCKING: true` → STOP, suggest `/blast:tasks {feature} --regenerate`
+- `VERDICT: FAIL + BLOCKING: false` → continue with explicit warning logged
+
 #### Phase: Implement All Tasks (TDD)
 
 **This is the heaviest phase.** The impl subagent runs in its own context via Task tool, so context pressure on the orchestrator is minimal.

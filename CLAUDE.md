@@ -81,7 +81,7 @@ Kiedy użytkownik pyta "co dalej?" lub wydaje komendę blast, AI MUSI sprawdzić
 | `phase: "requirements-generated"`, requirements NOT approved | → Review `requirements.md`, potem `/blast:approve {f} requirements` (lub `/blast:design {f} -y` żeby ominąć) |
 | `phase: "design-generated"`, design approved | → `/blast:tasks {feature}` |
 | `phase: "design-generated"`, design NOT approved | → Review `design.md`, potem `/blast:approve {f} design` (lub `/blast:tasks {f} -y` żeby ominąć). Opcjonalnie: `/blast:validate-design` |
-| `phase: "tasks-generated"`, tasks approved | → `/blast:impl {feature}` |
+| `phase: "tasks-generated"`, tasks approved | → `/blast:validate-tasks {feature}` (if complex/--thorough) lub `/blast:impl {feature}` |
 | `phase: "tasks-generated"`, tasks NOT approved | → Review `tasks.md`, potem `/blast:approve {f} tasks` (lub `/blast:impl {f} -y` żeby ominąć) |
 | Wszystkie taski `[x]` w tasks.md | → `/blast:complete {feature}` |
 | `status: "shipped"` | → `/blast:security {feature}` (rekomendowane); ewolucja: `/blast:evolve {feature} "<change>"`; nowy ficzer: `/blast:init` |

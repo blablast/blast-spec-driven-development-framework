@@ -34,7 +34,9 @@
       "SlashCommand",
       "Skill",
       "TodoWrite",
-      "Bash(*)"
+      "Bash(*)",
+      "mcp__blast-llm-bridge__ask_ubuntu_qwen36",
+      "mcp__blast-llm-bridge__ask_ubuntu_qwen3_coder"
     ]
   },
   "hooks": {

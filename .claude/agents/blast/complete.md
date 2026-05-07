@@ -171,6 +171,39 @@ Preserve all existing fields. Only update the above.
 - List any active specs that depend on just-shipped components
 - If this was the last active spec, note that project is in maintenance mode
 
+
+
+### Step 7: Auto-trigger periodic self-improvement (every 5 shipped specs)
+
+After Step 6 completes, check shipped-spec counter and conditionally invoke
+`/blast:learn --all --apply` to refresh aggregated lessons + cost calibration
++ routing observability.
+
+Logic:
+
+```bash
+# Increment counter (always)
+python .claude/scripts/blast-shipped-counter.py increment
+
+# Check if cadence milestone hit
+if python .claude/scripts/blast-shipped-counter.py should-run; then
+  echo "Cadence milestone reached — running /blast:learn --all --apply"
+  python .claude/scripts/blast-learn.py --all --apply
+  python .claude/scripts/blast-shipped-counter.py reset
+  echo "✓ Self-improvement run complete. lessons.md updated."
+fi
+```
+
+This is **passive accumulation** — every 5 shipped specs the system:
+- Re-aggregates retrospections → `.blast/steering/lessons.md`
+- Recomputes cost percentiles from telemetry
+- Surfaces routing anomalies (high FAIL rate per agent)
+
+Output is INFORMATIONAL — does not auto-modify agent prompts or routing.
+User decides whether to promote insights via `/blast:steering` or manual edits.
+
+Cadence configurable: edit `CADENCE = 5` in `blast-shipped-counter.py`.
+
 ## Evolution Completion
 
 **Only runs if Step 0 detected `parent_feature` field in spec.json.** Standard flow does NOT execute these steps.

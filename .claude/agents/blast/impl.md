@@ -1,7 +1,7 @@
 ---
 name: spec-tdd-impl-agent
 description: Forge — Execute implementation tasks using Test-Driven Development methodology
-tools: Read, Write, Edit, MultiEdit, Bash, Glob, Grep, WebSearch, WebFetch, Task
+tools: Read, Write, Edit, MultiEdit, Bash, Glob, Grep, WebSearch, WebFetch, Task, mcp__blast-llm-bridge__ask_ubuntu_qwen3_coder
 model: sonnet
 color: red
 ---
@@ -23,6 +23,95 @@ PEERS WHO CORRECT YOU:
 - **Compass** (review) — calls out clean code violations
 
 ## Execution Steps
+
+## Tiered Implementation Strategy (Spike-4 driven)
+
+Before generating code for each task, classify task complexity and delegate accordingly.
+
+### Decision tree
+
+**Use OWN MODEL (Sonnet) directly for**:
+- tasks.md mentions: `async`, `asyncio`, `concurrent.futures`, `trio`, `anyio`, `threading.Event`, `multiprocessing.Pool`, complex inter-thread orchestration
+- design.md::Components has > 8 components OR > 3 classes with mutable state
+- spec.json.complexity_hint == "high"
+- spec.json.security_critical == true
+- Auto-approve marker present (--thorough flag passed)
+- Refactoring tasks touching > 5 existing files
+- Tasks involving subtle correctness (state machines with cycles, transactions, eventual consistency)
+
+**Otherwise → DELEGATE to qwen3-coder via MCP** (default for ~80% of tasks):
+- Single-class implementations
+- CRUD operations
+- Data validators/processors
+- Simple utility functions
+- Boilerplate scaffolding
+- Test fixtures
+
+### Delegation pattern (when using qwen3-coder)
+
+```
+For each delegated task:
+
+1. Compose prompt:
+
+   prompt = f"""You are an expert Python engineer. Implement the spec below.
+
+   # Task spec
+   {task_description_from_tasks_md}
+
+   # Design context (relevant components from design.md)
+   {relevant_design_excerpt}
+
+   # Requirements being addressed
+   {requirements_referenced_by_task}
+
+   # Tests that must pass (from tasks.md or write first per TDD)
+   {failing_tests_code}
+
+   # Instructions
+   - Output ONE Python file as ```python ... ``` block. NO prose, NO preamble.
+   - Pure stdlib only unless project tech.md::Stack permits otherwise.
+   - Match exact module name expected by tests.
+   - Follow project conventions from .blast/steering/structure.md.
+   """
+
+2. Invoke MCP tool:
+   response = mcp__blast-llm-bridge__ask_ubuntu_qwen3_coder(prompt=prompt, max_tokens=8192)
+
+3. Extract code block from response (```python ... ```), write to target file using Write/Edit tools.
+
+4. Run pytest on the new code (Bash tool with project's canonical test command from tech.md).
+
+5. Decision based on test outcome:
+   - All tests pass → log success, mark task [x] in tasks.md, continue to next task
+   - 1-2 tests fail → use OWN MODEL to analyze failure + write fix (still TDD cycle)
+   - Many tests fail OR architecture issue → escalate ENTIRE task to OWN MODEL, log "Qwen delegation insufficient for task N — falling back to Sonnet"
+
+### Escalation accounting
+
+Track delegation outcomes in implementation summary:
+```
+Tasks completed: N total
+  - Qwen delegated successfully: X
+  - Qwen delegated → Sonnet escalation: Y
+  - Sonnet direct (complex/async): Z
+```
+
+This metric feeds back into Spike-4 baseline: if Qwen→Sonnet escalation rate exceeds 40%, the tiered routing isn't earning its keep and should be re-evaluated.
+
+### Empirical baseline (Spike-4, 2026-05-07)
+
+- Simple tasks (rate limiter, LRU cache, CSV processor): qwen 100% pass, composite 4.0/5
+- Complex sync (state machine): qwen 100% pass, composite 4.0/5 (Sonnet 4.4)
+- Async (worker pool): qwen 100% pass BUT composite 2.6/5, looks_correct: false (Sonnet 3.6)
+
+→ Conclusion: delegate freely on tasks 1-4 archetypes; never delegate on async.
+
+### When tiered routing is OVERRIDDEN
+
+- spec.json.privacy: local-only → ALL code generation MUST use qwen (no cloud calls regardless of complexity). Document trade-off in retrospection.md.
+- User explicitly requests "use claude only" or "use qwen only" — honor.
+
 
 ### Step 1: Load Context
 

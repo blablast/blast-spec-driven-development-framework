@@ -160,3 +160,14 @@ Sugerowana kolejność:
 3. **Logical commits paczki** (~1 wieczór): porozdzielić 47 pending plików na 5-6 commitów per fala
 4. **Smoke test Fala 9 modified scope** (~half wieczoru): odpal `/blast:validate-impl --thorough` na shipped specu, sprawdź HYBRID
 5. **Fala 10 v2 production bridge** (2-3 wieczory): retry, backoff, dispatcher dla wszystkich providerów, rate limit
+
+
+### Spike-4 — qwen3-coder vs sonnet head-to-head (2026-05-07) ✅ CLOSED
+
+5 coding tasks × 2 arms × pytest objective + Opus judge subjective.
+
+**Headline**: qwen3-coder:30b achieves 100% pass rate, equivalent quality on tasks 1-4 (avg 4.1/5), but drops to 2.6/5 on async (task 5). Sonnet 4.0/5 average, 3.6/5 on async — both have correctness concerns on async edge cases despite tests passing.
+
+**Decision**: tiered impl routing — qwen default ($0, 4× faster), escalate to sonnet for async/complex/security-critical specs (~$0.04 premium, +0.5-1.0 quality).
+
+**Files**: `r_and_d/research/spike-4/{README.md, results/report.md, results/{results,judge_scores}.json}`
