@@ -30,9 +30,19 @@ Inputs: N independent juror outputs (each with their own verdict envelope), all 
 Step 1: parse each juror's `---VERDICT---` block: VERDICT, BLOCKING, FINDINGS list.
 Step 2: tally:
 - `pass_count`, `warn_count`, `fail_count`
+- `dissent_count` = number of jurors whose verdict differs from the modal verdict
+- `unique_critical_findings` = total CRITICAL/HIGH findings deduplicated across jurors
 - Majority rule: most votes wins
 - Tie (1+1+1 with 3 jurors): use WARN with `BLOCKING:false` and dissent_notes
 - Any FAIL with BLOCKING:true present: respect it (1 dissenting block beats 2 PASS — "if any juror finds critical, treat as critical")
+
+**Anti-plateau guard (M3MAD-Bench Q1 2026 mitigation)**:
+- If `dissent_count == 0` AND `verdict in {PASS, WARN}` AND `unique_critical_findings == 0` → set `consensus_review_recommended: true` in envelope.
+- Rationale: real designs almost always have at least one improvement opportunity. Unanimous "all green" with no findings is statistically unlikely and suggests jurors echoed each other (confidence cascade) rather than evaluated independently.
+- Recommended remediation in `NEXT_ACTIONS`:
+  1. Spawn one additional Devil's Advocate juror (Protocol D, debate-critic with `protocol=D` HARD RULE: must find ≥3 weaknesses).
+  2. OR escalate to human review with summary of the unanimous verdict.
+- Do NOT silently override the verdict; report it as-is and let the orchestrator/human decide whether to re-run.
 Step 3: write consolidated verdict + minority dissent to scratchpad.
 
 ### Mode 2: Round 5 Synthesis & Addenda Loop
@@ -98,8 +108,11 @@ Mode B output block:
 VERDICT: {PASS|WARN|FAIL}
 BLOCKING: {true|false}
 FINDINGS: {unresolved critical count from any juror}
+DISSENT_COUNT: {0..N — jurors whose verdict differed from modal}
+CONSENSUS_REVIEW_RECOMMENDED: {true|false}   # true if unanimous + 0 findings (M3MAD-Bench mitigation)
+JUROR_DEGRADATIONS: {none | "<juror_name>: <reason>" comma-separated — e.g. "gemini: GEMINI_API_KEY missing"}
 NEXT_ACTIONS:
-- {actionable next steps}
+- {actionable next steps; include "Re-run with Devil's Advocate (Protocol D)" if CONSENSUS_REVIEW_RECOMMENDED:true}
 ---END---
 ```
 
@@ -114,6 +127,9 @@ Under 80 words:
 
 - **Preserve dissent verbatim** — never paraphrase minority positions
 - **Critical-trumps-majority** rule: any single juror's BLOCKING:true CRITICAL respected, even against majority PASS
+- **Anti-plateau honesty**: never compute `consensus_review_recommended: false` to flatter the design. Unanimous + zero findings IS suspicious; report it.
+- **Honest degradations**: if a juror was skipped (MCP unavailable, subagent missing), record reason in `JUROR_DEGRADATIONS`. Never silently treat the remaining jury as full strength.
+- **No stand-ins**: if asked to roleplay an absent juror, refuse and emit `JUROR_DEGRADATIONS` instead.
 - **Round 5 user_call MUST be empty** when written; user fills in via /blast:approve or manual edit
 - Verdict envelope mandatory (orchestrators consume it)
 

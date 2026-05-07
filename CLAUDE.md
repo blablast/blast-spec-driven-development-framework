@@ -11,12 +11,13 @@ Nie piszemy kodu w ciemno. Najpierw wiemy CO, potem JAK, a dopiero wtedy lecimy 
 
 ## Struktura projektu
 
-- **Steering** (`.blast/steering/`) — pamięć projektu: kontekst, stack, konwencje
+- **Constitution** (`.blast/CONSTITUTION.md`) — top-level governance, eleven Articles binding every spec/agent. Read first.
+- **Steering** (`.blast/steering/`) — pamięć projektu: kontekst, stack, konwencje (operational expansion of Articles)
 - **Specs** (`.blast/specs/`) — specyfikacje poszczególnych ficzerów
 - **Knowledge** (`.blast/knowledge/`) — baza wiedzy: decyzje, referencje, wyniki researchów
 - **Settings** (`.blast/settings/`) — reguły, szablony, konfiguracja systemu
 
-Pełna dokumentacja: `.blast/README.md`
+Pełna dokumentacja: `.blast/README.md`. Governance intent: `.blast/CONSTITUTION.md`.
 
 ## Komendy blast
 

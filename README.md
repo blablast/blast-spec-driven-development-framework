@@ -3,6 +3,12 @@
 > **blast** = Błażej Strus' AI Development Life Cycle.
 > Spec-first. Quality-enforced. No chaos.
 
+## Constitution
+
+The project's binding governance principles live in [`.blast/CONSTITUTION.md`](.blast/CONSTITUTION.md) — eleven Articles covering spec-driven discipline, multi-LLM debate as default, tiered cost routing, privacy mode, TDD enforcement, cross-spec DRY, lifecycle, determinism boundaries, and conscious-duplicate policy. Steering files (`product.md`, `tech.md`, `structure.md`, `INVENTORY.md`) are the operational expansion of those Articles.
+
+If something here conflicts with steering, the Constitution wins for governance intent.
+
 ## What is blast?
 
 blast is a framework for AI-assisted development that enforces order: **first you know WHAT, then HOW, and only then you write code**. It works as a set of agents and slash commands for [Claude Code](https://docs.anthropic.com/en/docs/claude-code) — generating specs, designs, and tasks, then implementing them with TDD.
@@ -50,7 +56,17 @@ Full quick reference in `.env.example`. Local Ollama setup: `.blast/knowledge/re
 
 ## Quick Start
 
-### 1. Clone the template
+### 1. Scaffold a new project
+
+**Option A — `blast init` CLI** (recommended; clones template, wipes author's specs/code, resets steering, fresh git):
+
+```bash
+# One-liner (requires Python 3.10+ and git on PATH):
+curl -sSL https://raw.githubusercontent.com/blablast/claude_code-template/main/.claude/scripts/blast-init.py | python3 - my-project
+cd my-project
+```
+
+**Option B — Manual clone** (if you want to inherit author's R&D as reference):
 
 ```bash
 gh repo clone blablast/claude_code-template my-project
