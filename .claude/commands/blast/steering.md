@@ -7,13 +7,25 @@ allowed-tools: Read, Task, Glob
 
 ## Mode Detection
 
-**Perform detection before invoking Subagent**:
+**Perform detection before invoking Subagent (deterministic, in this order)**:
 
-Check `.blast/steering/` status:
-- **Bootstrap Mode**: Empty OR missing core files (product.md, tech.md, structure.md)
-- **Sync Mode**: All core files exist
+### Step 1: Stub marker check (highest priority)
 
-Use Glob to check for existing steering files.
+Use Grep to check if ANY of `product.md`, `tech.md`, `structure.md` contains the stub marker `<!-- BLAST_STUB: fresh scaffold from \`blast init\` -->`. If yes → **Bootstrap Mode (fresh scaffold)**.
+
+This catches the post-`blast init` state where files exist (so the legacy "files exist → sync" rule misfires) but content is still placeholder. Steward MUST ask the user about purpose/stack/structure rather than infer from `MANIFEST.md` / `CONSTITUTION.md` / `CLAUDE.md` — those are framework reference, not project signals.
+
+### Step 2: Empty/missing core files
+
+If no stub marker but `product.md` / `tech.md` / `structure.md` is missing OR has zero non-comment content → **Bootstrap Mode (greenfield)**.
+
+### Step 3: Files exist with real content
+
+→ **Sync Mode** (refresh existing content, detect drift, preserve user edits)
+
+### Step 4: Fresh-scaffold safety check (Bootstrap Mode only)
+
+If Bootstrap Mode triggered AND the project has BOTH `CLAUDE.md` AND `.blast/CONSTITUTION.md` AND no `src/` AND `.blast/specs/` is empty → flag `BOOTSTRAP_REASON=fresh-scaffold` in subagent prompt. Steward will switch to ASK mode (5–7 user questions) and explicitly ignore framework metadata files.
 
 ## Invoke Subagent
 
@@ -26,12 +38,19 @@ Task(
   subagent_type="steering-agent",
   description="Steward — Manage steering files",
   prompt="""
-Mode: {bootstrap or sync based on detection}
+Mode: {bootstrap | sync}
+Bootstrap reason: {fresh-scaffold | greenfield | none}   # only set when mode=bootstrap
 
 File patterns to read:
-- .blast/steering/*.md (if sync mode)
+- .blast/steering/*.md
 - .blast/settings/templates/steering/*.md
 - .blast/settings/rules/steering-principles.md
+
+If Bootstrap reason = fresh-scaffold:
+  - Files exist with BLAST_STUB markers — content is placeholder, NOT user data
+  - DO NOT infer project description from CLAUDE.md, .blast/CONSTITUTION.md, or any other framework file
+  - DO ask the user 5–7 short questions (purpose, target audience, stack, key dependencies, conventions, deployment, integrations)
+  - Stack Fingerprint: still try filesystem detection first (.python-version, package.json, etc.) but fall back to ASK rather than guess from framework allow-lists
 
 JIT Strategy: Fetch codebase files when needed, not upfront
 """

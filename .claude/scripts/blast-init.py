@@ -59,6 +59,7 @@ WIPE_PATHS = [
     "memory/",
     ".env",
     "r_and_d/",
+    "MANIFEST.md",  # framework distribution metadata; user-project does not ship the framework
 ]
 # Empty dirs to re-create after wipe (blast-internal structure that agents expect)
 PLACEHOLDER_DIRS = [
@@ -68,6 +69,12 @@ PLACEHOLDER_DIRS = [
     ".blast/knowledge/references/",
 ]
 
+
+# Marker prepended to every stub steering file so /blast:steering can deterministically
+# detect "fresh scaffold from blast init" and route to Bootstrap Mode (ask user) instead
+# of Sync Mode (infer from filesystem — which would surface CLAUDE.md/CONSTITUTION.md
+# as if they were project description). Steward agent grep's for this marker.
+BLAST_STUB_MARKER = "<!-- BLAST_STUB: fresh scaffold from `blast init` — replace this content via /blast:steering Bootstrap Mode -->"
 
 # Steering files to reset to clean stubs (rather than wipe)
 RESET_STEERING = {
@@ -155,6 +162,65 @@ smoke: (e.g. python -c "import yourpkg")
 (none yet)
 """,
 }
+
+
+
+# Targeted substitutions applied to CLAUDE.md during scaffold.
+# Each entry: (old_substring, new_template_with_{{PROJECT_NAME}}).
+# The original template has author-specific framing ("blast by Błażej Strus") that
+# would be confusing in a fresh user project. We swap user-visible top + footer with
+# project-neutral wording while keeping the universal blast operating manual sections
+# (Pipeline / Smart Routing / Model routing / hooks / Multi-LLM / etc.) unchanged.
+CLAUDE_TEMPLATE_PATCHES = [
+    (
+        """# blast — Spec-Driven Development by Błażej Strus
+
+> **blast** = Błażej Strus' AI Development Life Cycle.
+> Mój system, moje zasady, mój flow.""",
+        """# {{PROJECT_NAME}} — AI instructions
+
+> **{{PROJECT_NAME}}** uses blast — Spec-Driven Development for Claude Code.
+> Spec-first. Quality-enforced. No chaos.
+
+## Project Context
+
+<!-- BLAST_STUB: filled by /blast:steering Bootstrap (fresh-scaffold) -->
+- **Purpose**: (describe what {{PROJECT_NAME}} does and who it's for — first /blast:steering will fill this)
+- **Stack**: (set on first /blast:steering)
+- **Repo**: (link or local path)""",
+    ),
+    (
+        """blast to moje podejście do programowania z AI — uporządkowane, ale bez kija w dupie.
+Każda ficzerka przechodzi przez jasne fazy: od pomysłu, przez specyfikację, aż po kod.
+Nie piszemy kodu w ciemno. Najpierw wiemy CO, potem JAK, a dopiero wtedy lecimy z implementacją.""",
+        """blast forces order on AI-assisted development: every feature passes through clear phases — from idea, through specification, to code.
+Code is never the first artifact. First you know WHAT, then HOW, then you implement.""",
+    ),
+    (
+        "*blast by Błażej Strus — bo programowanie powinno mieć flow, nie chaos.*",
+        "*Powered by blast — spec-driven AI development. See `.blast/CONSTITUTION.md` for governance principles.*",
+    ),
+]
+
+
+def apply_claude_template(dest: Path, project_name: str) -> None:
+    """Substitute author-specific framing in CLAUDE.md with project-neutral wording."""
+    claude_md = dest / "CLAUDE.md"
+    if not claude_md.exists():
+        log("CLAUDE.md not found in scaffold; skipping template patch.", "warn")
+        return
+
+    content = claude_md.read_text(encoding="utf-8")
+    applied = 0
+    for old, new in CLAUDE_TEMPLATE_PATCHES:
+        if old in content:
+            content = content.replace(old, new.replace("{{PROJECT_NAME}}", project_name))
+            applied += 1
+        else:
+            log(f"CLAUDE.md template patch missed (template may have drifted): {old[:60]!r}", "warn")
+
+    claude_md.write_text(content, encoding="utf-8")
+    log(f"Templated CLAUDE.md ({applied}/{len(CLAUDE_TEMPLATE_PATCHES)} substitutions, project_name={project_name}).", "ok")
 
 
 def log(msg: str, level: str = "info") -> None:
@@ -266,8 +332,10 @@ def reset_steering(dest: Path, project_name: str) -> None:
     for rel, content in RESET_STEERING.items():
         path = dest / rel
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(content.replace("{{PROJECT_NAME}}", project_name), encoding="utf-8")
-    log(f"Reset {len(RESET_STEERING)} steering files to clean stubs.", "ok")
+        # Prepend stub marker so /blast:steering Bootstrap detection works
+        body = content.replace("{{PROJECT_NAME}}", project_name)
+        path.write_text(f"{BLAST_STUB_MARKER}\n{body}", encoding="utf-8")
+    log(f"Reset {len(RESET_STEERING)} steering files to clean stubs (with BLAST_STUB markers for Bootstrap detection).", "ok")
 
 
 def create_env_from_example(dest: Path) -> None:
@@ -373,6 +441,7 @@ def main() -> int:
     wipe_personal_artefacts(target)
     ensure_placeholder_dirs(target)
     reset_steering(target, project_name)
+    apply_claude_template(target, project_name)
     create_env_from_example(target)
 
     if not args.no_git:

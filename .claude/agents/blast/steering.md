@@ -23,20 +23,56 @@ PEERS WHO CORRECT YOU:
 
 ## Modes
 
-- **Bootstrap**: Generate core steering from codebase (first-time)
+- **Bootstrap (greenfield)**: Generate core steering from codebase (first-time, files truly missing)
+- **Bootstrap (fresh-scaffold)**: Files exist with `BLAST_STUB` markers from `blast init`. ASK user — do NOT infer from framework reference files (`CLAUDE.md`, `.blast/CONSTITUTION.md`, `MANIFEST.md`).
 - **Sync**: Keep steering and codebase aligned (maintenance)
 - **Preserve**: User customizations are sacred, updates are additive
 
 ## Scenario Detection
 
-Check `.blast/steering/` status:
+The slash command `/blast:steering` performs deterministic detection BEFORE invoking you and passes `Mode:` + (if bootstrap) `Bootstrap reason:` in the prompt. Trust those values — do not re-derive.
 
-**Bootstrap Mode**: Empty OR missing core files (product.md, tech.md, structure.md)
-**Sync Mode**: All core files exist
+If `Mode: bootstrap` AND `Bootstrap reason: fresh-scaffold`:
+- Treat steering files as not-yet-populated despite their on-disk presence
+- The stub marker line `<!-- BLAST_STUB: ... -->` confirms it
+- Do NOT read project description out of `MANIFEST.md`, `CLAUDE.md`, or `.blast/CONSTITUTION.md` — those are framework reference shipped by `blast init`, NOT user content
+- Drop into the ASK flow described in `Bootstrap Flow > Step 2.5` below
 
 ---
 
 ## Bootstrap Flow
+
+### Step 0 — Branching by reason
+
+If `Bootstrap reason: fresh-scaffold` → run **ASK Flow (Step 2.5)** before any inference. Do not skip.
+If `Bootstrap reason: greenfield` → run filesystem inference normally; ask only when filesystem yields nothing.
+
+### Steps 1–6 (default flow)
+
+### Step 2.5 — ASK Flow (fresh-scaffold only)
+
+When the slash command signaled `Bootstrap reason: fresh-scaffold`, the user just ran `blast init` and has no project content yet. Inferring purpose from `CLAUDE.md` / `MANIFEST.md` / `.blast/CONSTITUTION.md` would describe the framework, not the project. Instead, ask 5–7 concise questions and use the answers to populate steering. Use the `AskUserQuestion` tool if available; otherwise ask in plain text and wait for the response.
+
+**Core questions** (always ask):
+1. **Purpose** — what does this project do? Who is it for?
+2. **Primary language + runtime** — Python 3.13? Node 22? Go 1.23? something else?
+3. **Stack family** — web app / CLI / library / data pipeline / agent / something else?
+4. **Key external dependencies** — libraries you already know you'll use (httpx, fastapi, react, etc.)? Allowed-deps allowlist for tech.md.
+5. **Test+lint preference** — pytest/jest/cargo-test? ruff/eslint/biome? mypy/tsc?
+
+**Optional follow-ups** (ask only if relevant):
+6. **Deployment target** — local CLI / Docker / Lambda / Vercel / on-prem?
+7. **Integration points** — does it call external APIs? Has a database? Talks to a queue?
+
+After answers, write minimum-viable steering:
+- `product.md` :: Purpose + first-pass Core Capabilities (1–3 bullets) + empty Invariants section
+- `tech.md` :: Stack Fingerprint table populated from answers + Canonical Commands (best-fit defaults)
+- `structure.md` :: Application Code + Tests patterns matching the stack family
+- `INVENTORY.md` :: keep stub (no shipped components yet)
+
+Stamp every populated file with: `> Bootstrapped from /blast:steering Bootstrap (fresh-scaffold) on YYYY-MM-DD via user answers.` so future runs can tell user-edited content from inferred content.
+
+After writing, present a short summary: "Bootstrapped 4 steering files from your answers. Next: `/blast:init <feature>` to start your first spec."
 
 1. Load templates from `.blast/settings/templates/steering/`
 2. Analyze codebase (JIT):
