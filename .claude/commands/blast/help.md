@@ -253,6 +253,22 @@ POWIĄZANE:
 
 ---
 
+## Governance + Scaffolding
+
+### Constitution
+`.blast/CONSTITUTION.md` — eleven Articles binding every spec/agent. Read first. Operational expansion lives in `.blast/steering/{product,tech,structure,INVENTORY}.md`. If steering conflicts with Constitution intent, Constitution wins.
+
+### `blast init` — scaffold a new project
+```bash
+# One-liner (Python 3.10+ + git on PATH):
+curl -sSL https://raw.githubusercontent.com/blablast/claude_code-template/main/.claude/scripts/blast-init.py | python3 - my-project
+
+# Or local invocation:
+python .claude/scripts/blast-init.py my-project [--here] [--no-git] [--branch=main] [--from=URL]
+```
+
+`blast init` clones the template, wipes the author's specs/code/INVENTORY/CHANGELOG/memory/r_and_d, resets steering files to clean stubs, copies `.env.example` → `.env` (secrets blank), and runs `git init` with an initial commit. The result is a fresh blast scaffold ready for `/blast:steering` + `/blast:init <feature>`.
+
 ## Setup before first run
 
 ### Zero-config (default)

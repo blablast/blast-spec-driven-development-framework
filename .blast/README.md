@@ -13,20 +13,26 @@ Filozofia kodowania (Clean Code, SOLID, KISS, DRY, YAGNI, wzorce projektowe, bra
 
 ```
 .blast/
+├── CONSTITUTION.md        ← top-level governance, 11 Articles (read first)
 ├── settings/
 │   ├── rules/             ← reguły procesu (EARS, design, taski, code principles...)
 │   └── templates/         ← szablony specs / steering / steering-custom
-├── knowledge/             ← decyzje (ADR), referencje, wyniki researchów
+├── knowledge/             ← decyzje (ADR), referencje, wyniki researchów, sota/
 ├── steering/              ← pamięć projektu (generowana przez /blast:steering)
 └── specs/                 ← specyfikacje ficzerów (generowane przez /blast:init)
 
 .claude/
-├── agents/blast/          ← 17 agentów + 4 debate sub-agents
-├── commands/blast/        ← 29 slash commands
-└── settings.local.json    ← uprawnienia bash (git-ignored)
+├── agents/blast/          ← personas (Atlas, Forge, Loom, ...) + debate sub-agents (critic, critic-opus, author, judge, aggregator)
+├── commands/blast/        ← slash commands (init, requirements, design, tasks, impl, validate-*, security, complete, evolve, ...)
+├── hooks/                 ← SDK-level gates (approval, privacy, telemetry)
+├── mcp/                   ← MCP bridges (blast-llm-bridge: Ollama + Gemini)
+├── scripts/               ← project automation (blast-init, blast-learn, blast-graph, ...)
+└── settings.json          ← hook + permission config (settings.local.json git-ignored)
 
 CLAUDE.md                  ← instrukcje dla AI (ładowane automatycznie)
 ```
+
+**Scaffolding new project**: `python .claude/scripts/blast-init.py <name>` (or one-liner curl — see [README.md](../README.md)).
 
 ## Szybki start
 

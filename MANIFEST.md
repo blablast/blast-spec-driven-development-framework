@@ -8,6 +8,7 @@ Cel: jasność co commituję, co dystrybuuję jako template, a co zostaje moje.
 
 When updating shared information, edit the canonical source — never duplicate. Catalog:
 
+- **Top-level governance (Articles)** → `.blast/CONSTITUTION.md` — eleven Articles binding every spec/agent
 - **Agent routing + debate compositions** → `.blast/steering/llm-routing.md`
 - **File classification (FRAMEWORK / HYBRID / R&D)** → this file (`MANIFEST.md`)
 - **Spec schema (`spec.json` fields, `phase`/`status` enums)** → `.blast/settings/templates/specs/init.json`
@@ -21,13 +22,14 @@ Te pliki SĄ częścią blast'a. Każdy klonujący repo dostaje je 1:1.
 
 ```
 .claude/commands/blast/*.md                  29 plików — slash commands
-.claude/agents/blast/**/*.md                 21 plików — agents (incl. debate sub-agents)
-.claude/scripts/blast-*.py                    3 pliki  — lint, bench, telemetry
+.claude/agents/blast/**/*.md                 22 plików — agents (incl. debate sub-agents: critic, critic-opus, author, judge, aggregator)
+.claude/scripts/blast-*.py                   ~10 plików — init, lint, bench, telemetry, learn, graph, knowledge-index, autotune, eval, shipped-counter
 .claude/hooks/blast-*.py                      3 pliki  — approval-gate, privacy-gate, telemetry
-.claude/mcp/blast-llm-bridge.py               1 plik
+.claude/mcp/blast-llm-bridge.py               1 plik   — Ollama + Gemini providers
 .claude/settings.json                                  — hooks registry, bash allowlist
 
-.blast/settings/rules/*.md                   12 plików — EARS, design, code principles
+.blast/CONSTITUTION.md                                 — top-level governance, 11 Articles (FRAMEWORK; ship as-is to give new projects clear governance entry-point)
+.blast/settings/rules/*.md                   12 plików — EARS, design, code principles, ai-collaboration
 .blast/settings/templates/specs/             6 plików  — requirements/design/tasks/research/evolution
 .blast/settings/templates/steering/          5 plików  — product, tech, structure, inventory, research
 .blast/settings/templates/steering/*.template 2 pliki  — cost-policy + llm-routing skeletons
@@ -36,17 +38,22 @@ Te pliki SĄ częścią blast'a. Każdy klonujący repo dostaje je 1:1.
 
 .blast/README.md                                       — explains blast structure
 .blast/knowledge/README.md                             — explains knowledge base
-.blast/{knowledge,specs,steering}/.gitkeep             — empty dir markers (recreated per project)
+.blast/knowledge/sota/                                 — curated SOTA recommendations per domain (FRAMEWORK; refreshed via /blast:learn --refresh-sota)
+.blast/{specs,steering}/.gitkeep                       — empty dir markers (populated per project)
 
-README.md                                              — top-level readme + Setup
+README.md                                              — top-level readme + Setup + blast-init one-liner
 CLAUDE.md                                              — AI instructions (template version)
-.env.example                                           — env vars template
+.env.example                                           — env vars template (incl. GEMINI_API_KEY for JURY_3_FLASH3)
 .gitignore
 .mcp.json                                              — MCP bridge registration
 MANIFEST.md                                            — this file
 ```
 
-**Total**: ~95 plików, ~13,000 linii.
+**Total**: ~100 plików.
+
+**New project entry-points**:
+- `python .claude/scripts/blast-init.py <name>` — local scaffolder (clone + cleanup + fresh git)
+- `curl -sSL https://raw.githubusercontent.com/blablast/claude_code-template/main/.claude/scripts/blast-init.py | python3 - <name>` — one-liner
 
 ## HYBRID — framework path, project-specific content
 

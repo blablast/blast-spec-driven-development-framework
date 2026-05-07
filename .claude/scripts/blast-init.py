@@ -34,7 +34,9 @@ One-liner install:
 from __future__ import annotations
 
 import argparse
+import os
 import shutil
+import stat
 import subprocess
 import sys
 import tempfile
@@ -157,6 +159,31 @@ def run_git(args: list[str], cwd: Path | None = None, check: bool = True) -> sub
     return subprocess.run(["git", *args], cwd=cwd, check=check, capture_output=True, text=True)
 
 
+
+
+def _rmtree_force(path: Path) -> None:
+    """shutil.rmtree that survives Windows read-only files (git pack .idx, .pack).
+
+    Git on Windows writes pack files with the read-only attribute. shutil.rmtree
+    refuses to delete read-only files without an error callback that clears the
+    attr and retries. Python 3.12 deprecated `onerror` in favor of `onexc`; we
+    support both for compatibility with older runtimes.
+    """
+    def _clear_readonly_and_retry(func, p, exc_info):
+        try:
+            os.chmod(p, stat.S_IWRITE)
+            func(p)
+        except Exception:
+            pass
+
+    try:
+        # Python 3.12+
+        shutil.rmtree(path, onexc=_clear_readonly_and_retry)
+    except TypeError:
+        # Python <3.12
+        shutil.rmtree(path, onerror=_clear_readonly_and_retry)
+
+
 def validate_target(target: Path, here: bool) -> None:
     if here:
         if target.exists() and any(target.iterdir()):
@@ -189,7 +216,7 @@ def clone_template(template_url: str, branch: str, dest: Path) -> None:
 def remove_template_git(dest: Path) -> None:
     git_dir = dest / ".git"
     if git_dir.exists():
-        shutil.rmtree(git_dir, ignore_errors=False)
+        _rmtree_force(git_dir)
         log("Removed template .git/ history.", "ok")
 
 
@@ -199,7 +226,7 @@ def wipe_personal_artefacts(dest: Path) -> None:
         path = dest / rel
         if path.exists():
             if path.is_dir():
-                shutil.rmtree(path)
+                _rmtree_force(path)
             else:
                 path.unlink()
             wiped.append(rel)
