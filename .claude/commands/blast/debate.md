@@ -54,17 +54,45 @@ If new debate: load template from `.blast/settings/templates/debates/scratchpad.
 
 Total: 5 sub-agent calls. Cost: ~30-60k tokens.
 
-#### Protocol B — Multi-Jury Vote (N=3 default, up to N=4)
+#### Protocol B — Multi-Jury Vote (composition-driven)
 
-1. Dispatch same question to N jurors **in parallel** (Agent calls)
-   - Juror 1: `debate-critic` (model=sonnet)
-   - Juror 2: `debate-critic` (model=opus, override)
-   - Juror 3: external via `blast-llm-bridge` MCP (e.g. ask_local_qwen)
-   - Juror 4 (optional): another external (e.g. ask_local_deepseek)
-2. Each juror writes own verdict block to scratchpad
-3. Spawn `debate-aggregator` agent → tally → final verdict
+**Composition lookup**: read `.blast/steering/llm-routing.md` `### Compositions`
+section. The caller (slash command) names the composition (HYBRID, JURY_3_FLASH3,
+etc.). Each composition lists `jurors:` entries with one of two wirings:
 
-Total: 4-5 sub-agent calls. Cost: ~40-80k tokens. Latency: dominated by slowest juror.
+- `subagent: <name>` → spawn via `Task` tool with `subagent_type: <name>`
+- `mcp_tool: <name>` → call MCP tool directly (e.g. `mcp__blast-llm-bridge__<name>`)
+
+**Dispatch rule (CRITICAL — non-negotiable)**: issue ALL juror calls in ONE
+message so they execute in parallel. Sequential dispatch defeats the purpose of
+Protocol B. Example for JURY_3_FLASH3:
+
+```
+[single message contains 3 parallel tool calls]
+Task(subagent_type="debate-critic-opus", description="Juror 1 (Opus)", prompt=<topic>)
+mcp__blast-llm-bridge__ask_ubuntu_qwen36(prompt=<topic>, system=<juror system>)
+mcp__blast-llm-bridge__ask_gemini_3_flash_preview(prompt=<topic>, system=<juror system>)
+```
+
+**If a juror's tool is unavailable** (subagent missing, MCP key not set):
+- Skip that juror, log to scratchpad: `Juror N (<name>) — UNAVAILABLE: <reason>`
+- Composition degrades (e.g. JURY_3_FLASH3 → de-facto JURY_2 if Gemini key missing)
+- Aggregator notes the degradation in verdict envelope
+
+**No stand-ins**. If a juror is unavailable, do NOT have your own context
+roleplay it as a different model. Either real call or skipped + noted.
+
+**After all jurors return**: aggregator (per composition) consolidates verdicts
+and produces final envelope. The aggregator is also a real subagent call (not
+roleplay).
+
+Each juror writes its own verdict block to the scratchpad
+`.blast/specs/{feature}/debates/{topic}.md` before returning. Aggregator reads
+the scratchpad and produces the final tail-block envelope.
+
+Total: N+1 real tool calls (N jurors + 1 aggregator). Latency: dominated by
+slowest juror (parallel). Cost depends on composition: HYBRID ≈ 30-60k tokens,
+JURY_3_FLASH3 ≈ 60-120k tokens.
 
 #### Protocol C — Round-Robin (max 4 rounds, opt-in only)
 

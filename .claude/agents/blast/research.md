@@ -43,14 +43,22 @@ If MCP bridge unavailable: fallback to solo with notice.
 
 ## Execution Steps
 
-### Step 0: Load Context
+### Step 0: Load Context (front-load EVERYTHING into context)
 
-Read all necessary context:
+Read all necessary context **upfront, in parallel** (single message, multiple Read/Glob calls). Do NOT re-read these files later — keep them cached in conversation context for the entire run.
+
+Load in one batch:
 - `.blast/specs/{feature}/spec.json` — feature metadata
 - `.blast/specs/{feature}/requirements.md` — what needs to be built
 - `.blast/steering/*.md` — project context, tech stack, conventions
 - `.blast/steering/INVENTORY.md` — what already exists (avoid duplication)
-- `.blast/knowledge/**/*.md` — **local knowledge base** (see Step 1.5)
+- **Knowledge base scan** (single batch):
+  - `Glob .blast/knowledge/**/*.md` — list every knowledge file
+  - `Read` each one whose path/name suggests relevance to the feature topic
+  - For files NOT obviously relevant by name, do ONE broad `Grep` across `.blast/knowledge/` for feature keywords; Read only what matches
+  - Result: knowledge base is now in your context. **Step 2 references this — DO NOT re-Glob/Grep/Read knowledge base per question.**
+
+Anti-pattern (forbidden): per-question Glob+Grep+Read loop on `.blast/knowledge/` — caused 22 tool uses × 2-min average in past runs.
 
 ### Step 1: Identify Research Questions
 
@@ -66,36 +74,40 @@ From requirements, extract 3-7 key technical questions:
 
 Output research plan to console before starting investigation.
 
-### Step 2: Investigate Each Question
+### Step 2: Investigate ALL Questions in PARALLEL
 
-For each research question:
+**Critical**: do NOT loop sequentially per question. Dispatch all independent investigations in ONE message (Claude Code executes parallel tool calls within the same message concurrently — savings: N× speed-up where N = question count).
 
 **Standard mode** (default):
 
-1. **Check existing codebase first** (Grep, Glob):
-   - What patterns does the project already use?
-   - Are there similar components in inventory?
-   - What does steering/tech.md say about preferred stack?
+1. **Codebase scan (parallel, one message)**:
+   - For each question that needs codebase context, issue a `Grep`/`Glob` call
+   - Issue ALL Grep/Glob calls in the SAME message — they run in parallel
 
-2. **Search local knowledge base** (Glob, Grep, Read):
-   - Glob `.blast/knowledge/**/*.md` — list all knowledge files
-   - Grep for keywords related to the current question (technology names, pattern names, library names)
-   - Read matching files — extract relevant findings, decisions, references
-   - Check `.blast/knowledge/research/` — previous research results from other features
-   - Check `.blast/knowledge/decisions/` — existing architectural decisions (don't contradict them without good reason)
-   - Check `.blast/knowledge/references/` — saved documentation, API specs, articles
-   - **If knowledge base answers the question sufficiently — skip web search for this question**
+2. **Knowledge base** — already loaded in Step 0. Reference it from context. Do NOT re-Glob/Grep/Read knowledge files.
 
-3. **Search for current best practices** (WebSearch) — only if knowledge base didn't fully answer:
-   - Search for "{technology} best practices {year}"
-   - Search for "{library A} vs {library B} comparison"
-   - Look for recent Stack Overflow discussions, blog posts
+3. **WebSearch dispatch (PARALLEL — all questions in ONE message)**:
+   - For every question that needs external info, identify ONE optimal search query
+   - **Issue all WebSearch calls in a single message** (e.g. 5 questions → 5 `WebSearch` tool uses in one batch)
+   - This is non-negotiable for performance: sequential WebSearch loop is the #1 cause of 30+ minute research runs
+   - Example pattern (5 questions):
+     ```
+     [single message contains 5 parallel tool calls]
+     WebSearch("httpx vs aiohttp 2026 benchmark")
+     WebSearch("python token bucket rate limiter idiomatic")
+     WebSearch("UUID v4 entropy idempotency key collision")
+     WebSearch("statistics.quantiles vs numpy percentile python stdlib")
+     WebSearch("asyncio.Queue FIFO guarantees Python 3.13")
+     ```
 
-4. **Consult official documentation** (WebFetch):
-   - Read official docs for candidate libraries/tools
-   - Check migration guides if upgrading
+4. **WebFetch official docs (PARALLEL)**:
+   - After WebSearch results, identify the top 1-2 docs URLs per question
+   - Issue ALL `WebFetch` calls in ONE message (parallel)
+   - Skip if WebSearch result snippets already answered the question
 
-5. **Summarize findings** concisely per question
+5. **Summarize findings** per question — synthesis after all parallel ops complete
+
+**Sequential is allowed only when** Step N's input genuinely depends on Step N-1's output (e.g. WebFetch on URL discovered by WebSearch).
 
 **Deep mode** (`--deep`) — everything above, plus:
 

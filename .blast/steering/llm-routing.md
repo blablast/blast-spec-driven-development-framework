@@ -128,17 +128,45 @@ Per-spec override: `spec.json.debate.{phase}` wins.
 
 ### Compositions
 
+Each juror entry has TWO parts: logical model name (for documentation) and the
+**actual invocation** (subagent name OR MCP tool name) that `debate.md` Protocol B
+must call. If `mcp_tool` is missing or its API key is unset, the juror falls back
+to the named subagent (which runs as Sonnet by default unless its own frontmatter
+overrides `model:`).
+
 ```yaml
 HYBRID:
-  protocol: B   # parallel jury, N=2
-  jurors: [claude-sonnet-4-6, qwen3.6:latest]
-  aggregator: claude-haiku-4-5-20251001
+  protocol: B   # parallel jury, N=2 — single message, parallel tool calls
+  jurors:
+    - name: claude-sonnet-4-6
+      subagent: debate-critic           # spawned via Task tool (real Sonnet)
+    - name: qwen3.6:latest
+      mcp_tool: ask_ubuntu_qwen36       # real local Ollama via blast-llm-bridge
+  aggregator:
+    name: claude-haiku-4-5-20251001
+    subagent: debate-aggregator          # spawned via Task tool (uses haiku model)
 
 JURY_3_FLASH3:
-  protocol: B   # parallel jury, N=3
-  jurors: [claude-opus-4-6, qwen3.6:latest, gemini-3-flash-preview]
-  aggregator: claude-haiku-4-5-20251001
+  protocol: B   # parallel jury, N=3 — single message, parallel tool calls
+  jurors:
+    - name: claude-opus-4-6
+      subagent: debate-critic-opus      # spawned via Task tool (model: opus in frontmatter)
+    - name: qwen3.6:latest
+      mcp_tool: ask_ubuntu_qwen36       # real local Ollama via blast-llm-bridge
+    - name: gemini-3-flash-preview
+      mcp_tool: ask_gemini_3_flash_preview   # real Gemini API via blast-llm-bridge
+                                              # requires GEMINI_API_KEY in .env or os.environ
+                                              # if missing → juror skipped, jury degrades to N=2
+  aggregator:
+    name: claude-haiku-4-5-20251001
+    subagent: debate-aggregator          # spawned via Task tool (uses haiku model)
 ```
+
+**Truth-in-advertising note**: prior runs of `/blast:debate` with JURY_3_FLASH3
+produced "stand-in" jurors (Sonnet pretending to be Opus / Gemini) when the
+underlying subagents/MCP tools weren't wired. The schema above makes the wiring
+explicit so debate.md MUST call the named subagent or MCP tool — not roleplay it
+in its own context. If a tool is unavailable, the debate output must say so.
 
 ### Per-phase config
 

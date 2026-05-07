@@ -54,9 +54,12 @@ If `--research` flag: insert after "Generate requirements":
   {"content": "Research / spike", "activeForm": "Researching options", "status": "pending"}
 ```
 
-If `--validate` flag: insert two tasks:
+If `--validate` flag: insert THREE tasks (validate-design, validate-tasks, validate-impl):
 - After "Generate design": `{"content": "Validate design (architecture review)", "activeForm": "Validating design", "status": "pending"}`
+- After "Generate tasks": `{"content": "Validate tasks (KISS + SOTA review)", "activeForm": "Validating tasks", "status": "pending"}`
 - After "Implement all tasks (TDD)": `{"content": "Validate impl (vs spec + Prove Mode)", "activeForm": "Validating impl", "status": "pending"}`
+
+**Even WITHOUT `--validate` flag**, validate-tasks auto-fires when ANY of: tasks count > 8, complexity_hint=high, security_critical=true, design.md references external dep not in tech.md whitelist. In that case insert ONLY the validate-tasks task (after "Generate tasks"). Auto-fire keeps the gate on for complex/risky specs even when user didn't think to ask.
 
 If `--push` flag: append at the end:
 ```json
@@ -177,16 +180,18 @@ Continue to implementation?
 
 ---
 
-#### Phase: Validate Tasks (conditional — auto-fires on heuristics OR `--validate`)
+#### Phase: Validate Tasks (mandatory with --validate; auto-fires on heuristics)
 
-**Auto-fire conditions** (validate-tasks runs even WITHOUT `--validate` flag):
+**This phase MUST run when `--validate` flag is present.** No exceptions, no "skip if seems unnecessary". The validate-tasks task IS in your TodoWrite list (you added it in Step 1 when you parsed `--validate`) — execute it.
+
+**Auto-fire when --validate is NOT present**: still run if ANY:
 - tasks.md has >8 major tasks (heuristic for over-engineering risk)
 - design.md references external dep NOT in `.blast/steering/tech.md::Allowed Dependencies`
 - `spec.json.complexity_hint == "high"` OR `security_critical == true`
 
-**With `--validate` flag**: always runs (HYBRID composition).
+If neither --validate nor any auto-fire condition holds, you MAY skip — but log the skip with reason.
 
-**Invoke via Skill tool**: call `Skill` with `skill: "blast:validate-tasks"` and `args: "{feature}"`. Do NOT use Task tool to spawn validate-tasks-agent directly — the slash command must run as orchestrator.
+**Invoke via Skill tool** (literal — do NOT use Task tool to spawn validate-tasks-agent directly): call `Skill` with `skill: "blast:validate-tasks"` and `args: "{feature}"`. The slash command's orchestrator decides FIRE/SKIP for debate routing.
 
 Read agent verdict envelope:
 - `VERDICT: PASS` → continue to impl normally
