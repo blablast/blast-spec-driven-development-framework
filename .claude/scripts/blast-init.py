@@ -60,6 +60,14 @@ WIPE_PATHS = [
     ".env",
     "r_and_d/",
 ]
+# Empty dirs to re-create after wipe (blast-internal structure that agents expect)
+PLACEHOLDER_DIRS = [
+    ".blast/specs/",
+    ".blast/knowledge/research/",
+    ".blast/knowledge/decisions/",
+    ".blast/knowledge/references/",
+]
+
 
 # Steering files to reset to clean stubs (rather than wipe)
 RESET_STEERING = {
@@ -234,6 +242,26 @@ def wipe_personal_artefacts(dest: Path) -> None:
         log(f"Wiped {len(wiped)} personal artefact paths.")
 
 
+
+
+def ensure_placeholder_dirs(dest: Path) -> None:
+    """Re-create empty blast-internal dirs with .gitkeep so fresh scaffold is structurally complete.
+
+    Some dirs are removed by wipe_personal_artefacts() (they held the template author's content),
+    but agents and slash commands expect them to exist as empty hosts for new artefacts. The first
+    /blast:init / /blast:research would mkdir them anyway, but having them present from the start
+    avoids confusion and makes git track the structure via .gitkeep stubs.
+    """
+    created = []
+    for rel in PLACEHOLDER_DIRS:
+        d = dest / rel
+        d.mkdir(parents=True, exist_ok=True)
+        gitkeep = d / ".gitkeep"
+        if not gitkeep.exists():
+            gitkeep.write_text("", encoding="utf-8")
+        created.append(rel)
+    log(f"Ensured {len(created)} placeholder dirs (.gitkeep markers).", "ok")
+
 def reset_steering(dest: Path, project_name: str) -> None:
     for rel, content in RESET_STEERING.items():
         path = dest / rel
@@ -343,6 +371,7 @@ def main() -> int:
         remove_template_git(target)
 
     wipe_personal_artefacts(target)
+    ensure_placeholder_dirs(target)
     reset_steering(target, project_name)
     create_env_from_example(target)
 
