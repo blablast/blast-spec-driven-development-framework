@@ -15,7 +15,8 @@ knowledge/
 ├── README.md              ← ten plik
 ├── decisions/             ← decyzje architektoniczne (ADR)
 ├── references/            ← dokumentacja API, snippety, linki
-└── research/              ← wyniki researchów (auto-generowane)
+├── research/              ← wyniki researchów (auto-generowane)
+└── sota/                  ← curated SOTA recommendations per tech area (read by Pragmatist)
 ```
 
 ## Konwencje nazewnictwa

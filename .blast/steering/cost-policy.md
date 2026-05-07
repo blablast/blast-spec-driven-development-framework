@@ -31,7 +31,7 @@ Każdy hard limit (gdy aktywny) może być pominięty przez:
 | HYBRID validate-impl | $0.20 | $0.50 | ~$0.12 |
 | JURY_3_FLASH3 (security, high-stakes) | $0.40 | $1.00 | ~$0.17 |
 | `/blast:full` standard spec | $5 | $10 | ~$2 |
-| `/blast:full --thorough` | $10 | $20 | ~$4 |
+| `/blast:full --debate` | $10 | $20 | ~$4 |
 | `/blast:full` z security-critical | $15 | $30 | ~$5 |
 
 ### Soft warnings (still active)

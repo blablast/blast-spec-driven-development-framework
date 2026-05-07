@@ -125,10 +125,25 @@ Każdy etap wymaga review — idziesz dalej dopiero po aprovacie.
 ### Walidacje specyfikacji (opcjonalne)
 
 ```bash
-/blast:validate-gap      {f}             # co jest, czego brakuje
-/blast:validate-design   {f}             # review designu
-/blast:validate-impl     {f} [--prove]   # walidacja impl vs spec; --prove odpala Verification Strategy
+/blast:validate-gap      {f}                   # co jest, czego brakuje (po requirements)
+/blast:validate-design   {f}                   # review designu (po design)
+/blast:validate-tasks    {f} [--debate]      # KISS + SOTA review tasks.md (po tasks, przed impl) — auto-fires na complex specs
+/blast:validate-impl     {f} [--prove]         # walidacja impl vs spec; --prove odpala Verification Strategy
 ```
+
+`/blast:validate-tasks` używa Pragmatist persony — KISS+SOTA dual-lens. Czyta `.blast/knowledge/sota/*.md` (curated) → tech.md::Allowed Dependencies → WebSearch fallback → training. Auto-fires gdy tasks count >8, external dep nie w whitelist, lub complexity_hint=high.
+
+### Self-improvement (auto + manual)
+
+```bash
+/blast:learn --lessons        # aggregate retrospections z shipped specs → .blast/steering/lessons.md
+/blast:learn --calibrate      # p25/p50/p75/p95 z agent-runs.jsonl per subagent → cost-policy hints
+/blast:learn --routing        # verdict distribution per agent → flag anomalies (high FAIL rate)
+/blast:learn --refresh-sota   # audit knowledge/sota/*.md staleness (>6mo flagged)
+/blast:learn --all --apply    # all of above, write outputs
+```
+
+Auto-trigger: `/blast:complete` Step 7 odpala `/blast:learn --all --apply` co 5 shipped specs (cadence configurable w `.claude/scripts/blast-shipped-counter.py`).
 
 ### Podgląd i pomoc
 
@@ -173,7 +188,7 @@ Po `/blast:complete`:
 ## Multi-LLM (opcjonalne)
 
 blast obsługuje multi-LLM compositions:
-- **HYBRID** dla `validate-impl --thorough` (Sonnet + qwen3.6 → Haiku)
+- **HYBRID** dla `validate-impl --debate` (Sonnet + qwen3.6 → Haiku)
 - **JURY_3_FLASH3** dla `security` + high-stakes (Opus + qwen3.6 + Gemini-3-Flash → Haiku)
 - **Privacy mode** (`spec.json.privacy: local-only`) blokuje external calls
 

@@ -55,7 +55,7 @@ spec-tdd-impl-agent:
         - "anyio"
     - design_complexity_high:
         # design.md has >8 components OR >3 classes with state
-    - flag_passed: "--thorough"
+    - flag_passed: "--debate"
     - spec_json:
         complexity_hint: "high"
         security_critical: true
@@ -114,11 +114,15 @@ Read by `validate-{impl,design}-agent`, `security-audit-agent`, `code-review-age
 
 ### Trigger semantics
 
+**Debate is the DEFAULT for validation phases (SOTA #1 stance).** User passes `--no-debate` to use solo composition instead.
+
 | Trigger | Fires when |
 |---|---|
-| `always` | every invocation of that phase |
-| `thorough_flag` | user passes `--thorough` |
-| `high_stakes` | `risk_level: high` OR `security_critical: true` OR PR touches sensitive paths |
+| `always` | every invocation of that phase (debate non-negotiable, e.g., security) |
+| `validate_flag_unless_no_debate` | when `--validate` triggers the phase AND user did NOT pass `--no-debate` |
+| `auto_or_validate_unless_no_debate` | auto-fire heuristic OR `--validate` flag, debate unless `--no-debate` |
+| `research_flag_unless_no_debate` | when `--research` flag passed, debate unless `--no-debate` |
+| `high_stakes` | `risk_level: high` OR `security_critical: true` OR PR touches sensitive paths (always debate, no opt-out) |
 
 Per-spec override: `spec.json.debate.{phase}` wins.
 
@@ -145,7 +149,7 @@ spawns the debate flow only when `enabled: true` AND the trigger condition is me
 debate_config:
   validate-impl:
     enabled: true
-    trigger: thorough_flag        # fires when --thorough flag passed
+    trigger: thorough_flag        # fires when --debate flag passed
     composition: HYBRID
     cost_ceiling_usd: 0.50
 

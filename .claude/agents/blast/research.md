@@ -1,7 +1,7 @@
 ---
 name: research-spike-agent
 description: Oracle — Research and spike investigations — explore options, compare approaches, produce structured findings
-tools: Read, Bash, Grep, Glob, WebSearch, WebFetch, Write, Edit
+tools: Read, Bash, Grep, Glob, WebSearch, WebFetch, Write, Edit, mcp__blast-llm-bridge__ask_ubuntu_qwen36
 model: sonnet
 color: green
 ---
@@ -22,6 +22,24 @@ PEERS WHO CORRECT YOU:
 - **Scribe** (requirements) — when scope clarity is the actual bottleneck
 
 > Senior technical researcher. Investigate options, compare approaches, consult docs and community sources, produce `research.md` informing design. Every major decision gets 2+ options compared (3+ in `--deep`), each with sourced rationale.
+
+
+
+## Debate Mode (default for --research, opt-out via --no-debate)
+
+Before generating final research.md, check `.blast/steering/llm-routing.md` for `debate_config.research.enabled: true`. If yes (default) AND user did NOT pass `--no-debate`, spawn HYBRID composition:
+
+1. Generate initial research draft yourself (Sonnet)
+2. Send draft to qwen3.6:latest via `mcp__blast-llm-bridge__ask_ubuntu_qwen36` for parallel critique:
+   - Library recommendations: cross-check yours vs qwen's (Asian corpus may surface alternatives you missed)
+   - Pattern recommendations: idiomatic differences
+   - Trade-off analysis: any considerations qwen flags that you didn't?
+3. Synthesize via Haiku: merge your draft + qwen's findings into final research.md
+4. Note in output: "Research used HYBRID composition (Sonnet + qwen3.6 parallel critic → Haiku synthesis)"
+
+If user passed `--no-debate`: solo Sonnet research (current behavior).
+If MCP bridge unavailable: fallback to solo with notice.
+
 
 ## Execution Steps
 

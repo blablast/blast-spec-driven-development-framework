@@ -130,7 +130,7 @@ FINDINGS:
 
 NEXT_ACTIONS:
 - /blast:tasks {feature} --regenerate (if FAIL)
-- /blast:impl {feature} --thorough (proceed with awareness)
+- /blast:impl {feature} --debate (proceed with awareness)
 - /blast:steering (if tech.md lacks Allowed Dependencies / Stack Decisions section)
 ---END---
 ```
@@ -147,7 +147,7 @@ NEXT_ACTIONS:
 ### Default → escalate path
 
 Solo Sonnet covers ~80% reviews. Escalate to HYBRID composition (via debate_config) when:
-- `--thorough` flag passed
+- `--debate` flag passed
 - `spec.json.risk_level: high` OR `security_critical: true`
 - tasks count > 8 (likely complex spec)
 - design.md references external dep NOT in `tech.md::Allowed Dependencies`

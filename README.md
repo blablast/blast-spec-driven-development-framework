@@ -116,6 +116,8 @@ rm -rf .git && git init
 | `/blast:quick "desc" [--auto] [--research]` | Spec pipeline (init → tasks) |
 | `/blast:full "desc" [--auto] [--research] [--push]` | Full pipeline (init → push) |
 | `/blast:status {f}` | Check progress |
+| `/blast:validate-tasks {f}` | KISS + SOTA review of tasks before impl phase |
+| `/blast:learn` | Self-improvement: aggregate lessons / cost calibrate / routing observability |
 | `/blast:help [cmd]` | Help and reference |
 
 **29 commands, 21 agents (17 top-level + 4 debate).** Full docs: `.blast/README.md`
@@ -123,14 +125,12 @@ rm -rf .git && git init
 ## Pipeline
 
 ```
-steering ──► init ──► requirements ──► [research] ──► design ──► tasks
-                                                                   │
-push ◄── steering ◄── security ◄── complete ◄── impl ◄────────────┘
-                        (OWASP)      (changelog    (TDD + ruff
-                                      + coverage)   + coverage)
+steering → init → requirements → [research] → design → [validate-design] → tasks → [validate-tasks] → impl → [validate-impl] → complete → security → steering [→ push]
 ```
 
-**`/blast:full`** runs all phases automatically. Security blocks on critical findings.
+**`/blast:full`** runs all phases automatically. Security blocks on critical findings. Optional validations (`validate-gap`, `validate-design`, `validate-tasks`, `validate-impl`) opt-in via `--validate` flag.
+
+Detailed phase-by-phase breakdown: `/blast:help` (quick reference) or `.blast/README.md` (Polish dev guide).
 
 ## Knowledge Base
 
@@ -139,6 +139,7 @@ push ◄── steering ◄── security ◄── complete ◄── impl ◄
 - **`decisions/`** — architectural decisions (ADR). Research respects existing decisions.
 - **`references/`** — API docs, library gotchas, saved articles. Drop anything useful here.
 - **`research/`** — auto-generated summaries from previous `/blast:research` runs.
+- **`sota/`** — curated state-of-the-art recommendations per technology area (HTTP clients, async patterns, etc.). Read by `validate-tasks` agent before suggesting library alternatives. Refresh staleness audit: `python .claude/scripts/blast-learn.py --refresh-sota`.
 
 Research agent reads knowledge base first, skips web search when local sources answer the question, and writes back reusable findings after each research.
 

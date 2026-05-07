@@ -209,7 +209,7 @@ Source: `.env.example` na repo root. Skopiuj do `.env`, wypełnij, source przed 
 
 | Var | Required by | Where to get |
 |---|---|---|
-| `GEMINI_API_KEY` | JURY_3_FLASH3 (security, validate-design --thorough, review --thorough), spike-3 driver | https://aistudio.google.com/app/apikey |
+| `GEMINI_API_KEY` | JURY_3_FLASH3 (security, validate-design --debate, review --debate), spike-3 driver | https://aistudio.google.com/app/apikey |
 | `ANTHROPIC_API_KEY` | spike-3 driver standalone (CLI mode = NOT needed for normal blast) | https://console.anthropic.com/settings/keys |
 | `OPENROUTER_API_KEY` | OPTIONAL — reserved for future unified cloud LLM dispatcher (~100 models) | https://openrouter.ai/keys |
 | `DEEPSEEK_API_KEY` | OPTIONAL — reserved for future N=4 jury (4 cloud providers) | https://platform.deepseek.com/api_keys |

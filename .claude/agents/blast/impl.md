@@ -35,7 +35,7 @@ Before generating code for each task, classify task complexity and delegate acco
 - design.md::Components has > 8 components OR > 3 classes with mutable state
 - spec.json.complexity_hint == "high"
 - spec.json.security_critical == true
-- Auto-approve marker present (--thorough flag passed)
+- Auto-approve marker present (--debate flag passed)
 - Refactoring tasks touching > 5 existing files
 - Tasks involving subtle correctness (state machines with cycles, transactions, eventual consistency)
 

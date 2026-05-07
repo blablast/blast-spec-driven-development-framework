@@ -79,6 +79,9 @@ ZARZĄDZANIE:
   /blast:status {f}                Status i postęp specyfikacji
   /blast:graph [f]                 Cross-spec dependency graph + status dashboard
   /blast:telemetry [--since|--feature]  Raport agent runs (calls/verdicts/top features, meta-only)
+  /blast:learn [--lessons|--calibrate|--routing|--refresh-sota|--all]
+                                   Self-improvement: aggregate lessons / cost cal / routing obs / SOTA staleness
+                                   Auto co 5 shipped specs via /blast:complete Step 7
   /blast:deprecate {f}             Wycofanie ficzera z migration guide
   /blast:steering-custom           Dodatkowe pliki steering (API, DB...)
   /blast:help [komenda]            Ta pomoc
@@ -269,8 +272,8 @@ set -a; source .env; set +a
 | Use case | Vars |
 |---|---|
 | Plain pipeline | NONE |
-| `validate-impl --thorough` (HYBRID) | `BLAST_OLLAMA_UBUNTU` |
-| `security` + `validate-design --thorough` (jury) | `BLAST_OLLAMA_UBUNTU` + `GEMINI_API_KEY` |
+| `validate-impl --debate` (HYBRID) | `BLAST_OLLAMA_UBUNTU` |
+| `security` + `validate-design --debate` (jury) | `BLAST_OLLAMA_UBUNTU` + `GEMINI_API_KEY` |
 | Privacy mode | `BLAST_OLLAMA_UBUNTU` (cloud blocked) |
 | Spike reproduction | `ANTHROPIC_API_KEY` + `GEMINI_API_KEY` + `BLAST_OLLAMA_UBUNTU` |
 

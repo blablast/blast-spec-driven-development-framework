@@ -44,7 +44,7 @@ JURY_3:
 
 | Phase | Composition | Trigger |
 |---|---|---|
-| `validate-impl` | HYBRID (opcjonalne) | `--thorough` flag |
+| `validate-impl` | HYBRID (opcjonalne) | `--debate` flag |
 | `validate-design` | JURY (opcjonalne) | high_stakes |
 | `security` | JURY (zalecane) | always |
 

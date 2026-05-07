@@ -1,7 +1,7 @@
 ---
 description: "Pragmatist — KISS + SOTA review of tasks.md przed impl phase"
 allowed-tools: Read, Glob, Grep, Bash, Task
-argument-hint: <feature-name> [--thorough]
+argument-hint: <feature-name> [--debate]
 ---
 
 # blast:validate-tasks — KISS + SOTA review pre-impl
@@ -12,7 +12,7 @@ Sprawdza task decomposition + library/pattern choices ZANIM impl phase commit re
 
 Parse `$ARGUMENTS`:
 - First non-flag token = feature name (kebab-case)
-- `--thorough` → activates HYBRID composition (Sonnet + qwen3.6 → Haiku judge)
+- `--debate` → activates HYBRID composition (Sonnet + qwen3.6 → Haiku judge)
 
 Validate:
 - Spec dir exists. If not: STOP.
@@ -21,7 +21,7 @@ Validate:
 
 ## Auto-fire heuristics (when running standalone or via /blast:full --validate)
 
-Even WITHOUT `--thorough`, escalate to HYBRID when:
+Even WITHOUT `--debate`, escalate to HYBRID when:
 - tasks.md has >8 major tasks (likely over-engineered or genuinely complex)
 - design.md references external dep NOT in `.blast/steering/tech.md::Allowed Dependencies`
 - `spec.json.complexity_hint == "high"`

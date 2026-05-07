@@ -4,6 +4,17 @@ Klasyfikacja każdego pliku w repo: **FRAMEWORK** (universal blast, dystrybuowan
 
 Cel: jasność co commituję, co dystrybuuję jako template, a co zostaje moje.
 
+## Canonical sources (OSOT)
+
+When updating shared information, edit the canonical source — never duplicate. Catalog:
+
+- **Agent routing + debate compositions** → `.blast/steering/llm-routing.md`
+- **File classification (FRAMEWORK / HYBRID / R&D)** → this file (`MANIFEST.md`)
+- **Spec schema (`spec.json` fields, `phase`/`status` enums)** → `.blast/settings/templates/specs/init.json`
+- **Approval / privacy / telemetry gate logic** → `.claude/hooks/blast-*.py`
+- **Persona names + agent contracts** → `.claude/agents/blast/*.md` frontmatter + body
+- **Pipeline phases (canonical order)** → `CLAUDE.md::Pipeline` (replicated to README, help; sync manually if changed)
+
 ## FRAMEWORK — universal blast (ship as-is)
 
 Te pliki SĄ częścią blast'a. Każdy klonujący repo dostaje je 1:1.

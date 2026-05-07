@@ -25,7 +25,7 @@ Pełen wykaz komend, flag i przykładów → `/blast:help [komenda]`.
 ### Pipeline
 
 ```
-steering → init → requirements → [research] → design → tasks → impl → [review] → [security] → complete → [push]
+steering → init → requirements → [research] → design → [validate-design] → tasks → [validate-tasks] → impl → [validate-impl] → complete → security → steering [→ push]
 ```
 
 `[optional]` = fazy opcjonalne. Walidacje (`validate-gap`, `validate-design`, `validate-impl`) też opcjonalne — wchodzą po właściwej fazie.
@@ -33,8 +33,10 @@ steering → init → requirements → [research] → design → tasks → impl 
 ### Skróty
 
 - `/blast:quick "opis" [--auto] [--research]` — tylko spec (init→req→[research]→design→tasks)
-- `/blast:full "opis" [--auto] [--research] [--push]` — pełny pipeline (spec + impl + complete + security + steering)
+- `/blast:full "opis" [--auto] [--research] [--validate] [--no-debate] [--push]` — pełny pipeline. Debate = default gdy validation fires; `--no-debate` downgrade'uje na solo Sonnet (cost/speed).
 - `/blast:status [f]` — status i postęp specu
+- `/blast:validate-tasks {f}` — KISS + SOTA review tasks.md przed impl (auto-fires na complex specs)
+- `/blast:learn [--lessons|--calibrate|--routing|--refresh-sota|--all]` — self-improvement aggregator (auto co 5 shipped specs)
 - `/blast:help [cmd]` — szczegóły, flagi, przykłady
 
 ## Zasady gry
@@ -81,7 +83,7 @@ Kiedy użytkownik pyta "co dalej?" lub wydaje komendę blast, AI MUSI sprawdzić
 | `phase: "requirements-generated"`, requirements NOT approved | → Review `requirements.md`, potem `/blast:approve {f} requirements` (lub `/blast:design {f} -y` żeby ominąć) |
 | `phase: "design-generated"`, design approved | → `/blast:tasks {feature}` |
 | `phase: "design-generated"`, design NOT approved | → Review `design.md`, potem `/blast:approve {f} design` (lub `/blast:tasks {f} -y` żeby ominąć). Opcjonalnie: `/blast:validate-design` |
-| `phase: "tasks-generated"`, tasks approved | → `/blast:validate-tasks {feature}` (if complex/--thorough) lub `/blast:impl {feature}` |
+| `phase: "tasks-generated"`, tasks approved | → `/blast:validate-tasks {feature}` (if complex/--debate) lub `/blast:impl {feature}` |
 | `phase: "tasks-generated"`, tasks NOT approved | → Review `tasks.md`, potem `/blast:approve {f} tasks` (lub `/blast:impl {f} -y` żeby ominąć) |
 | Wszystkie taski `[x]` w tasks.md | → `/blast:complete {feature}` |
 | `status: "shipped"` | → `/blast:security {feature}` (rekomendowane); ewolucja: `/blast:evolve {feature} "<change>"`; nowy ficzer: `/blast:init` |
@@ -109,6 +111,10 @@ Workflow pamięci: `/blast:impl` → `/blast:complete` (aktualizuje inventory) �
 - Ładuj cały `.blast/steering/` jako pamięć projektu
 - Domyślne pliki: `product.md`, `tech.md`, `structure.md`, `INVENTORY.md`
 - Pliki niestandardowe obsługiwane przez `/blast:steering-custom`
+
+### Knowledge SOTA (Pragmatist agent reference)
+
+`.blast/knowledge/sota/*.md` — curated SOTA recommendations per technology area. Read by `validate-tasks-agent` (Pragmatist) before suggesting library alternatives. Refresh audit via `/blast:learn --refresh-sota` (flags files >6mo old).
 
 ### Steering loading discipline (cache w sesji)
 
@@ -181,8 +187,8 @@ blast obsługuje wieloprovider'owy code review przez `debate_config:` w `.blast/
 
 ### Compositions
 
-- **HYBRID** — `validate-impl --thorough`. Sonnet ‖ qwen3.6:latest (parallel critic) → Haiku judge. ~$0.12/spec, ~130s.
-- **JURY_3_FLASH3** — `security` (always), `validate-design --thorough`, `review --thorough` dla auth/payments/schema. Opus ‖ qwen3.6:latest ‖ Gemini-3-Flash (3-juror) → Haiku aggregator. ~$0.17/spec, ~141s.
+- **HYBRID** — `validate-impl --debate`. Sonnet ‖ qwen3.6:latest (parallel critic) → Haiku judge. ~$0.12/spec, ~130s.
+- **JURY_3_FLASH3** — `security` (always), `validate-design --debate`, `review --debate` dla auth/payments/schema. Opus ‖ qwen3.6:latest ‖ Gemini-3-Flash (3-juror) → Haiku aggregator. ~$0.17/spec, ~141s.
 - **Solo Sonnet/Opus/Haiku** — default dla większości faz (patrz Model routing wyżej).
 
 ### Privacy mode

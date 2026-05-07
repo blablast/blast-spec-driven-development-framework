@@ -187,7 +187,7 @@ Continue to implementation?
 **With `--validate` flag**: always runs (HYBRID composition).
 
 ```
-SlashCommand: /blast:validate-tasks {feature} [--thorough if validate flag]
+SlashCommand: /blast:validate-tasks {feature} [--debate if validate flag]
 ```
 
 Read agent verdict envelope:
