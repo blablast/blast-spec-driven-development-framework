@@ -199,4 +199,4 @@ MIT
 
 ---
 
-*blast by Błażej Strus — bo programowanie powinno mieć flow, nie chaos.*
+*.blast by Błażej Strus — because coding should have flow, not chaos.*
