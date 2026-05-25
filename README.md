@@ -3,81 +3,107 @@
 > **blast** = Błażej Strus' AI Development Life Cycle.
 > Spec-first. Quality-enforced. No chaos.
 
-## Constitution
+![License](https://img.shields.io/badge/license-MIT-green)
+![Built for Claude Code](https://img.shields.io/badge/built%20for-Claude%20Code-7C3AED)
+![Commands](https://img.shields.io/badge/commands-30-blue)
+![Agents](https://img.shields.io/badge/agents-22-blue)
+![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB)
+![Pipeline](https://img.shields.io/badge/pipeline-spec--driven-1A1D23)
+[![Paper](https://img.shields.io/badge/%F0%9F%93%84-Read%20the%20paper-B31B1B)](blast_opracowanie.pdf)
 
-The project's binding governance principles live in [`.blast/CONSTITUTION.md`](.blast/CONSTITUTION.md) — eleven Articles covering spec-driven discipline, multi-LLM debate as default, tiered cost routing, privacy mode, TDD enforcement, cross-spec DRY, lifecycle, determinism boundaries, and conscious-duplicate policy. Steering files (`product.md`, `tech.md`, `structure.md`, `INVENTORY.md`) are the operational expansion of those Articles.
+## The problem
 
-If something here conflicts with steering, the Constitution wins for governance intent.
+AI coding agents are fast, but raw speed without discipline is a liability. They make wrong assumptions and run with them, overcomplicate code and bloat abstractions ("1000 lines where 100 would do"), drift outside the task, and silently change code and comments they don't fully understand. The fix isn't a better model — it's a framework that communicates intent and **enforces** it.
 
-## What is blast?
+**blast is that framework.** It forces order onto AI-assisted development: **first you know WHAT, then HOW, and only then you write code.** It ships as a set of agents and slash commands for [Claude Code](https://docs.anthropic.com/en/docs/claude-code) — generating specs, designs, and tasks, then implementing them with TDD, code review, security audit, and a behavior-preserving simplify pass.
 
-blast is a framework for AI-assisted development that enforces order: **first you know WHAT, then HOW, and only then you write code**. It works as a set of agents and slash commands for [Claude Code](https://docs.anthropic.com/en/docs/claude-code) — generating specs, designs, and tasks, then implementing them with TDD.
+## The pipeline
 
-**Key features:**
-- Spec-driven pipeline with phase guards (requirements → design → tasks → code)
-- TDD implementation with ruff/ESLint in the cycle, not post-hoc
+```mermaid
+flowchart LR
+    steering --> init --> req[requirements] --> design --> tasks --> impl --> complete --> security
+    security --> steering
+    req -. opt .-> research
+    design -. opt .-> vd[validate-design]
+    tasks -. opt .-> vt[validate-tasks]
+    impl -. opt .-> vi[validate-impl]
+    vi -. opt .-> simplify
+    security -. opt .-> push
+
+    classDef mand fill:#1A1D23,color:#fff,stroke:#1A1D23;
+    classDef opt fill:#fff,color:#1A1D23,stroke:#7A7A7A,stroke-dasharray:4 3;
+    classDef term fill:#2F8F4D,color:#fff,stroke:#2F8F4D;
+    class steering,init,req,design,tasks,impl,complete mand;
+    class security term;
+    class research,vd,vt,vi,simplify,push opt;
+```
+
+Solid spine = mandatory phases. Dashed = optional (research, three validations, simplify, push). Each gate requires human approval unless you bypass with `-y`. `simplify` is the only step that *subtracts* complexity instead of adding it.
+
+## Why blast?
+
+A fair comparison against the current state of the art (May 2026):
+
+| Capability | raw Claude Code | GitHub Spec Kit | Amazon Kiro | **blast** |
+|---|:---:|:---:|:---:|:---:|
+| Spec → design → tasks gates | ✗ | ✓ | ✓ | ✓ |
+| Project memory (steering) | partial | ✗ | ✓ | ✓ |
+| Cross-artifact validation | ✗ | ✓ `/analyze` | partial | ✓ (4 validators) |
+| Cross-spec DRY (inventory) | ✗ | ✗ | ✗ | ✓ |
+| Constitution / governance | ✗ | ✓ | ✗ | ✓ (11 Articles) |
+| Multi-LLM debate | ✗ | ✗ | ✗ | ✓ |
+| Privacy / local-only LLM | ✗ | ✗ | ✗ | ✓ |
+| Event-driven hooks (on-save) | ✗ | ✗ | ✓ | ✗ |
+| Behavior-preserving **simplify** | ✗ | ✗ | ✗ | ✓ |
+| Hard SDK-level approval gate | ✗ | ✗ | partial (IDE) | ✓ |
+| Enforcement model | — | prompt templates | IDE-integrated | agents + hooks + gates |
+
+Honest read: Spec Kit's `/analyze` and Kiro's on-save hooks are genuinely good ideas (Kiro's event-driven hooks are something blast doesn't do — it's prompt-driven, not IDE-embedded). Where blast pulls ahead is **enforcement depth** (deterministic SDK-level gates, not just templates), **cross-spec DRY**, **multi-LLM debate + privacy mode**, and **`/blast:simplify`** — a behavior-preserving complexity-reduction step neither competitor has.
+
+## Karpathy-aligned, and then some
+
+blast's four core AI rules — **Think Before Coding · Simplicity First · Surgical Changes · Goal-Driven Execution** — are the same four principles the community distilled from [Andrej Karpathy's notes on LLM coding pitfalls](https://github.com/multica-ai/andrej-karpathy-skills). The difference: those ship as a single passive `CLAUDE.md` you *hope* the model follows. blast **actively enforces** them:
+
+- **Simplicity First** → `validate-tasks` (pre-impl KISS) + `/blast:simplify` (post-impl behavior-preserving reduction)
+- **Surgical Changes** → `validate-impl` + `review`, including the comment guardrail ("never delete a comment you don't understand") and the "remove only your own orphans" rule
+- **Goal-Driven Execution** → TDD by default + `validate-impl --prove` (runtime proof against the design's Verification Strategy)
+
+Full rules: [`.blast/settings/rules/ai-collaboration.md`](.blast/settings/rules/ai-collaboration.md) and [`.blast/settings/rules/code-principles.md`](.blast/settings/rules/code-principles.md).
+
+## Key features
+
+- Spec-driven pipeline with **hard phase guards** (requirements → design → tasks → code) enforced at the SDK level, not just prompt-level
+- TDD implementation with ruff/ESLint **in the cycle**, not post-hoc
 - Security audit (OWASP/CWE) built into the pipeline
-- Code review with 9-point scorecard (Clean Code, SOLID, KISS, DRY, YAGNI, patterns, SOTA, lint, docstrings)
-- Test coverage tracking (≥80% target) as a soft gate
-- Research/spike phase for unknown-territory features
-- Cross-spec DRY via project inventory
-- Auto-changelog on feature completion
-- Git push with smart staging and descriptive English commits
+- Code review with a 9-point scorecard (Clean Code, SOLID, KISS, DRY, YAGNI, patterns, SOTA, lint, docstrings)
+- Behavior-preserving **`/blast:simplify`** — removes drift and over-abstraction, gated by the feature's Verification Strategy (reverts on red)
+- Research/spike phase for unknown-territory features, backed by a local knowledge base
+- Cross-spec DRY via a project inventory
 - **Multi-LLM compositions** (opt-in): HYBRID validate-impl (Sonnet ‖ qwen3.6 → Haiku judge) and JURY_3_FLASH3 for security/high-stakes review (Opus ‖ qwen3.6 ‖ Gemini-3-Flash → Haiku aggregator)
-- **MCP bridge for local Ollama** (`.claude/mcp/blast-llm-bridge.py`) — qwen3.6, qwen3-coder for free local critic/coder roles
 - **Privacy mode** (`spec.json.privacy: local-only`) — all external LLM calls blocked by hook, falls back to local-only routing
-- **Hard approval gate** via Claude Code hooks — deterministic phase-by-phase enforcement
+- **MCP bridge for local Ollama** — qwen3.6, qwen3-coder for free local critic/coder roles
 
-## Setup
-
-### Zero-config (default)
-
-blast works out-of-the-box via Claude Code subscription — **no API keys needed** for the basic pipeline (init → requirements → design → tasks → impl → review → security solo).
-
-### Multi-LLM mode (optional)
-
-To enable HYBRID validate-impl, JURY_3_FLASH3 for security/validate-design, or privacy mode:
-
-```bash
-cp .env.example .env
-# Fill in keys you want (GEMINI_API_KEY for jury; BLAST_OLLAMA_UBUNTU for local Qwen)
-set -a; source .env; set +a
-```
-
-Full quick reference in `.env.example`. Local Ollama setup: `.blast/knowledge/references/multi-llm-setup.md`.
-
-### Verification after setup
-
-```
-/blast:ping-llm      # smoke test MCP bridge (local models)
-/blast:help          # full command list + setup details
-/blast:status        # status of existing specs
-```
-
-## Quick Start
+## Quick start
 
 ### 1. Scaffold a new project
 
 **Option A — `blast init` CLI** (recommended; clones template, wipes author's specs/code, resets steering, fresh git):
 
 ```bash
-# One-liner (requires Python 3.10+ and git on PATH):
 curl -sSL https://raw.githubusercontent.com/blablast/claude_code-template/main/.claude/scripts/blast-init.py | python3 - my-project
 cd my-project
 ```
 
-**Option B — Manual clone** (if you want to inherit author's R&D as reference):
+**Option B — manual clone** (inherit author's R&D as reference):
 
 ```bash
 gh repo clone blablast/claude_code-template my-project
-cd my-project
-rm -rf .git && git init
+cd my-project && rm -rf .git && git init
 ```
 
 ### 2. Initialize project memory
 
 ```bash
-# In Claude Code terminal:
 /blast:steering
 ```
 
@@ -95,24 +121,21 @@ rm -rf .git && git init
 /blast:impl user-auth-oauth2
 /blast:complete user-auth-oauth2
 /blast:security user-auth-oauth2
-/blast:steering
 ```
 
 ### 4. Shortcuts
 
 ```bash
-# Spec only (no implementation)
-/blast:quick "Contact form with validation" --auto
-
-# Full pipeline with research phase and git push
-/blast:full "Payment gateway integration" --auto --research --push
-
-# Code review
-/blast:review user-auth-oauth2 --fix
-
-# Security audit on entire codebase
-/blast:security --all
+/blast:quick "Contact form with validation" --auto          # spec only, no code
+/blast:full "Payment gateway" --auto --research --push      # full pipeline + research + push
+/blast:review user-auth-oauth2 --fix                        # code review
+/blast:simplify user-auth-oauth2 --apply                    # cut complexity, re-verify
+/blast:security --all                                       # audit entire codebase
 ```
+
+### Zero-config
+
+blast works out-of-the-box on a Claude Code subscription — **no API keys** for the basic pipeline. Multi-LLM debate, jury review, and privacy mode are opt-in via `.env` (see `.env.example`).
 
 ## Commands
 
@@ -126,59 +149,40 @@ rm -rf .git && git init
 | `/blast:tasks {f} [-y]` | Generate implementation plan |
 | `/blast:impl {f} [tasks]` | Implement with TDD + ruff + coverage |
 | `/blast:review {f} [--fix]` | Code review vs principles |
+| `/blast:simplify {f} [--apply]` | Behavior-preserving code reduction after impl (report-first; `--apply` cuts + re-verifies) |
 | `/blast:security {f} [--fix] [--all]` | Security audit (OWASP/CWE) |
 | `/blast:complete {f}` | Ship feature → inventory + changelog |
 | `/blast:push [f]` | Git commit + push (smart staging) |
 | `/blast:quick "desc" [--auto] [--research]` | Spec pipeline (init → tasks) |
 | `/blast:full "desc" [--auto] [--research] [--push]` | Full pipeline (init → push) |
 | `/blast:status {f}` | Check progress |
-| `/blast:validate-tasks {f}` | KISS + SOTA review of tasks before impl phase |
-| `/blast:simplify {f} [--apply]` | Behavior-preserving code reduction after impl (report-first; `--apply` cuts + re-verifies) |
-| `/blast:learn` | Self-improvement: aggregate lessons / cost calibrate / routing observability |
+| `/blast:validate-tasks {f}` | KISS + SOTA review of tasks before impl |
+| `/blast:learn` | Self-improvement: aggregate lessons / cost calibrate / routing |
 | `/blast:help [cmd]` | Help and reference |
 
-**30 commands, 22 agents (18 top-level + 4 debate).** Full docs: `.blast/README.md`
+**30 commands, 22 agents (18 top-level + 4 debate).** Full reference: `/blast:help` or [`.blast/README.md`](.blast/README.md).
 
-## Pipeline
+## Governance — the Constitution
 
-```
-steering → init → requirements → [research] → design → [validate-design] → tasks → [validate-tasks] → impl → [validate-impl] → [simplify] → complete → security → steering [→ push]
-```
+The project's binding principles live in [`.blast/CONSTITUTION.md`](.blast/CONSTITUTION.md) — eleven Articles covering spec-driven discipline, multi-LLM debate as default, tiered cost routing, privacy mode, TDD enforcement, cross-spec DRY, lifecycle, determinism boundaries, and conscious-duplicate policy. Steering files (`product.md`, `tech.md`, `structure.md`, `INVENTORY.md`) are the operational expansion of those Articles. If anything conflicts with steering, the Constitution wins for governance intent.
 
-**`/blast:full`** runs all phases automatically. Security blocks on critical findings. Optional validations (`validate-gap`, `validate-design`, `validate-tasks`, `validate-impl`) and `simplify` (post-impl behavior-preserving reduction) opt-in via `--validate` flag.
+## Knowledge base
 
-Detailed phase-by-phase breakdown: `/blast:help` (quick reference) or `.blast/README.md` (Polish dev guide).
+`.blast/knowledge/` — local knowledge the research agent searches **before** the internet:
 
-## Knowledge Base
+- **`decisions/`** — architectural decisions (ADR); research respects existing decisions
+- **`references/`** — API docs, library gotchas, saved articles
+- **`research/`** — auto-generated summaries from previous `/blast:research` runs
+- **`sota/`** — curated state-of-the-art recommendations per technology area, read by `validate-tasks` before suggesting library alternatives
 
-`.blast/knowledge/` — local knowledge that research agent searches BEFORE the internet.
+## Using as a template
 
-- **`decisions/`** — architectural decisions (ADR). Research respects existing decisions.
-- **`references/`** — API docs, library gotchas, saved articles. Drop anything useful here.
-- **`research/`** — auto-generated summaries from previous `/blast:research` runs.
-- **`sota/`** — curated state-of-the-art recommendations per technology area (HTTP clients, async patterns, etc.). Read by `validate-tasks` agent before suggesting library alternatives. Refresh staleness audit: `python .claude/scripts/blast-learn.py --refresh-sota`.
-
-Research agent reads knowledge base first, skips web search when local sources answer the question, and writes back reusable findings after each research.
-
-## Code Principles
-
-blast enforces on every phase: Clean Code, SOLID, KISS, DRY, YAGNI, appropriate design patterns, no overengineering, SOTA solutions, PEP 8 / ruff (Python), ESLint / Prettier (JS/TS), Google-style docstrings.
-
-**Karpathy-aligned, and then some.** blast's four core AI rules (Think Before Coding · Simplicity First · Surgical Changes · Goal-Driven Execution) are the same four principles the community distilled from [Andrej Karpathy's notes on LLM coding pitfalls](https://github.com/multica-ai/andrej-karpathy-skills). The difference: those ship as a single passive `CLAUDE.md` you hope the model follows — blast **actively enforces** them through agents and gates. Simplicity First is enforced by `validate-tasks` (pre-impl KISS) and `/blast:simplify` (post-impl behavior-preserving reduction). Surgical Changes — including the comment guardrail and "remove only your own orphans" rule — is enforced by `validate-impl` and `review`. Goal-Driven Execution is the TDD default plus `validate-impl --prove`.
-
-Full rules: `.blast/settings/rules/code-principles.md` and `.blast/settings/rules/ai-collaboration.md`
-
-## Using as Template
-
-blast is designed as a **reusable template** — the `.blast/` and `.claude/` directories are 100% portable. See `MANIFEST.md` for the full classification of which files are FRAMEWORK (universal blast, ship as-is), HYBRID (framework path, project-specific content), and R&D (personal content, NOT for distribution).
-
-Clone, delete `.git`, remove R&D, init your own repo:
+blast is a **reusable template** — the `.blast/` and `.claude/` directories are 100% portable. See `MANIFEST.md` for which files are FRAMEWORK (ship as-is), HYBRID (framework path, project-specific content), and R&D (personal, not for distribution).
 
 ```bash
 gh repo clone blablast/claude_code-template my-new-project
 cd my-new-project
-rm -rf .git .blast/specs/ r_and_d/      # remove R&D content (spikes/decisions/INVENTORY snapshot)
-# Optional: replace HYBRID config with skeletons:
+rm -rf .git .blast/specs/ r_and_d/      # drop R&D content
 cp .blast/settings/templates/steering/llm-routing.md.template .blast/steering/llm-routing.md
 cp .blast/settings/templates/steering/cost-policy.md.template .blast/steering/cost-policy.md
 git init && git add -A && git commit -m "Initial commit from blast template"
