@@ -97,3 +97,5 @@ Used by agent `review` to score principles. Answer yes/no per question:
 - [ ] Does linter pass with zero violations? (Linting)
 - [ ] Is formatting consistent and automated? (Formatting)
 - [ ] Do all public symbols have Google-style docstrings? (Documentation)
+- [ ] Are comments and code that weren't fully understood left untouched? (Surgical Changes — no silent deletion of comments/logic whose intent is unclear)
+- [ ] Were only *your* orphans removed, with pre-existing dead code merely flagged, not deleted? (Surgical Changes)

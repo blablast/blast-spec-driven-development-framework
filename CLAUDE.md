@@ -26,10 +26,10 @@ Pełen wykaz komend, flag i przykładów → `/blast:help [komenda]`.
 ### Pipeline
 
 ```
-steering → init → requirements → [research] → design → [validate-design] → tasks → [validate-tasks] → impl → [validate-impl] → complete → security → steering [→ push]
+steering → init → requirements → [research] → design → [validate-design] → tasks → [validate-tasks] → impl → [validate-impl] → [simplify] → complete → security → steering [→ push]
 ```
 
-`[optional]` = fazy opcjonalne. Walidacje (`validate-gap`, `validate-design`, `validate-impl`) też opcjonalne — wchodzą po właściwej fazie.
+`[optional]` = fazy opcjonalne. Walidacje (`validate-gap`, `validate-design`, `validate-impl`) i `simplify` też opcjonalne — wchodzą po właściwej fazie. `simplify` = jedyny krok który złożoność *odejmuje* (behavior-preserving, bramkowany Verification Strategy); po `validate-impl`, przed `complete`.
 
 ### Skróty
 
@@ -37,6 +37,7 @@ steering → init → requirements → [research] → design → [validate-desig
 - `/blast:full "opis" [--auto] [--research] [--validate] [--no-debate] [--push]` — pełny pipeline. Debate = default gdy validation fires; `--no-debate` downgrade'uje na solo Sonnet (cost/speed).
 - `/blast:status [f]` — status i postęp specu
 - `/blast:validate-tasks {f}` — KISS + SOTA review tasks.md przed impl (auto-fires na complex specs)
+- `/blast:simplify {f} [--apply]` — behavior-preserving odchudzanie kodu PO impl; raport domyślnie, `--apply` tnie i re-runuje Verification Strategy (revert na czerwonych)
 - `/blast:learn [--lessons|--calibrate|--routing|--refresh-sota|--all]` — self-improvement aggregator (auto co 5 shipped specs)
 - `/blast:help [cmd]` — szczegóły, flagi, przykłady
 
@@ -86,7 +87,7 @@ Kiedy użytkownik pyta "co dalej?" lub wydaje komendę blast, AI MUSI sprawdzić
 | `phase: "design-generated"`, design NOT approved | → Review `design.md`, potem `/blast:approve {f} design` (lub `/blast:tasks {f} -y` żeby ominąć). Opcjonalnie: `/blast:validate-design` |
 | `phase: "tasks-generated"`, tasks approved | → `/blast:validate-tasks {feature}` (if complex/--debate) lub `/blast:impl {feature}` |
 | `phase: "tasks-generated"`, tasks NOT approved | → Review `tasks.md`, potem `/blast:approve {f} tasks` (lub `/blast:impl {f} -y` żeby ominąć) |
-| Wszystkie taski `[x]` w tasks.md | → `/blast:complete {feature}` |
+| Wszystkie taski `[x]` w tasks.md | → opcjonalnie `/blast:simplify {feature}` (odchudź drift przed inventory), potem `/blast:complete {feature}` |
 | `status: "shipped"` | → `/blast:security {feature}` (rekomendowane); ewolucja: `/blast:evolve {feature} "<change>"`; nowy ficzer: `/blast:init` |
 | `phase: "evolution-generated"`, evolution NOT approved | → Review `evolutions/{N}-{slug}/evolution.md`, potem `/blast:approve {f}-evo-{N} evolution` |
 | `phase: "evolution-generated"`, evolution approved | → `/blast:impl {f}-evo-{N}` (delta jest unifikowany — single approval gate) |
@@ -145,7 +146,7 @@ Każdy agent w `.claude/agents/blast/` ma jawnie ustawiony `model:` zamiast `inh
 | Model | Agenci | Rationale |
 |---|---|---|
 | `haiku` | requirements, tasks, complete, deprecate, steering-custom, tiny | Templating + structured output, niska złożoność reasoning |
-| `sonnet` | impl, research, review, steering, validate-gap, validate-design, validate-impl | Code reasoning, multi-file analysis, balanced cost/quality |
+| `sonnet` | impl, research, review, steering, validate-gap, validate-design, validate-impl, simplify | Code reasoning, multi-file analysis, balanced cost/quality |
 | `opus` | design, security | Architecture decisions + high-stakes audits |
 
 Override per-call: zmień `model:` w odpowiednim pliku agenta. Jeśli nie wiesz — zostaw routing default'owy.

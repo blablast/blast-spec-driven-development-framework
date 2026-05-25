@@ -133,18 +133,19 @@ rm -rf .git && git init
 | `/blast:full "desc" [--auto] [--research] [--push]` | Full pipeline (init → push) |
 | `/blast:status {f}` | Check progress |
 | `/blast:validate-tasks {f}` | KISS + SOTA review of tasks before impl phase |
+| `/blast:simplify {f} [--apply]` | Behavior-preserving code reduction after impl (report-first; `--apply` cuts + re-verifies) |
 | `/blast:learn` | Self-improvement: aggregate lessons / cost calibrate / routing observability |
 | `/blast:help [cmd]` | Help and reference |
 
-**29 commands, 21 agents (17 top-level + 4 debate).** Full docs: `.blast/README.md`
+**30 commands, 22 agents (18 top-level + 4 debate).** Full docs: `.blast/README.md`
 
 ## Pipeline
 
 ```
-steering → init → requirements → [research] → design → [validate-design] → tasks → [validate-tasks] → impl → [validate-impl] → complete → security → steering [→ push]
+steering → init → requirements → [research] → design → [validate-design] → tasks → [validate-tasks] → impl → [validate-impl] → [simplify] → complete → security → steering [→ push]
 ```
 
-**`/blast:full`** runs all phases automatically. Security blocks on critical findings. Optional validations (`validate-gap`, `validate-design`, `validate-tasks`, `validate-impl`) opt-in via `--validate` flag.
+**`/blast:full`** runs all phases automatically. Security blocks on critical findings. Optional validations (`validate-gap`, `validate-design`, `validate-tasks`, `validate-impl`) and `simplify` (post-impl behavior-preserving reduction) opt-in via `--validate` flag.
 
 Detailed phase-by-phase breakdown: `/blast:help` (quick reference) or `.blast/README.md` (Polish dev guide).
 
@@ -163,7 +164,9 @@ Research agent reads knowledge base first, skips web search when local sources a
 
 blast enforces on every phase: Clean Code, SOLID, KISS, DRY, YAGNI, appropriate design patterns, no overengineering, SOTA solutions, PEP 8 / ruff (Python), ESLint / Prettier (JS/TS), Google-style docstrings.
 
-Full rules: `.blast/settings/rules/code-principles.md`
+**Karpathy-aligned, and then some.** blast's four core AI rules (Think Before Coding · Simplicity First · Surgical Changes · Goal-Driven Execution) are the same four principles the community distilled from [Andrej Karpathy's notes on LLM coding pitfalls](https://github.com/multica-ai/andrej-karpathy-skills). The difference: those ship as a single passive `CLAUDE.md` you hope the model follows — blast **actively enforces** them through agents and gates. Simplicity First is enforced by `validate-tasks` (pre-impl KISS) and `/blast:simplify` (post-impl behavior-preserving reduction). Surgical Changes — including the comment guardrail and "remove only your own orphans" rule — is enforced by `validate-impl` and `review`. Goal-Driven Execution is the TDD default plus `validate-impl --prove`.
+
+Full rules: `.blast/settings/rules/code-principles.md` and `.blast/settings/rules/ai-collaboration.md`
 
 ## Using as Template
 

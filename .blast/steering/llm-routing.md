@@ -27,6 +27,7 @@ Plik czytany przez:
 | validate-design-agent | Crucible | claude-sonnet |
 | validate-impl-agent | Auditor | claude-sonnet |
 | validate-tasks-agent | Pragmatist | claude-sonnet |
+| simplify-agent | Occam | claude-sonnet |
 | security-audit-agent | Sentinel | claude-opus |
 | code-review-agent | Compass | claude-sonnet |
 | spec-drift-agent | Tracker | claude-haiku |
@@ -204,6 +205,12 @@ debate_config:
     trigger: debate_default       # SOTA #1: debate ON by default; downgrade only if --no-debate flag passed
     composition: JURY_3_FLASH3
     cost_ceiling_usd: 1.00
+
+  simplify:
+    enabled: true
+    trigger: high_stakes          # solo Sonnet by default (hygiene step, not a gate); debate only on auth/payments/schema or explicit --debate
+    composition: HYBRID
+    cost_ceiling_usd: 0.40
 ```
 
 Compositions (HYBRID, JURY_3_FLASH3) defined above. **Trigger semantics**:
