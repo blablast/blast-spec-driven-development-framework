@@ -198,7 +198,7 @@ blast obsługuje multi-LLM compositions:
 - **JURY_3_FLASH3** dla `security` + high-stakes (Opus + qwen3.6 + Gemini-3-Flash → Haiku)
 - **Privacy mode** (`spec.json.privacy: local-only`) blokuje external calls
 
-Setup: `cp .env.example .env`, fill keys, see `MANIFEST.md` + `.blast/steering/llm-routing.md`.
+Setup: `cp .blast/.env.example .env`, fill keys, see `.blast/MANIFEST.md` + `.blast/steering/llm-routing.md`.
 
 ## Pamięć projektu i DRY cross-spec
 
@@ -212,7 +212,7 @@ Workflow pamięci: `/blast:impl` → `/blast:complete` (aktualizuje inventory) �
 
 ## Użycie jako szablon
 
-blast jest reusable template. Pełna klasyfikacja FRAMEWORK / HYBRID / R&D w `MANIFEST.md` na repo root.
+blast jest reusable template. Pełna klasyfikacja FRAMEWORK / HYBRID / R&D w `.blast/MANIFEST.md` na repo root.
 
 - **FRAMEWORK (universal)**: `.blast/settings/`, `.claude/agents/blast/`, `.claude/commands/blast/`, `.claude/scripts/`, `.claude/hooks/`, `.claude/mcp/` — 100% reusable
 - **HYBRID** (project-specific content w framework path): `.blast/steering/{cost-policy,llm-routing}.md` — replace z `.blast/settings/templates/steering/*.template` na nowy projekt

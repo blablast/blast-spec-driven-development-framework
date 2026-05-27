@@ -203,7 +203,7 @@ tail -f /var/log/blast-llm-bridge.log
 
 ## Environment variables — what goes where
 
-Source: `.env.example` na repo root. Skopiuj do `.env`, wypełnij, source przed użyciem.
+Source: `.blast/.env.example` na repo root. Skopiuj do `.env`, wypełnij, source przed użyciem.
 
 ### Required for cloud features (jury, spike reproduction)
 
@@ -225,7 +225,7 @@ Source: `.env.example` na repo root. Skopiuj do `.env`, wypełnij, source przed 
 ### Activation flow
 
 ```bash
-cp .env.example .env
+cp .blast/.env.example .env
 # Edit .env: fill in the keys you actually need
 set -a; source .env; set +a
 # Restart Claude Code so MCP bridge picks up env vars on stdio reconnect

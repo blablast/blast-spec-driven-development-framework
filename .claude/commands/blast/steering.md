@@ -13,7 +13,7 @@ allowed-tools: Read, Task, Glob
 
 Use Grep to check if ANY of `product.md`, `tech.md`, `structure.md` contains the stub marker `<!-- BLAST_STUB: fresh scaffold from \`blast init\` -->`. If yes → **Bootstrap Mode (fresh scaffold)**.
 
-This catches the post-`blast init` state where files exist (so the legacy "files exist → sync" rule misfires) but content is still placeholder. Steward MUST ask the user about purpose/stack/structure rather than infer from `MANIFEST.md` / `CONSTITUTION.md` / `CLAUDE.md` — those are framework reference, not project signals.
+This catches the post-`blast init` state where files exist (so the legacy "files exist → sync" rule misfires) but content is still placeholder. Steward MUST ask the user about purpose/stack/structure rather than infer from `.blast/MANIFEST.md` / `.blast/CONSTITUTION.md` / `.blast/CLAUDE.snippet.md` — those are framework reference, not project signals. Root `CLAUDE.md` is user content but starts as a minimal include-stub; its `## Project-specific notes` only counts after the user fills it in.
 
 ### Step 2: Empty/missing core files
 
