@@ -59,7 +59,7 @@ Opcjonalnie rozszerzony steering (API standards, testing, security, database...)
 ```bash
 # Inicjalizacja
 /blast:init "System logowania z OAuth2"
-/blast:init "System logowania" --source docs/login-brief.pdf   # z pliku
+/blast:init "System logowania" --source .priv/login-brief.pdf   # z pliku
 /blast:init --source specs/feature-description.md              # tylko z pliku
 
 # Wymagania (EARS)
@@ -98,7 +98,7 @@ Każdy etap wymaga review — idziesz dalej dopiero po aprovacie.
 ```bash
 /blast:quick "Formularz kontaktowy z walidacją"                 # z review
 /blast:quick "Formularz kontaktowy z walidacją" --auto          # pełny automat
-/blast:quick --source docs/brief.pdf --auto                     # z pliku
+/blast:quick --source .priv/brief.pdf --auto                     # z pliku
 /blast:quick "OAuth2 login" --auto --research                   # z fazą research
 ```
 
@@ -107,7 +107,7 @@ Każdy etap wymaga review — idziesz dalej dopiero po aprovacie.
 ```bash
 /blast:full "Formularz kontaktowy z walidacją"                  # interaktywny
 /blast:full "Formularz kontaktowy z walidacją" --auto           # pełny automat
-/blast:full --source docs/brief.pdf --auto                      # z pliku
+/blast:full --source .priv/brief.pdf --auto                      # z pliku
 /blast:full "Formularz kontaktowy" --auto --push                # + push
 ```
 
@@ -164,7 +164,7 @@ Auto-trigger: `/blast:complete` Step 7 odpala `/blast:learn --all --apply` co 5 
 Gotowy brief w PDF/MD/TXT? Wskaż plik zamiast przepisywać:
 
 ```bash
-/blast:init "Panel administracyjny" --source docs/admin-panel-brief.pdf
+/blast:init "Panel administracyjny" --source .priv/admin-panel-brief.pdf
 /blast:init --source features/user-dashboard.md
 /blast:init "Integracja płatności" --source exports/payment-integration.txt
 ```
@@ -217,7 +217,7 @@ blast jest reusable template. Pełna klasyfikacja FRAMEWORK / HYBRID / R&D w `MA
 - **FRAMEWORK (universal)**: `.blast/settings/`, `.claude/agents/blast/`, `.claude/commands/blast/`, `.claude/scripts/`, `.claude/hooks/`, `.claude/mcp/` — 100% reusable
 - **HYBRID** (project-specific content w framework path): `.blast/steering/{cost-policy,llm-routing}.md` — replace z `.blast/settings/templates/steering/*.template` na nowy projekt
 - **Per-project**: `.blast/{specs,knowledge,steering}/` — puste/.gitkeep, generuje się per-projekt
-- **R&D (NIE ship)**: `r_and_d/` — personal content tego repo, exclude przy distribution
+- **R&D (NIE ship)**: `.priv/` — personal content tego repo, exclude przy distribution
 
 Workflow nowego projektu:
 
@@ -251,4 +251,4 @@ Pełną ściągę komend i flag → `/blast:help [komenda]`.
 
 ---
 
-*blast by Błażej Strus — bo programowanie powinno mieć flow, nie chaos.*
+*blast by Błażej Strus — bo programowanie powinno mieć flow, nie chao

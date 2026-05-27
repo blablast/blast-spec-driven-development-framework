@@ -3,7 +3,7 @@
 blast-knowledge-index — simple keyword-frequency index over .blast/knowledge/.
 
 MVP: builds a sqlite-backed inverted index (no embeddings — pragmatic).
-Research agent can query for "find docs mentioning X, Y, Z" in O(log n) time.
+Research agent can query for "find .priv mentioning X, Y, Z" in O(log n) time.
 
 Future: swap for FAISS + sentence-transformers for semantic search when
 knowledge base grows beyond 100 entries.
@@ -41,13 +41,13 @@ def build_index() -> dict:
     if INDEX_DB.exists():
         INDEX_DB.unlink()
     conn = sqlite3.connect(INDEX_DB)
-    conn.execute("CREATE TABLE docs (id INTEGER PRIMARY KEY, path TEXT UNIQUE, title TEXT, content TEXT)")
+    conn.execute("CREATE TABLE .priv (id INTEGER PRIMARY KEY, path TEXT UNIQUE, title TEXT, content TEXT)")
     conn.execute("CREATE TABLE terms (term TEXT, doc_id INTEGER, count INT)")
     conn.execute("CREATE INDEX idx_terms_term ON terms(term)")
     if not KNOWLEDGE.exists():
         conn.commit()
         conn.close()
-        return {"docs": 0, "terms": 0}
+        return {".priv": 0, "terms": 0}
     n_docs = 0
     n_terms = 0
     for md in KNOWLEDGE.rglob("*.md"):
@@ -56,7 +56,7 @@ def build_index() -> dict:
         text = md.read_text(encoding="utf-8")
         title_m = re.match(r"^#\s+(.+)$", text, re.MULTILINE)
         title = title_m.group(1) if title_m else md.stem
-        cur = conn.execute("INSERT INTO docs (path, title, content) VALUES (?, ?, ?)",
+        cur = conn.execute("INSERT INTO .priv (path, title, content) VALUES (?, ?, ?)",
                            (str(md.relative_to(ROOT)), title, text))
         doc_id = cur.lastrowid
         n_docs += 1
@@ -67,7 +67,7 @@ def build_index() -> dict:
             n_terms += 1
     conn.commit()
     conn.close()
-    return {"docs": n_docs, "terms": n_terms}
+    return {".priv": n_docs, "terms": n_terms}
 
 
 def search(query: str, top_k: int = 10) -> list[dict]:
@@ -80,7 +80,7 @@ def search(query: str, top_k: int = 10) -> list[dict]:
     placeholders = ",".join("?" * len(terms))
     rows = conn.execute(
         f"""SELECT d.path, d.title, SUM(t.count) AS score
-            FROM terms t JOIN docs d ON d.id = t.doc_id
+            FROM terms t JOIN .priv d ON d.id = t.doc_id
             WHERE t.term IN ({placeholders})
             GROUP BY d.id ORDER BY score DESC LIMIT ?""",
         (*terms, top_k),
@@ -93,11 +93,11 @@ def stats() -> dict:
     if not INDEX_DB.exists():
         return {"_status": "no index built; run --build"}
     conn = sqlite3.connect(INDEX_DB)
-    n_docs = conn.execute("SELECT COUNT(*) FROM docs").fetchone()[0]
+    n_docs = conn.execute("SELECT COUNT(*) FROM .priv").fetchone()[0]
     n_terms = conn.execute("SELECT COUNT(DISTINCT term) FROM terms").fetchone()[0]
     n_postings = conn.execute("SELECT COUNT(*) FROM terms").fetchone()[0]
     conn.close()
-    return {"docs": n_docs, "unique_terms": n_terms, "total_postings": n_postings}
+    return {".priv": n_docs, "unique_terms": n_terms, "total_postings": n_postings}
 
 
 def main():
@@ -109,7 +109,7 @@ def main():
     args = p.parse_args()
     if args.build:
         result = build_index()
-        print(f"✓ Index built: {result['docs']} docs, {result['terms']} term postings")
+        print(f"✓ Index built: {result['.priv']} .priv, {result['terms']} term postings")
     elif args.search:
         results = search(args.search, args.top_k)
         if not results:

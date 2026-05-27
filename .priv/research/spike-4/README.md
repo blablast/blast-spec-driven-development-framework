@@ -39,7 +39,7 @@ export BLAST_OLLAMA_UBUNTU=http://192.168.5.60:11434
 ## Run
 
 ```bash
-cd r_and_d/research/spike-4
+cd .priv/research/spike-4
 
 # Step 1: driver runs all (arm × task) pairs, executes pytest
 python driver.py

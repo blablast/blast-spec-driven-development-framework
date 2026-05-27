@@ -58,7 +58,7 @@ WIPE_PATHS = [
     "CHANGELOG.md",
     "memory/",
     ".env",
-    "r_and_d/",
+    ".priv/",
     "MANIFEST.md",  # framework distribution metadata; user-project does not ship the framework
 ]
 # Empty dirs to re-create after wipe (blast-internal structure that agents expect)

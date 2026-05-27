@@ -49,4 +49,4 @@ Pliki **research/, decisions/** w tym katalogu są tworzone **per project**:
 - `research/{feature}.md` — output `/blast:research`
 - `references/{tech}.md` — Twoje notatki / docs
 
-Mój personal R&D (Twojego klona/template'a NIE dotyczy) leży w `r_and_d/` na repo root — strategic roadmap, spike validations, INVENTORY snapshot. Patrz `MANIFEST.md` dla pełnej klasyfikacji.
+Mój personal R&D (Twojego klona/template'a NIE dotyczy) leży w `.priv/` na repo root — strategic roadmap, spike validations, INVENTORY snapshot. Patrz `MANIFEST.md` dla pełnej klasyfikacji.

@@ -107,7 +107,7 @@ Jeśli któryś flag nie istnieje na Twojej wersji `claude`:
 ### Komendy
 
 ```bash
-cd r_and_d/research/spike-3
+cd .priv/research/spike-3
 
 # Pełny run — 5 arms × 5 snippets = 25 calli, ~10-15 min, ~$3 budget
 python3 driver.py
