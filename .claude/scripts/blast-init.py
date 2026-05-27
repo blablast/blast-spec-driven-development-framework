@@ -15,7 +15,7 @@ Examples:
 
 What it does:
     1. Validates target directory (must be empty or non-existent unless --here)
-    2. git clones the template repo (default: github.com/blablast/claude_code-template) into target
+    2. git clones the template repo (default: github.com/blablast/blast-spec-driven-development-framework) into target
     3. Removes the template's .git history
     4. Cleans personal artefacts (specs/*, INVENTORY entries, src/*, tests/*, .env, etc.)
     5. Resets steering files to clean stubs (product.md / tech.md / structure.md / INVENTORY.md)
@@ -28,7 +28,7 @@ Dependencies:
     git (must be on PATH)
 
 One-liner install:
-    curl -sSL https://raw.githubusercontent.com/blablast/claude_code-template/main/.claude/scripts/blast-init.py | python3 - my-app
+    curl -sSL https://raw.githubusercontent.com/blablast/blast-spec-driven-development-framework/main/.claude/scripts/blast-init.py | python3 - my-app
 """
 
 from __future__ import annotations
@@ -42,7 +42,7 @@ import sys
 import tempfile
 from pathlib import Path
 
-DEFAULT_TEMPLATE = "https://github.com/blablast/claude_code-template.git"
+DEFAULT_TEMPLATE = "https://github.com/blablast/blast-spec-driven-development-framework.git"
 DEFAULT_BRANCH = "main"
 
 # Files/dirs to wipe (project-specific cruft from template author's own development)
@@ -453,3 +453,4 @@ def main() -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
+                                                            

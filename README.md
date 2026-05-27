@@ -90,14 +90,14 @@ Full rules: [`.blast/settings/rules/ai-collaboration.md`](.blast/settings/rules/
 **Option A — `blast init` CLI** (recommended; clones template, wipes author's specs/code, resets steering, fresh git):
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/blablast/claude_code-template/main/.claude/scripts/blast-init.py | python3 - my-project
+curl -sSL https://raw.githubusercontent.com/blablast/blast-spec-driven-development-framework/main/.claude/scripts/blast-init.py | python3 - my-project
 cd my-project
 ```
 
 **Option B — manual clone** (inherit author's R&D as reference):
 
 ```bash
-gh repo clone blablast/claude_code-template my-project
+gh repo clone blablast/blast-spec-driven-development-framework my-project
 cd my-project && rm -rf .git && git init
 ```
 
@@ -180,7 +180,7 @@ The project's binding principles live in [`.blast/CONSTITUTION.md`](.blast/CONST
 blast is a **reusable template** — the `.blast/` and `.claude/` directories are 100% portable. See `MANIFEST.md` for which files are FRAMEWORK (ship as-is), HYBRID (framework path, project-specific content), and R&D (personal, not for distribution).
 
 ```bash
-gh repo clone blablast/claude_code-template my-new-project
+gh repo clone blablast/blast-spec-driven-development-framework my-new-project
 cd my-new-project
 rm -rf .git .blast/specs/ r_and_d/      # drop R&D content
 cp .blast/settings/templates/steering/llm-routing.md.template .blast/steering/llm-routing.md
@@ -200,3 +200,4 @@ MIT
 ---
 
 *.blast by Błażej Strus — because coding should have flow, not chaos.*
+                                                        
