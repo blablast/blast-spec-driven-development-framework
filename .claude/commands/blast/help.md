@@ -261,7 +261,7 @@ POWIĄZANE:
 ### `blast init` — scaffold a new project
 ```bash
 # One-liner (Python 3.10+ + git on PATH):
-curl -sSL https://raw.githubusercontent.com/blablast/claude_code-template/main/.claude/scripts/blast-init.py | python3 - my-project
+curl -sSL https://raw.githubusercontent.com/blablast/blast-spec-driven-development-framework/main/.claude/scripts/blast-init.py | python3 - my-project
 
 # Or local invocation:
 python .claude/scripts/blast-init.py my-project [--here] [--no-git] [--branch=main] [--from=URL]
@@ -296,3 +296,4 @@ set -a; source .env; set +a
 Pełen detail: `.env.example`. Lokalny Ollama setup: `.blast/knowledge/references/multi-llm-setup.md`.
 
 **NIE** ustawiaj `OLLAMA_KEEP_ALIVE` system-wide na >5min — używaj per-call `keep_alive: "30m"`. 24h+ blokuje VRAM.
+                   
