@@ -100,7 +100,7 @@ Kiedy użytkownik pyta "co dalej?" lub wydaje komendę blast, AI MUSI sprawdzić
 
 blast pilnuje DRY na poziomie cross-spec:
 
-- **INVENTORY.md** (`.blast/steering/INVENTORY.md`) — rejestr shipped komponentów, aktualizowany przez `/blast:complete`. Framework writes here. Jeśli plik nie istnieje, `/blast:complete` go stworzy. Historical snapshots tego repo siedzą w `r_and_d/INVENTORY.md` (patrz `MANIFEST.md`).
+- **INVENTORY.md** (`.blast/steering/INVENTORY.md`) — rejestr shipped komponentów, aktualizowany przez `/blast:complete`. Framework writes here. Jeśli plik nie istnieje, `/blast:complete` go stworzy. Historical snapshots tego repo siedzą w `.priv/INVENTORY.md` (patrz `MANIFEST.md`).
 - **spec.json → `provides`** — każdy spec deklaruje co dostarcza (komponenty, serwisy, typy)
 - **spec.json → `dependencies`** — każdy spec deklaruje od czego zależy
 - **Cross-spec check** — agenci requirements, design i validate-gap sprawdzają inne spece przed generowaniem, żeby nie duplikować
@@ -207,7 +207,7 @@ To repo zawiera 3 kategorie plików — patrz `MANIFEST.md` na repo root:
 
 - **FRAMEWORK** — `.claude/`, `.blast/settings/`, top-level READMEs/CLAUDE.md/.env.example. Universal blast, dystrybuowane jako template.
 - **HYBRID** — `.blast/steering/llm-routing.md` + `cost-policy.md`. Framework-required path, project-specific content. Templates dla nowego clone'a w `.blast/settings/templates/steering/*.template`.
-- **R&D** — `r_and_d/` (roadmap, spikes, INVENTORY snapshot, steering snapshots). Personal content, NIE jest częścią dystrybuowanego template'a.
+- **R&D** — `.priv/` (roadmap, spikes, INVENTORY snapshot, steering snapshots). Personal content, NIE jest częścią dystrybuowanego template'a.
 
 ## Aktywne specyfikacje
 

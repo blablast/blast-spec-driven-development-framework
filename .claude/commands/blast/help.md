@@ -267,7 +267,7 @@ curl -sSL https://raw.githubusercontent.com/blablast/blast-spec-driven-developme
 python .claude/scripts/blast-init.py my-project [--here] [--no-git] [--branch=main] [--from=URL]
 ```
 
-`blast init` clones the template, wipes the author's specs/code/INVENTORY/CHANGELOG/memory/r_and_d, resets steering files to clean stubs, copies `.env.example` → `.env` (secrets blank), and runs `git init` with an initial commit. The result is a fresh blast scaffold ready for `/blast:steering` + `/blast:init <feature>`.
+`blast init` clones the template, wipes the author's specs/code/INVENTORY/CHANGELOG/memory (note: `.priv/` is gitignored so it never ships in the first place), resets steering files to clean stubs, copies `.env.example` → `.env` (secrets blank), and runs `git init` with an initial commit. The result is a fresh blast scaffold ready for `/blast:steering` + `/blast:init <feature>`.
 
 ## Setup before first run
 

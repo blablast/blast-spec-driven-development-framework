@@ -9,7 +9,6 @@
 ![Agents](https://img.shields.io/badge/agents-22-blue)
 ![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB)
 ![Pipeline](https://img.shields.io/badge/pipeline-spec--driven-1A1D23)
-[![Paper](https://img.shields.io/badge/%F0%9F%93%84-Read%20the%20paper-B31B1B)](blast_opracowanie.pdf)
 
 ## The problem
 
@@ -182,7 +181,7 @@ blast is a **reusable template** — the `.blast/` and `.claude/` directories ar
 ```bash
 gh repo clone blablast/blast-spec-driven-development-framework my-new-project
 cd my-new-project
-rm -rf .git .blast/specs/ r_and_d/      # drop R&D content
+rm -rf .git .blast/specs/             # drop author's specs (.priv is gitignored, won't be in clone)
 cp .blast/settings/templates/steering/llm-routing.md.template .blast/steering/llm-routing.md
 cp .blast/settings/templates/steering/cost-policy.md.template .blast/steering/cost-policy.md
 git init && git add -A && git commit -m "Initial commit from blast template"
@@ -200,4 +199,4 @@ MIT
 ---
 
 *.blast by Błażej Strus — because coding should have flow, not chaos.*
-                                                        
+                                                    
