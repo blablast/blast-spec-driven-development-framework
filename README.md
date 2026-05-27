@@ -134,7 +134,7 @@ cd my-project && rm -rf .git && git init
 
 ### Zero-config
 
-blast works out-of-the-box on a Claude Code subscription — **no API keys** for the basic pipeline. Multi-LLM debate, jury review, and privacy mode are opt-in via `.env` (see `.env.example`).
+blast works out-of-the-box on a Claude Code subscription — **no API keys** for the basic pipeline. Multi-LLM debate, jury review, and privacy mode are opt-in via `.env` (see `.blast/.env.example`).
 
 ## Commands
 
@@ -174,9 +174,57 @@ The project's binding principles live in [`.blast/CONSTITUTION.md`](.blast/CONST
 - **`research/`** — auto-generated summaries from previous `/blast:research` runs
 - **`sota/`** — curated state-of-the-art recommendations per technology area, read by `validate-tasks` before suggesting library alternatives
 
-## Using as a template
+## Install paths — drop-in vs fresh-project
 
-blast is a **reusable template** — the `.blast/` and `.claude/` directories are 100% portable. See `MANIFEST.md` for which files are FRAMEWORK (ship as-is), HYBRID (framework path, project-specific content), and R&D (personal, not for distribution).
+blast ships almost everything inside `.blast/` and `.claude/` namespaces, so it can be dropped into an existing project without colliding with your own root files. Three things still need a tiny bit of wiring at the repo root, and blast provides them as **snippets** you either merge (drop-in) or auto-copy (fresh-project).
+
+### What's in `.blast/` namespace vs root
+
+| File | Where blast ships it | Why |
+|---|---|---|
+| `MANIFEST.md` | `.blast/MANIFEST.md` | framework metadata — no collision with `MANIFEST.in` / your own |
+| `.env.example` | `.blast/.env.example` | source-of-truth; root `.env` is your own |
+| `CLAUDE.md` content | `.blast/CLAUDE.snippet.md` | framework rules; your root `CLAUDE.md` `@`-includes it |
+| `.gitignore` patterns | `.blast/.gitignore.snippet` | only blast-specific lines; append to your `.gitignore` |
+| `.mcp.json` entry | `.blast/.mcp.json.snippet` | only the `blast-llm-bridge` server entry to merge into your `.mcp.json` |
+| `.blast/` and `.claude/` | as-is | the framework itself — your project keeps these in place |
+
+### Fresh-project install (no existing repo)
+
+The `blast init` CLI does the wiring for you — it copies snippets into root and substitutes your project name:
+
+```bash
+curl -sSL https://raw.githubusercontent.com/blablast/blast-spec-driven-development-framework/main/.claude/scripts/blast-init.py | python3 - my-project
+cd my-project
+```
+
+Result: your project has `CLAUDE.md`, `.env`, `.gitignore`, `.mcp.json` at root pre-wired to blast, plus full `.blast/` and `.claude/` frameworks.
+
+### Drop-in install (existing project)
+
+If you already have a project with your own `CLAUDE.md` / `.gitignore` / `.mcp.json`, copy only the framework directories and **manually merge** the four snippets:
+
+```bash
+# 1. Copy framework dirs into your project
+cp -r .blast/ .claude/  /path/to/your-project/
+
+# 2. Wire root CLAUDE.md — add this one line near the top
+echo "@.blast/CLAUDE.snippet.md" >> /path/to/your-project/CLAUDE.md
+
+# 3. Append blast's gitignore patterns to yours
+cat .blast/.gitignore.snippet >> /path/to/your-project/.gitignore
+
+# 4. Merge blast-llm-bridge entry into your .mcp.json
+#    Open .blast/.mcp.json.snippet, copy the "blast-llm-bridge" object,
+#    paste it into your existing .mcp.json under "mcpServers".
+
+# 5. Copy .env.example contents into yours (manually merge variables)
+cat .blast/.env.example >> /path/to/your-project/.env.example
+```
+
+After this your existing root files keep working, blast layers on top.
+
+### Cloning the author's template directly
 
 ```bash
 gh repo clone blablast/blast-spec-driven-development-framework my-new-project
@@ -186,6 +234,8 @@ cp .blast/settings/templates/steering/llm-routing.md.template .blast/steering/ll
 cp .blast/settings/templates/steering/cost-policy.md.template .blast/steering/cost-policy.md
 git init && git add -A && git commit -m "Initial commit from blast template"
 ```
+
+See `.blast/MANIFEST.md` for the full FRAMEWORK / HYBRID / personal classification.
 
 ## Requirements
 

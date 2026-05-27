@@ -267,7 +267,7 @@ curl -sSL https://raw.githubusercontent.com/blablast/blast-spec-driven-developme
 python .claude/scripts/blast-init.py my-project [--here] [--no-git] [--branch=main] [--from=URL]
 ```
 
-`blast init` clones the template, wipes the author's specs/code/INVENTORY/CHANGELOG/memory (note: `.priv/` is gitignored so it never ships in the first place), resets steering files to clean stubs, copies `.env.example` → `.env` (secrets blank), and runs `git init` with an initial commit. The result is a fresh blast scaffold ready for `/blast:steering` + `/blast:init <feature>`.
+`blast init` clones the template, wipes the author's specs/code/INVENTORY/CHANGELOG/memory (note: `.priv/` is gitignored so it never ships in the first place), resets steering files to clean stubs, copies `.blast/.env.example` → `.env` (secrets blank), and runs `git init` with an initial commit. The result is a fresh blast scaffold ready for `/blast:steering` + `/blast:init <feature>`.
 
 ## Setup before first run
 
@@ -277,7 +277,7 @@ Działa od razu — Claude Code subscription wystarczy. Pipeline (init→complet
 ### Multi-LLM (HYBRID, JURY_3_FLASH3, privacy mode)
 
 ```bash
-cp .env.example .env             # wypełnij klucze które chcesz
+cp .blast/.env.example .env             # wypełnij klucze które chcesz
 set -a; source .env; set +a
 # Restart Claude Code (MCP bridge re-reads env)
 /blast:ping-llm                  # smoke test
@@ -293,7 +293,7 @@ set -a; source .env; set +a
 | Privacy mode | `BLAST_OLLAMA_UBUNTU` (cloud blocked) |
 | Spike reproduction | `ANTHROPIC_API_KEY` + `GEMINI_API_KEY` + `BLAST_OLLAMA_UBUNTU` |
 
-Pełen detail: `.env.example`. Lokalny Ollama setup: `.blast/knowledge/references/multi-llm-setup.md`.
+Pełen detail: `.blast/.env.example`. Lokalny Ollama setup: `.blast/knowledge/references/multi-llm-setup.md`.
 
 **NIE** ustawiaj `OLLAMA_KEEP_ALIVE` system-wide na >5min — używaj per-call `keep_alive: "30m"`. 24h+ blokuje VRAM.
                    

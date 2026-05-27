@@ -1,0 +1,20 @@
+# ── blast framework — append these patterns to your project's .gitignore ──
+#
+# These are the patterns blast NEEDS ignored to function correctly.
+# They do NOT include generic language/IDE/OS ignores — keep those in your
+# own .gitignore per your stack. Drop-in install: append the lines below to
+# your existing .gitignore. Fresh-project install via `blast init`: this
+# block is copied into your root .gitignore automatically.
+
+# Claude Code — per-machine local settings (never commit)
+.claude/settings.local.json
+
+# blast runtime state (per-session, never commit)
+.blast/.session-state/
+.blast/logs/agent-runs.jsonl
+
+# Personal/private content — paper drafts, R&D, internal notes, spike data.
+# Never tracked. Use this dir for anything you want kept local-only.
+.priv/
+
+# ── end blast block ──

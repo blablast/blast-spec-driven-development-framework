@@ -1,0 +1,15 @@
+{
+  "_comment": "blast framework — MCP server snippet. Drop-in install: merge the 'blast-llm-bridge' entry below into the 'mcpServers' object of your existing .mcp.json. Fresh-project install via `blast init`: this server is copied into your root .mcp.json automatically. Required only if you use the local Ollama bridge (qwen3.6 / qwen3-coder). Without it blast still works cloud-only.",
+  "mcpServers": {
+    "blast-llm-bridge": {
+      "command": "python",
+      "args": [
+        ".claude/mcp/blast-llm-bridge.py"
+      ],
+      "env": {
+        "BLAST_OLLAMA_UBUNTU": "http://192.168.5.60:11434",
+        "BLAST_LLM_TIMEOUT_S": "240"
+      }
+    }
+  }
+}

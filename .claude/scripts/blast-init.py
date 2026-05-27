@@ -19,7 +19,7 @@ What it does:
     3. Removes the template's .git history
     4. Cleans personal artefacts (specs/*, INVENTORY entries, src/*, tests/*, .env, etc.)
     5. Resets steering files to clean stubs (product.md / tech.md / structure.md / INVENTORY.md)
-    6. Creates a fresh .env from .env.example (with secrets blank)
+    6. Creates a fresh .env at repo root from .blast/.env.example (with secrets blank)
     7. Initializes a fresh git repo (unless --no-git)
     8. Prints next-step guidance
 
@@ -59,7 +59,7 @@ WIPE_PATHS = [
     "memory/",
     ".env",
     ".priv/",
-    "MANIFEST.md",  # framework distribution metadata; user-project does not ship the framework
+    ".blast/MANIFEST.md",  # framework distribution metadata; user-project does not need the meta-doc
 ]
 # Empty dirs to re-create after wipe (blast-internal structure that agents expect)
 PLACEHOLDER_DIRS = [
@@ -166,11 +166,15 @@ smoke: (e.g. python -c "import yourpkg")
 
 
 # Targeted substitutions applied to CLAUDE.md during scaffold.
+#
+# NOTE (post-namespace refactor): after the move of framework content into
+# `.blast/CLAUDE.snippet.md`, the root `CLAUDE.md` is a project-neutral minimal
+# include-stub that just `@`-references the snippet. The patches below now mostly
+# no-op against the new root (their target strings live in `.blast/CLAUDE.snippet.md`
+# which ships AS-IS like other framework files — e.g. CONSTITUTION.md). Kept as a
+# safety net in case anyone reverts the snippet model. Remove once stable.
+#
 # Each entry: (old_substring, new_template_with_{{PROJECT_NAME}}).
-# The original template has author-specific framing ("blast by Błażej Strus") that
-# would be confusing in a fresh user project. We swap user-visible top + footer with
-# project-neutral wording while keeping the universal blast operating manual sections
-# (Pipeline / Smart Routing / Model routing / hooks / Multi-LLM / etc.) unchanged.
 CLAUDE_TEMPLATE_PATCHES = [
     (
         """# blast — Spec-Driven Development by Błażej Strus
@@ -339,16 +343,17 @@ def reset_steering(dest: Path, project_name: str) -> None:
 
 
 def create_env_from_example(dest: Path) -> None:
-    src = dest / ".env.example"
+    """Create root .env from .blast/.env.example (post-namespace refactor)."""
+    src = dest / ".blast" / ".env.example"
     dst = dest / ".env"
     if not src.exists():
-        log(".env.example not found; skipping .env scaffold.", "warn")
+        log(".blast/.env.example not found; skipping .env scaffold.", "warn")
         return
     if dst.exists():
         log(".env already exists; not overwriting.", "warn")
         return
     shutil.copy(src, dst)
-    log("Created .env from .env.example (populate secrets manually).", "ok")
+    log("Created .env from .blast/.env.example (populate secrets manually).", "ok")
 
 
 def init_fresh_git(dest: Path) -> None:
