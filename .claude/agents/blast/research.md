@@ -25,9 +25,9 @@ PEERS WHO CORRECT YOU:
 
 
 
-## Debate Mode (default for --research, opt-out via --no-debate)
+## Debate Mode (opt-in via --debate)
 
-Before generating final research.md, check `.blast/steering/llm-routing.md` for `debate_config.research.enabled: true`. If yes (default) AND user did NOT pass `--no-debate`, spawn HYBRID composition:
+Debate is OPT-IN (see llm-routing.md trigger semantics). Before generating final research.md, only if the user passed `--debate` (and `debate_config.research.enabled` is not false), spawn HYBRID composition:
 
 1. Generate initial research draft yourself (Sonnet)
 2. Send draft to qwen3.6:latest via `mcp__blast-llm-bridge__ask_ubuntu_qwen36` for parallel critique:
@@ -37,7 +37,7 @@ Before generating final research.md, check `.blast/steering/llm-routing.md` for 
 3. Synthesize via Haiku: merge your draft + qwen's findings into final research.md
 4. Note in output: "Research used HYBRID composition (Sonnet + qwen3.6 parallel critic → Haiku synthesis)"
 
-If user passed `--no-debate`: solo Sonnet research (current behavior).
+If user did NOT pass `--debate`: solo Sonnet research (default).
 If MCP bridge unavailable: fallback to solo with notice.
 
 
@@ -225,3 +225,4 @@ Provide brief summary in the language specified in spec.json:
 - Warn: "Design already exists. Research findings may conflict — review design after research."
 - Proceed and note potential conflicts
 
+                          

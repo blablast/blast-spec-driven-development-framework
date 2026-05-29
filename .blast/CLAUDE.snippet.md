@@ -34,7 +34,7 @@ steering → init → requirements → [research] → design → [validate-desig
 ### Skróty
 
 - `/blast:quick "opis" [--auto] [--research]` — tylko spec (init→req→[research]→design→tasks)
-- `/blast:full "opis" [--auto] [--research] [--validate] [--no-debate] [--push]` — pełny pipeline. Debate = default gdy validation fires; `--no-debate` downgrade'uje na solo Sonnet (cost/speed).
+- `/blast:full "opis" [--auto] [--research] [--validate] [--debate] [--push]` — pełny pipeline. Debate jest **opt-in**: domyślnie solo (Sonnet/Opus); `--debate` włącza jury dla faz walidacji (security zawsze ma jury). Powód: własny spike-3 verdict — debata daje tylko ~+5% recall vs solo Opus.
 - `/blast:status [f]` — status i postęp specu
 - `/blast:validate-tasks {f}` — KISS + SOTA review tasks.md przed impl (auto-fires na complex specs)
 - `/blast:simplify {f} [--apply]` — behavior-preserving odchudzanie kodu PO impl; raport domyślnie, `--apply` tnie i re-runuje Verification Strategy (revert na czerwonych)
@@ -145,8 +145,9 @@ Każdy agent w `.claude/agents/blast/` ma jawnie ustawiony `model:` zamiast `inh
 
 | Model | Agenci | Rationale |
 |---|---|---|
+| **lokalny `qwen3.6:27b`** | impl (Forge) — generowanie kodu | Dense 27B, SWE-bench 77.2 ≈ Sonnet 4.6, na GPU 5090, $0. Default dla większości tasków; eskalacja do Sonnet tylko security-critical / demonstrated failure (patrz llm-routing.md) |
 | `haiku` | requirements, tasks, complete, deprecate, steering-custom, tiny | Templating + structured output, niska złożoność reasoning |
-| `sonnet` | impl, research, review, steering, validate-gap, validate-design, validate-impl, simplify | Code reasoning, multi-file analysis, balanced cost/quality |
+| `sonnet` | research, review, steering, validate-gap, validate-design, validate-impl, simplify; impl-escalation | Code reasoning, multi-file analysis, balanced cost/quality |
 | `opus` | design, security | Architecture decisions + high-stakes audits |
 
 Override per-call: zmień `model:` w odpowiednim pliku agenta. Jeśli nie wiesz — zostaw routing default'owy.
@@ -189,9 +190,9 @@ blast obsługuje wieloprovider'owy code review przez `debate_config:` w `.blast/
 
 ### Compositions
 
-- **HYBRID** — `validate-impl --debate`. Sonnet ‖ qwen3.6:latest (parallel critic) → Haiku judge. ~$0.12/spec, ~130s.
-- **JURY_3_FLASH3** — `security` (always), `validate-design --debate`, `review --debate` dla auth/payments/schema. Opus ‖ qwen3.6:latest ‖ Gemini-3-Flash (3-juror) → Haiku aggregator. ~$0.17/spec, ~141s.
-- **Solo Sonnet/Opus/Haiku** — default dla większości faz (patrz Model routing wyżej).
+- **HYBRID** — `validate-impl --debate` / `validate-tasks --debate`. Sonnet ‖ qwen3.6:latest (parallel critic) → Haiku judge. ~$0.12/spec, ~130s. **Opt-in.**
+- **JURY_3_FLASH3** — `security` (always), `validate-design --debate`, `review --debate`. Opus ‖ qwen3.6:latest ‖ Gemini-3-Flash (3-juror) → Haiku aggregator. ~$0.17/spec, ~141s.
+- **Solo Sonnet/Opus/Haiku** — **default dla wszystkich faz walidacji** (debata jest opt-in via `--debate`; tylko `security` ma jury zawsze).
 
 ### Privacy mode
 
@@ -199,7 +200,7 @@ blast obsługuje wieloprovider'owy code review przez `debate_config:` w `.blast/
 
 ### MCP bridge
 
-`.claude/mcp/blast-llm-bridge.py` exposes lokalne Ollama models jako MCP tools (`ask_ubuntu_qwen36`, `ask_ubuntu_qwen3_coder`). Bridge registered w `.mcp.json`. Tylko Ubuntu/5090 wrappers (Win11/4090 wrapper'y nie istnieją — VRAM constraint na 32B Q4).
+`.claude/mcp/blast-llm-bridge.py` exposes lokalne Ollama models jako MCP tools: `ask_ubuntu_qwen36` (qwen3.6:latest, general critic) i `ask_ubuntu_qwen3_coder` (teraz → **qwen3.6:27b** dense, code primary dla impl). Bridge registered w `.mcp.json`. Tylko Ubuntu/5090 wrappers (Win11/4090 wrapper'y nie istnieją — na razie świadomie pomijamy drugi GPU).
 
 ## R&D vs Framework separation
 
@@ -217,17 +218,4 @@ Sprawdź `.blast/specs/` lub użyj `/blast:status [feature]`.
 
 Przy `/compact` zachowaj:
 
-- Nazwę aktywnego ficzera i `phase` z `.blast/specs/{f}/spec.json`
-- Otwarte taski (`- [ ]` w `tasks.md`) i lessons candidates z retrospekcji (jeśli są)
-- Ostatni run Verification Strategy (test / smoke / e2e + exit codes)
-- Decyzje architektoniczne podjęte w tej sesji
-
-Odrzuć: output `/blast:help`, duplikaty Read, stary kontekst innych feature'ów, pełne tool outputs po tym, jak konkluzja już jest w chacie.
-
----
-
-@.blast/settings/rules/ai-collaboration.md
-
----
-
-*blast by Błażej Strus — bo programowanie powinno mieć flow, nie chaos.*
+- Nazwę aktyw

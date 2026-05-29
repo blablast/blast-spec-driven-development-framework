@@ -72,15 +72,17 @@ Full rules: [`.blast/settings/rules/ai-collaboration.md`](.blast/settings/rules/
 ## Key features
 
 - Spec-driven pipeline with **hard phase guards** (requirements → design → tasks → code) enforced at the SDK level, not just prompt-level
-- TDD implementation with ruff/ESLint **in the cycle**, not post-hoc
+- **Local-first code generation** — implementation defaults to a local model (`qwen3.6:27b` dense, SWE-bench Verified 77.2 ≈ Sonnet 4.6) on your own GPU; cloud (Sonnet) is reserved for security-critical work or demonstrated failure. Fast, private, $0 per task.
+- TDD implementation with ruff/ESLint **in the cycle**, not post-hoc — coverage is a signal, not a gate, and tests target behavior, not line counts
+- **No traceability noise in source** — requirement IDs live in the spec, never as `# Req: N` tags in code
 - Security audit (OWASP/CWE) built into the pipeline
 - Code review with a 9-point scorecard (Clean Code, SOLID, KISS, DRY, YAGNI, patterns, SOTA, lint, docstrings)
 - Behavior-preserving **`/blast:simplify`** — removes drift and over-abstraction, gated by the feature's Verification Strategy (reverts on red)
 - Research/spike phase for unknown-territory features, backed by a local knowledge base
 - Cross-spec DRY via a project inventory
-- **Multi-LLM compositions** (opt-in): HYBRID validate-impl (Sonnet ‖ qwen3.6 → Haiku judge) and JURY_3_FLASH3 for security/high-stakes review (Opus ‖ qwen3.6 ‖ Gemini-3-Flash → Haiku aggregator)
+- **Multi-LLM debate** (opt-in via `--debate`): HYBRID validate-impl/tasks (Sonnet ‖ qwen3.6 → Haiku judge) and JURY_3_FLASH3 for `--debate` design/review (Opus ‖ qwen3.6 ‖ Gemini-3-Flash → Haiku aggregator). `security` always uses the jury. Default validation is solo — debate buys little (~+5% recall) for the latency, so you opt into it.
 - **Privacy mode** (`spec.json.privacy: local-only`) — all external LLM calls blocked by hook, falls back to local-only routing
-- **MCP bridge for local Ollama** — qwen3.6, qwen3-coder for free local critic/coder roles
+- **MCP bridge for local Ollama** — `qwen3.6:27b` dense as the default code generator/critic and `qwen3.6` as general critic, all running free on a local GPU
 
 ## Quick start
 
@@ -146,7 +148,7 @@ blast works out-of-the-box on a Claude Code subscription — **no API keys** for
 | `/blast:research {f} [--deep]` | Spike/research — compare options |
 | `/blast:design {f} [-y]` | Generate technical design |
 | `/blast:tasks {f} [-y]` | Generate implementation plan |
-| `/blast:impl {f} [tasks]` | Implement with TDD + ruff + coverage |
+| `/blast:impl {f} [tasks]` | Implement with TDD + ruff, local-first (cloud escalation only when needed) |
 | `/blast:review {f} [--fix]` | Code review vs principles |
 | `/blast:simplify {f} [--apply]` | Behavior-preserving code reduction after impl (report-first; `--apply` cuts + re-verifies) |
 | `/blast:security {f} [--fix] [--all]` | Security audit (OWASP/CWE) |
@@ -163,7 +165,7 @@ blast works out-of-the-box on a Claude Code subscription — **no API keys** for
 
 ## Governance — the Constitution
 
-The project's binding principles live in [`.blast/CONSTITUTION.md`](.blast/CONSTITUTION.md) — eleven Articles covering spec-driven discipline, multi-LLM debate as default, tiered cost routing, privacy mode, TDD enforcement, cross-spec DRY, lifecycle, determinism boundaries, and conscious-duplicate policy. Steering files (`product.md`, `tech.md`, `structure.md`, `INVENTORY.md`) are the operational expansion of those Articles. If anything conflicts with steering, the Constitution wins for governance intent.
+The project's binding principles live in [`.blast/CONSTITUTION.md`](.blast/CONSTITUTION.md) — eleven Articles covering spec-driven discipline, local-first/tiered LLM routing, opt-in multi-LLM debate, privacy mode, TDD enforcement, cross-spec DRY, lifecycle, determinism boundaries, and conscious-duplicate policy. Steering files (`product.md`, `tech.md`, `structure.md`, `INVENTORY.md`) are the operational expansion of those Articles. If anything conflicts with steering, the Constitution wins for governance intent.
 
 ## Knowledge base
 
@@ -229,24 +231,4 @@ After this your existing root files keep working, blast layers on top.
 ```bash
 gh repo clone blablast/blast-spec-driven-development-framework my-new-project
 cd my-new-project
-rm -rf .git .blast/specs/             # drop author's specs (.priv is gitignored, won't be in clone)
-cp .blast/settings/templates/steering/llm-routing.md.template .blast/steering/llm-routing.md
-cp .blast/settings/templates/steering/cost-policy.md.template .blast/steering/cost-policy.md
-git init && git add -A && git commit -m "Initial commit from blast template"
-```
-
-See `.blast/MANIFEST.md` for the full FRAMEWORK / HYBRID / personal classification.
-
-## Requirements
-
-- [Claude Code](https://docs.anthropic.com/en/docs/claude-code) (CLI)
-- Python 3.10+ or Node.js 18+ (depending on your project)
-
-## License
-
-MIT
-
----
-
-*.blast by Błażej Strus — because coding should have flow, not chaos.*
-                                                    
+rm -rf .git .blast/specs/          
