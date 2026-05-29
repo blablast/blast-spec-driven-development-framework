@@ -24,28 +24,38 @@ PEERS WHO CORRECT YOU:
 
 ## Execution Steps
 
-## Tiered Implementation Strategy (Spike-4 driven)
+## Tiered Implementation Strategy (local-first)
 
 Before generating code for each task, classify task complexity and delegate accordingly.
 
+**Local model is the default for code generation.** The local code primary is now
+`qwen3.6:27b` (dense 27B, GGUF Q4_K_M, SWE-bench Verified 77.2 — same range as Sonnet 4.6
+on agentic coding), exposed via `mcp__blast-llm-bridge__ask_ubuntu_qwen3_coder`. This is a
+much stronger model than the old `qwen3-coder:30b` baseline below — the async weakness that
+used to force Sonnet escalation no longer holds for this generation. **Escalate to cloud only
+when there is a concrete high-stakes reason**, not by reflex.
+
 ### Decision tree
 
-**Use OWN MODEL (Sonnet) directly for**:
-- tasks.md mentions: `async`, `asyncio`, `concurrent.futures`, `trio`, `anyio`, `threading.Event`, `multiprocessing.Pool`, complex inter-thread orchestration
-- design.md::Components has > 8 components OR > 3 classes with mutable state
-- spec.json.complexity_hint == "high"
-- spec.json.security_critical == true
-- Auto-approve marker present (--debate flag passed)
-- Refactoring tasks touching > 5 existing files
-- Tasks involving subtle correctness (state machines with cycles, transactions, eventual consistency)
+**Escalate to OWN MODEL (Sonnet) ONLY for**:
+- `spec.json.security_critical == true` (correctness here is non-negotiable)
+- `spec.json.complexity_hint == "high"` AND the task involves subtle correctness
+  (state machines with cycles, transactions, eventual consistency, lock ordering)
+- Local model already failed this exact task once (see escalation in delegation pattern)
 
-**Otherwise → DELEGATE to qwen3-coder via MCP** (default for ~80% of tasks):
+Everything else — including ordinary `async`/`asyncio`, CRUD, validators, utilities,
+refactors — stays **local by default**. If you feel the urge to escalate "just to be safe",
+that is exactly the reflex this routing removes: let the local model try first and escalate
+only on demonstrated failure (red tests), not on a keyword match.
+
+**DELEGATE to the local code primary via MCP** (default for the large majority of tasks):
 - Single-class implementations
 - CRUD operations
 - Data validators/processors
 - Simple utility functions
 - Boilerplate scaffolding
 - Test fixtures
+- Standard async I/O, workers, queues (the new dense model handles these)
 
 ### Delegation pattern (when using qwen3-coder)
 
@@ -54,7 +64,8 @@ For each delegated task:
 
 1. Compose prompt:
 
-   prompt = f"""You are an expert Python engineer. Implement the spec below.
+   prompt = f"""You are a SENIOR Python engineer. Implement the spec below to a standard a
+   senior reviewer would pass without comment.
 
    # Task spec
    {task_description_from_tasks_md}
@@ -62,21 +73,31 @@ For each delegated task:
    # Design context (relevant components from design.md)
    {relevant_design_excerpt}
 
-   # Requirements being addressed
-   {requirements_referenced_by_task}
-
    # Tests that must pass (from tasks.md or write first per TDD)
    {failing_tests_code}
 
+   # Code principles (MANDATORY — verbatim from .blast/settings/rules/code-principles.md)
+   {code_principles_md_contents}
+
    # Instructions
    - Output ONE Python file as ```python ... ``` block. NO prose, NO preamble.
-   - Pure stdlib only unless project tech.md::Stack permits otherwise.
-   - Match exact module name expected by tests.
-   - Follow project conventions from .blast/steering/structure.md.
+   - Apply the code principles above: Clean Code thresholds (functions ≤20 lines, nesting ≤3),
+     SOLID, KISS, DRY (Rule of Three), YAGNI, no overengineering, Google-style docstrings.
+   - Write the SIMPLEST correct solution. No speculative abstraction, no config for constants,
+     no "future-proofing" the task did not ask for. If 50 lines suffice, do not write 200.
+   - Prefer a well-chosen established library over reinventing it (SOTA ordering); use the
+     project's existing dependencies from tech.md::Stack. Reach for stdlib when it is genuinely
+     the cleanest fit, not as a blanket rule.
+   - Do NOT write traceability comments in code (no `# Req: 2.1`, no `# Requirement N` tags).
+     Traceability lives in tasks.md / spec.json, never in source. Comments explain WHY, not which spec line.
+   - Match exact module name expected by tests. Follow conventions from .blast/steering/structure.md.
    """
 
-2. Invoke MCP tool:
-   response = mcp__blast-llm-bridge__ask_ubuntu_qwen3_coder(prompt=prompt, max_tokens=16384)
+   # NOTE: pass requirements context to the model for understanding, but do NOT instruct it to
+   # annotate code with requirement IDs — that traceability leak is what the no-tags rule above prevents.
+
+2. Invoke MCP tool (local model is free; give it room — 32k matches bridge default):
+   response = mcp__blast-llm-bridge__ask_ubuntu_qwen3_coder(prompt=prompt, max_tokens=32768)
 
 3. Extract code block from response (```python ... ```), write to target file using Write/Edit tools.
 
@@ -97,15 +118,24 @@ Tasks completed: N total
   - Sonnet direct (complex/async): Z
 ```
 
-This metric feeds back into Spike-4 baseline: if Qwen→Sonnet escalation rate exceeds 40%, the tiered routing isn't earning its keep and should be re-evaluated.
+This metric feeds back into routing: if local→Sonnet escalation rate exceeds ~20% on
+non-security specs, investigate (usually a tasks.md or design clarity problem, not a model
+problem). With the dense 27B primary, escalation should be rare.
 
-### Empirical baseline (Spike-4, 2026-05-07)
+### Empirical baseline (Spike-4, 2026-05-07) — STALE, pending re-run
 
-- Simple tasks (rate limiter, LRU cache, CSV processor): qwen 100% pass, composite 4.0/5
-- Complex sync (state machine): qwen 100% pass, composite 4.0/5 (Sonnet 4.4)
-- Async (worker pool): qwen 100% pass BUT composite 2.6/5, looks_correct: false (Sonnet 3.6)
+> ⚠ The numbers below were measured on `qwen3-coder:30b`, the OLD code primary. The current
+> primary is `qwen3.6:27b` (dense, SWE-bench Verified 77.2 ≈ Sonnet 4.6). The async
+> weakness recorded here is a property of the old model, NOT the current one. **Do not use these
+> numbers to justify async→Sonnet escalation.** Re-run Spike-4 on the new model via
+> `/blast:learn --routing` before trusting any threshold.
 
-→ Conclusion: delegate freely on tasks 1-4 archetypes; never delegate on async.
+- Simple tasks (rate limiter, LRU cache, CSV processor): qwen3-coder:30b 100% pass, composite 4.0/5
+- Complex sync (state machine): qwen3-coder:30b 100% pass, composite 4.0/5
+- Async (worker pool): qwen3-coder:30b 100% pass BUT composite 2.6/5, looks_correct: false
+
+→ Old conclusion (superseded): "never delegate on async" applied to qwen3-coder:30b only.
+→ Current stance: delegate async to the dense 27B primary; escalate only on demonstrated red tests.
 
 ### When tiered routing is OVERRIDDEN
 
@@ -204,9 +234,12 @@ For each task executed inline, follow Kent Beck's TDD cycle:
    - All tests pass (new and existing)
    - Linter passes with zero violations
    - No regressions in existing functionality
-   - **Run coverage**: `pytest --cov=src --cov-report=term-missing` (Python) or `npx jest --coverage` (JS/TS)
-   - Log coverage % in console — aim for ≥80% on new code
-   - If coverage drops significantly (>5% below previous): warn and add missing tests before proceeding
+   - **Coverage is a signal, not a gate**: optionally run `pytest --cov=src --cov-report=term-missing`
+     (Python) / `npx jest --coverage` (JS/TS) and log the number. Do NOT chase a fixed %.
+   - Test the BEHAVIOR the task delivers, not every private line. One good behavioral test beats
+     three that pin internal detail. If a meaningful path is genuinely untested, add a test; if
+     coverage is "low" only because of trivial getters/glue, leave it — don't manufacture tests
+     to move a number. (See AI Rule 2; brittle padding is what 4d later has to delete.)
 
 6. **MARK COMPLETE**:
    - Update checkbox from `- [ ]` to `- [x]` in tasks.md
@@ -281,17 +314,18 @@ Launch a Task sub-agent with `model: "opus"` and `subagent_type: "general-purpos
 
 **Sub-agent mission**: Cross-reference every deliverable mentioned in requirements.md against actual files on disk.
 
-**Checks**:
+**Checks** (verify genuine deliverables — do NOT pad to hit numbers):
 1. **File deliverables**: For each file explicitly named in requirements (e.g., "README.md", "SOLID.md", "WZORCE.md", "requirements.txt") — verify the file EXISTS on disk. Report missing files.
-2. **Component deliverables**: For each component/class/module mentioned in requirements (e.g., "≥6 toppings", "≥4 strategies") — verify they exist in code using Grep. Report missing implementations.
-3. **Quantitative checks**: For each numeric threshold in requirements (e.g., "≥20 tests", "≥3 categories", "≥5 base items") — verify the count meets the threshold. Report shortfalls.
-4. **Documentation deliverables**: For each documentation artifact mentioned (e.g., "explain SOLID principles", "document design patterns") — verify the file exists AND is non-trivial (>20 lines).
+2. **Component deliverables**: For each component/class/module the spec genuinely requires — verify it exists in code using Grep. Report missing implementations.
+3. **Documentation deliverables**: For each documentation artifact mentioned — verify the file exists AND is non-trivial (>20 lines).
 
-**Sub-agent return format**: List of PASS/FAIL per requirement, with details on failures.
+**Numeric thresholds — flag, do NOT auto-pad**: if a requirement states a count (e.g., "≥6 toppings", "≥20 tests", "≥4 strategies") and the implementation is below it, report the shortfall as a NOTE for the human. Do NOT generate extra toppings/strategies/tests purely to hit the number — that is gold-plating and violates AI Rule 2 (Simplicity first). A genuine missing capability is a gap to fill; a count that is one short of an arbitrary target is a judgment call for the user, not a trigger to manufacture filler.
 
-**If any FAIL**: Log the missing deliverables, **implement them immediately** (create missing files, add missing components), then re-run the sub-agent to verify. Repeat until all requirements pass.
+**Sub-agent return format**: List of PASS / FAIL / NOTE per requirement, with details.
 
-**If all PASS**: Log "Requirements completeness: 100%" and proceed to 4c.
+**If any FAIL** (genuine missing deliverable — a named file or required capability absent): Log it, implement the real missing piece, then re-run the sub-agent to verify. Do NOT create filler to satisfy numeric NOTEs.
+
+**If only NOTEs / all PASS**: Log "Requirements completeness: deliverables present" plus any numeric shortfalls as a one-line summary for the user, and proceed to 4c.
 
 #### 4c: Verification Strategy probe (test + e2e)
 
@@ -377,57 +411,4 @@ b. **End-to-end probe** — if Verification Strategy defines one (HTTP request, 
 - Unused imports / dead helpers introduced by 4d's test deletions
 - Whole-feature linter rules that fire only when seen together (e.g., circular imports across files modified in different tasks)
 
-**Scope**: files changed in this impl run, NOT entire repo. Compute via:
-```
-git diff --name-only HEAD~$(echo {tasks_count}) HEAD | grep -E '\.(py|ts|tsx|js|jsx)$'
-```
-Fall back to "all files modified during agent execution" if git diff is unhelpful.
-
-**Python projects**:
-```bash
-ruff check --fix <changed-files>
-ruff format <changed-files>
-```
-
-**JS/TS projects**:
-```bash
-npx eslint --fix <changed-files>
-npx prettier --write <changed-files>
-```
-
-**Linter not installed**: install once (`pip install ruff --break-system-packages` or `npm install -D eslint prettier`). If installation fails (offline, no network): emit warning "linter unavailable — skipping final pass" and proceed; do NOT block the impl on tooling.
-
-**Post-format validation** (mandatory):
-1. **Re-run full test suite** — formatting can occasionally break tests that assert on whitespace/line numbers. If red: identify which file's reformat caused the break, revert just that file's format, log it.
-2. **Re-run smoke check from 4a** — confirm imports still resolve after auto-fix may have removed unused imports.
-3. **Coverage spot-check** — if coverage was meaningful before, confirm it's not below the previous threshold by >5%.
-
-**Zero-violations rule**: any remaining ruff/eslint warnings after auto-fix must be addressed before proceeding to user-facing summary. Do NOT add `# noqa` or `// eslint-disable` to silence — fix the underlying issue. Exception: rules listed in `.blast/settings/rules/code-principles.md § Linter Exceptions` (if defined).
-
-**Output**: brief log line — `Final lint: clean ({N} files swept, {M} auto-fixes applied, {K} formatting tweaks)`.
-
-## Critical Constraints
-- **TDD Mandatory**: Tests MUST be written before implementation code
-- **Task Scope**: Implement only what the specific task requires
-- **Test Coverage**: All new code must have tests
-- **No Regressions**: Existing tests must continue to pass
-- **Coverage**: Run coverage after each task, aim ≥80% on new code
-- **Test Relevance** (Step 4d): tests that don't map to requirements/design get audited and either DELETE'd, REFACTOR'd, or flagged as TODO. Brittle pins on implementation detail are not allowed past finalization.
-- **Final Lint Sweep** (Step 4e): cross-task ruff/eslint pass on all changed files. Zero violations required before user-facing summary.
-- **Design Alignment**: Implementation must follow design.md specifications
-- **Code Principles**: Apply ALL rules from `.blast/settings/rules/code-principles.md` — Clean Code, SOLID, KISS, DRY, YAGNI, no overengineering
-- **AI Collaboration**: all 4 Core AI Rules apply (see `@.blast/settings/rules/ai-collaboration.md`); Rule 4 is primary here — TDD is the loop
-- **Linting**: Zero violations from ruff (Python) or ESLint (JS/TS) after every task
-- **Docstrings**: Google-style docstrings on all public functions, classes, methods
-
-## Safety & Fallback
-
-### Error Scenarios
-
-**Tasks Not Approved or Missing Spec Files**:
-- **Stop Execution**: All spec files must exist and tasks must be approved
-- **Suggested Action**: "Complete previous phases: `/blast:requirements`, `/blast:design`, `/blast:tasks`"
-
-**Test Failures**:
-- **Stop Implementation**: Fix failing tests before continuing
-- **Action**: Debug and fix, then re-run
+**Scope**: files changed in this impl run, NOT entire re

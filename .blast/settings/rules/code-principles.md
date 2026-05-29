@@ -77,25 +77,21 @@ Standard software engineering principles apply. Specific blast enforcements:
 - **Don't disable rules inline** unless absolutely necessary — always explain why in a comment
 - **CI parity**: local linting must match CI
 
-## 5. Testing alignment
+## 5. Traceability lives in the spec, NEVER in code (MANDATORY)
 
-- TDD is the default (see agent `impl`)
-- Every principle above must be testable — if you can't test it, you've overcomplicated it
-- Tests are documentation: they show intended behavior
+- Code MUST NOT carry requirement-traceability tags. No `# Req: 2.1`, `# Requirement 3`,
+  `# satisfies R4`, `// [Req N]`, or equivalent — in comments, docstrings, or test names.
+- Traceability is the job of `tasks.md` (`_Requirements: N.M_`) and `spec.json`. The spec↔code
+  link is reconstructed by `validate-impl` and `simplify` via the spec mapping, by Grepping for
+  the *behavior/symbol*, not by reading Req tags planted in the source.
+- Comments explain **why** a non-obvious decision was made — not which spec line mandated it.
+- `validate-impl` traceability check: map requirement → file/symbol/test via design.md + tasks.md,
+  do NOT instruct the model to grep code for `Req` markers (that incentivizes planting them).
+- Rationale: Req tags are write-only noise that rot the moment requirements renumber; they make
+  code read like a compliance form, not senior engineering.
 
-## Review Checklist
+## 6. Testing alignment
 
-Used by agent `review` to score principles. Answer yes/no per question:
-
-- [ ] Does it do one thing well? (SRP, KISS)
-- [ ] Is there duplication that should be extracted? (DRY — with Rule of Three)
-- [ ] Is there abstraction that isn't needed yet? (YAGNI)
-- [ ] Can I understand it without the author explaining? (Clean Code)
-- [ ] Are dependencies injected, not hardcoded? (DIP)
-- [ ] Is the pattern justified by a real problem? (No overengineering)
-- [ ] Are we using current best practices? (SOTA)
-- [ ] Does linter pass with zero violations? (Linting)
-- [ ] Is formatting consistent and automated? (Formatting)
-- [ ] Do all public symbols have Google-style docstrings? (Documentation)
-- [ ] Are comments and code that weren't fully understood left untouched? (Surgical Changes — no silent deletion of comments/logic whose intent is unclear)
-- [ ] Were only *your* orphans removed, with pre-existing dead code merely flagged, not deleted? (Surgical Changes)
+- TDD is the default (see agent `impl`), but the unit of testing is **observable behavior**, not
+  every private function or line. One test that pins a real contract beats three that pin internals.
+- **Coverage is a 

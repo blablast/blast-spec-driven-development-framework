@@ -17,7 +17,8 @@ Environment variables (override config):
 
 Tools exposed:
   ask_ubuntu_qwen36          — qwen3.6:latest @ Ubuntu/5090 (general critic, ~24s warm @ 177 tok/s)
-  ask_ubuntu_qwen3_coder     — qwen3-coder:30b @ Ubuntu/5090 (code critic, ~0.9s warm @ 246 tok/s)
+  ask_ubuntu_qwen3_coder     — qwen3.6:27b @ Ubuntu/5090 (code primary, dense 27B GGUF Q4_K_M,
+                               SWE-bench Verified 77.2 ≈ Sonnet 4.6; 17GB fully on-GPU, fast)
   ask_gemini_3_flash_preview — Gemini 3 Flash Preview via Google AI API (cloud juror, multilingual, fast)
 
 Win11 wrappers absent — RTX 4090 24 GB cannot host 32B Q4 + KV cache without
@@ -98,8 +99,14 @@ CONFIG = {
         "ask_ubuntu_qwen3_coder": {
             "provider": "ollama",
             "endpoint": "ubuntu",
-            "model": "qwen3-coder:30b",
-            "description": "Code critic — Qwen3-Coder 30B (specialized, ~12s warm). Use for validate-impl, review.",
+            "model": "qwen3.6:27b",
+            "description": (
+                "Code primary — Qwen3.6-27B dense (GGUF Q4_K_M, 17GB, fully on-GPU on the 5090). "
+                "SWE-bench Verified 77.2 (≈ Sonnet 4.6 on agentic coding). "
+                "Default code generator for spec-tdd-impl-agent (Forge) and code critic for validate-impl/review. "
+                "Already installed (digest a50eda8ed977). NVFP4/MXFP8 variants are MLX-only (macOS) — "
+                "do NOT use on Linux. Tool name kept for backward compat."
+            ),
         },
         "ask_gemini_3_flash_preview": {
             "provider": "gemini",

@@ -39,41 +39,36 @@ Zmiana defaults: edytuj frontmatter `model:` w `.claude/agents/blast/{agent}.md`
 ---
 
 
-## Tiered impl routing (Spike-4 verdict)
+## Tiered impl routing (local-first)
 
-`spec-tdd-impl-agent` (Forge) uses tiered model selection — empirical evidence (Spike-4, 2026-05-07) shows qwen3-coder:30b is competitive with claude-sonnet on most tasks, but pozostaje w tyle on async-heavy code.
+`spec-tdd-impl-agent` (Forge) generates code **locally by default**. The code primary is
+`qwen3.6:27b` (dense 27B, GGUF Q4_K_M, 17GB fully on-GPU on the 5090) — SWE-bench Verified
+77.2, the same range as Sonnet 4.6 on agentic coding. Cloud escalation is now the exception,
+not a keyword reflex.
 
 ```yaml
 spec-tdd-impl-agent:
-  default_model: qwen3-coder:30b      # via mcp__blast-llm-bridge__ask_ubuntu_qwen3_coder
+  default_model: qwen3.6:27b          # via mcp__blast-llm-bridge__ask_ubuntu_qwen3_coder
   escalate_to: claude-sonnet-4-6
-  escalation_triggers:
-    - tasks_md_contains:
-        - "async"
-        - "asyncio"
-        - "concurrent.futures"
-        - "trio"
-        - "anyio"
-    - design_complexity_high:
-        # design.md has >8 components OR >3 classes with state
-    - flag_passed: "--debate"
+  escalation_triggers:                # ONLY these — async/complexity keywords removed
     - spec_json:
-        complexity_hint: "high"
-        security_critical: true
+        security_critical: true       # correctness non-negotiable
+    - spec_json:
+        complexity_hint: "high"       # AND task has subtle correctness (state cycles, txns, consistency)
+    - local_failed_this_task: true    # local model produced red tests on this exact task → escalate it
 ```
 
-Empirical baselines (Spike-4):
-- qwen pass rate: 30/30 (100%) across 5 tasks
-- qwen composite quality: 3.80/5
-- qwen async-task quality: 2.6/5 (significant drop, looks_correct: false)
-- sonnet composite quality: 4.00/5
-- sonnet async-task quality: 3.6/5 (still has correctness concerns)
+> ⚠ Spike-4 (2026-05-07) baselines are STALE — they measured the OLD `qwen3-coder:30b`, whose
+> async weakness (composite 2.6/5) drove the now-removed `async`/`asyncio` escalation triggers.
+> The dense `qwen3.6:27b` is a different model; it handles ordinary async fine. Do not re-add
+> keyword triggers without a fresh Spike-4 on the current model.
 
 Cost trade-off per impl phase:
-- Default (qwen): $0, ~4× faster than sonnet
-- Escalated (sonnet): ~$0.04 per task, +0.5-1.0 composite quality
+- Default (local qwen3.6:27b): $0, fully on-GPU, no async carve-out needed
+- Escalated (sonnet): ~$0.04 per task — reserved for security-critical / demonstrated failure only
 
-If pattern repeats across more specs, validate via `/blast:learn --routing` periodically.
+Re-validate the new baseline via `/blast:learn --routing` once a few specs have shipped on it.
+Target: local→Sonnet escalation < ~20% on non-security specs.
 
 ## Privacy patterns
 
@@ -115,14 +110,15 @@ Read by `validate-{impl,design}-agent`, `security-audit-agent`, `code-review-age
 
 ### Trigger semantics
 
-**Debate is the DEFAULT for validation phases (SOTA #1 stance).** User passes `--no-debate` to use solo composition instead.
+**Debate is OPT-IN, not default.** Rationale: blast's own spike-3 verdict found multi-LLM debate
+buys only ~+5% recall vs solo Opus — not worth ~130–141s + cost on every validation pass. Solo
+(Sonnet/Opus per Model routing) is the default; the user opts INTO debate with `--debate`, or it
+fires automatically only where cross-model diversity genuinely matters (security).
 
 | Trigger | Fires when |
 |---|---|
 | `always` | every invocation of that phase (debate non-negotiable, e.g., security) |
-| `validate_flag_unless_no_debate` | when `--validate` triggers the phase AND user did NOT pass `--no-debate` |
-| `auto_or_validate_unless_no_debate` | auto-fire heuristic OR `--validate` flag, debate unless `--no-debate` |
-| `research_flag_unless_no_debate` | when `--research` flag passed, debate unless `--no-debate` |
+| `debate_flag` | ONLY when the user passes `--debate` (default OFF — solo composition otherwise) |
 | `high_stakes` | `risk_level: high` OR `security_critical: true` OR PR touches sensitive paths (always debate, no opt-out) |
 
 Per-spec override: `spec.json.debate.{phase}` wins.
@@ -178,52 +174,49 @@ spawns the debate flow only when `enabled: true` AND the trigger condition is me
 debate_config:
   validate-impl:
     enabled: true
-    trigger: debate_default       # SOTA #1: debate ON by default; downgrade only if --no-debate flag passed
+    trigger: debate_flag          # opt-in: solo Sonnet unless user passes --debate
     composition: HYBRID
     cost_ceiling_usd: 0.50
 
   validate-tasks:
     enabled: true
-    trigger: debate_default       # SOTA #1: debate ON by default; downgrade only if --no-debate flag passed
+    trigger: debate_flag          # opt-in: solo Sonnet unless user passes --debate
     composition: HYBRID
     cost_ceiling_usd: 0.40
 
   validate-design:
     enabled: true
-    trigger: debate_default       # SOTA #1: debate ON by default; downgrade only if --no-debate flag passed
+    trigger: debate_flag          # opt-in: solo Opus unless user passes --debate
     composition: JURY_3_FLASH3
     cost_ceiling_usd: 1.00
 
   security:
     enabled: true
-    trigger: always               # security always uses jury (cross-corpus diversity matters most here)
+    trigger: always               # security ALWAYS uses jury — cross-corpus diversity matters most here
     composition: JURY_3_FLASH3
     cost_ceiling_usd: 1.50
 
   review:
     enabled: true
-    trigger: debate_default       # SOTA #1: debate ON by default; downgrade only if --no-debate flag passed
+    trigger: debate_flag          # opt-in: solo Sonnet unless user passes --debate
     composition: JURY_3_FLASH3
     cost_ceiling_usd: 1.00
 
   simplify:
     enabled: true
-    trigger: high_stakes          # solo Sonnet by default (hygiene step, not a gate); debate only on auth/payments/schema or explicit --debate
+    trigger: high_stakes          # solo Sonnet by default; debate only on auth/payments/schema or explicit --debate
     composition: HYBRID
     cost_ceiling_usd: 0.40
 ```
 
 Compositions (HYBRID, JURY_3_FLASH3) defined above. **Trigger semantics**:
-- `debate_default` — SOTA #1 default: fire debate UNLESS the calling slash command injected `No-debate: true` into the agent prompt (user passed `--no-debate`).
-- `always` — fire debate unconditionally (e.g. security; ignores --no-debate).
-- `high_stakes` — fire only when risk_level=high or security_critical=true (legacy; prefer `debate_default`).
+- `debate_flag` — opt-in: fire debate ONLY when the calling slash command injected `Debate: true` into the agent prompt (user passed `--debate`). Otherwise run the solo composition from Model routing.
+- `always` — fire debate unconditionally (e.g. security).
+- `high_stakes` — fire only when risk_level=high or security_critical=true.
 
-To **disable** debate for a phase without removing config: set `enabled: false`. To **force always-on** (ignore --no-debate): set `trigger: always`.
+To **disable** debate for a phase without removing config: set `enabled: false`. To **force always-on**: set `trigger: always`.
 
 ### Privacy mode override (`spec.json.privacy: local-only`)
 
 All compositions fall back to local-only via `blast-privacy-gate.py`:
-- jurors → `[qwen3.6:latest, qwen3-coder:30b]` (or `[qwen3.6:latest, qwen3-coder:30b, gpt-oss:latest]` for security)
-- aggregator → `qwen3.6:latest` (Haiku blocked)
-- cost_ceiling_usd → 0.00
-
+- jurors
