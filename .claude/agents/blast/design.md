@@ -37,6 +37,11 @@ PEERS WHO CORRECT YOU:
 - Check `provides` arrays — identify components already delivered or planned
 - Check `dependencies` arrays — detect circular or conflicting dependencies
 - If INVENTORY.md exists in steering, use Component Registry to find reusable components
+- **Knowledge-index DRY query (Art. VII, deterministic)**: before designing any component, run
+  `python3 .claude/scripts/blast-knowledge-index.py --search "{component / capability keywords}"`
+  (Bash). Top hits = prior art: shipped components (INVENTORY via steering docs), past
+  decisions, SOTA notes. If a hit covers the need → REUSE, don't redesign. If the index is
+  missing, build it first: `--build` (semantic via local Ollama, keyword fallback, <5s).
 - **Before designing a new component**: verify it doesn't duplicate something in inventory or another spec's `provides`
 - If overlap found: design for REUSE (extend/wrap existing) instead of building from scratch
 - Document reuse decisions in design.md under "Reuse Analysis" section
