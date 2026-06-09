@@ -9,6 +9,11 @@ argument-hint: <project-description> [--auto] [--source path/to/file] [--researc
 <instructions>
 Execute 8 pipeline phases sequentially: init → requirements → [research] → design → [validate-design] → tasks → impl → [validate-impl] → complete → security → steering [→ push]. Security audit always runs. With `--validate`: insert validate-design (after design) and validate-impl (after impl) — both gate on FAIL+BLOCKING:true. With `--auto`: non-stop until any blocking verdict or last phase. Without: prompt between phases.
 
+## Approval checks
+
+Phase-approval logic is defined ONCE in `.blast/settings/rules/approval-check.md`
+(includes risk-tiered autonomy). Apply it before each gated phase — do not restate it.
+
 ## Execution Steps
 
 ### Step 1: Parse Arguments and Initialize
@@ -168,6 +173,20 @@ validate-impl→`blast:impl` (resume mode — only failing tasks).
 
 **Skip this phase entirely if `--validate` flag was NOT provided.**
 
+**Pipelined execution (overlap with tasks generation)**: validate-design is read-only, so
+do NOT serialize it before tasks. In Automatic Mode launch BOTH in ONE message:
+1. `Skill` with `skill: "blast:validate-design"`, `args: "{feature-name}"`
+2. `Skill` with `skill: "blast:tasks"`, `args: "{feature-name} -y"` (draft — cheap Haiku)
+
+Then reconcile:
+- validate-design **PASS/WARN** → the tasks draft is already done — skip the separate
+  tasks phase below, saved 1-2 min.
+- validate-design **FAIL+BLOCKING** → DISCARD the tasks draft (delete tasks.md, reset
+  `approvals.tasks` in spec.json), run auto-remediation on design, regenerate tasks after.
+  Cost of a discarded draft (~1-3k Haiku tokens) ≪ the latency saved on every clean pass.
+
+In Interactive Mode keep it sequential (the user reviews between phases anyway).
+
 **Invoke via Skill tool** (literal — do NOT use Task tool to spawn the agent directly): call `Skill` with `skill: "blast:validate-design"` and `args: "{feature-name}"`
 
 Wait for completion. **Parse the Verdict Envelope** at the tail of the subagent output (lines between `---VERDICT---` and `---END---`):
@@ -186,6 +205,9 @@ Wait for completion. **Parse the Verdict Envelope** at the tail of the subagent 
 ---
 
 #### Phase: Generate Tasks
+
+**Skip if already produced by the pipelined validate-design phase above** (draft kept on
+PASS/WARN). Otherwise:
 
 **Invoke via Skill tool** (literal — do NOT use Task tool to spawn the agent directly): call `Skill` with `skill: "blast:tasks"` and `args: "{feature-name} -y"`
 

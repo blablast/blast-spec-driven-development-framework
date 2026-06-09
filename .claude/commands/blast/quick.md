@@ -9,6 +9,11 @@ argument-hint: <project-description> [--auto] [--source path/to/file] [--researc
 <instructions>
 Execute 4 spec phases sequentially: init → requirements → [research] → design → tasks. With `--auto`: non-stop until last phase. Without: prompt between phases. Use TodoWrite for progress.
 
+## Approval checks
+
+Phase-approval logic is defined ONCE in `.blast/settings/rules/approval-check.md`
+(includes risk-tiered autonomy). Apply it before each gated phase — do not restate it.
+
 ## Execution Steps
 
 ### Step 1: Parse Arguments and Initialize
