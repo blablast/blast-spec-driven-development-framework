@@ -153,20 +153,10 @@ This metric feeds back into routing: if local→Sonnet escalation rate exceeds ~
 non-security specs, investigate (usually a tasks.md or design clarity problem, not a model
 problem). With the dense 27B primary, escalation should be rare.
 
-### Empirical baseline (Spike-4, 2026-05-07) — STALE, pending re-run
-
-> ⚠ The numbers below were measured on `qwen3-coder:30b`, the OLD code primary. The current
-> primary is `qwen3-coder` (current generation, 17.3G). The async
-> weakness recorded here is a property of the old model, NOT the current one. **Do not use these
-> numbers to justify async→Sonnet escalation.** Re-run Spike-4 on the new model via
-> `/blast:learn --routing` before trusting any threshold.
-
-- Simple tasks (rate limiter, LRU cache, CSV processor): qwen3-coder:30b 100% pass, composite 4.0/5
-- Complex sync (state machine): qwen3-coder:30b 100% pass, composite 4.0/5
-- Async (worker pool): qwen3-coder:30b 100% pass BUT composite 2.6/5, looks_correct: false
-
-→ Old conclusion (superseded): "never delegate on async" applied to qwen3-coder:30b only.
-→ Current stance: delegate async to the current qwen3-coder primary; escalate only on demonstrated red tests.
+### Empirical baseline
+Spike-4 numbers (2026-05-07) measured the OLD qwen3-coder:30b and are STALE — archived in
+`.blast/knowledge/decisions/2026-05-07-spike4-qwen-baseline.md`. Do not use them to justify
+keyword escalation; re-run via `/blast:learn --routing` on the current primary.
 
 ### When tiered routing is OVERRIDDEN
 
