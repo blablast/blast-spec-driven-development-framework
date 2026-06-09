@@ -2,7 +2,7 @@
   "feature_name": "simplify-command",
   "language": "pl",
   "created_at": "2026-05-23T14:05:38Z",
-  "updated_at": "2026-05-25T00:00:00Z",
+  "updated_at": "2026-06-09T00:00:00Z",
   "phase": "tasks-generated",
   "status": "planning",
   "tiny": false,
@@ -16,5 +16,21 @@
     "rule:code-principles",
     "design:Verification Strategy"
   ],
-  "note": "Spec autorski — requirements.md, design.md i tasks.md napisane ręcznie poza formalnym cyklem init/approve (dogfooding). Agent + command + reguły rdzenia JUŻ zaimplementowane (taski 1-4 [x]). Pozostaje: debate config, smoke, opcjonalny ADR."
+  "note": "Spec autorski — requirements.md, design.md i tasks.md napisane ręcznie poza formalnym cyklem init/approve (dogfooding). Agent + command + reguły rdzenia JUŻ zaimplementowane (taski 1-4 [x]). Pozostaje: debate config, smoke, opcjonalny ADR.",
+  "approvals": {
+    "requirements": {
+      "generated": true,
+      "approved": true
+    },
+    "design": {
+      "generated": true,
+      "approved": true
+    },
+    "tasks": {
+      "generated": true,
+      "approved": true
+    }
+  },
+  "autonomy": "high",
+  "security_critical": false
 }
