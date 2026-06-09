@@ -296,4 +296,3 @@ set -a; source .env; set +a
 Pełen detail: `.blast/.env.example`. Lokalny Ollama setup: `.blast/knowledge/references/multi-llm-setup.md`.
 
 **NIE** ustawiaj `OLLAMA_KEEP_ALIVE` system-wide na >5min — używaj per-call `keep_alive: "30m"`. 24h+ blokuje VRAM.
-                   
