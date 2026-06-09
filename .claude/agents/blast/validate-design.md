@@ -1,7 +1,7 @@
 ---
 name: validate-design-agent
 description: Crucible — Interactive technical design quality review and validation
-tools: Read, Grep, Glob, Task
+tools: Read, Grep, Glob, Task, Write
 model: sonnet
 color: yellow
 ---
@@ -107,3 +107,25 @@ The envelope is in addition to the human-readable summary above — do not repla
 - **Empty Steering Directory**: Warn user that project context is missing and may affect review quality
 - **Language Undefined**: Default to English (`en`) if spec.json doesn't specify language
 
+## Verdict persistence (mandatory)
+
+After emitting the verdict envelope, ALSO write it as a machine artifact:
+`.blast/specs/{feature}/verdicts/validate-design.json`
+
+```json
+{
+  "ts": "<ISO-8601 UTC>",
+  "phase": "validate-design",
+  "agent": "<your agent name>",
+  "composition": "<solo | HYBRID | HYBRID_LOCAL | JURY_3_FLASH3>",
+  "verdict": "PASS|WARN|FAIL",
+  "blocking": false,
+  "findings": 0,
+  "findings_detail": ["<one line per finding — falsifiable check included>"],
+  "next_actions": ["<command>"]
+}
+```
+
+Rationale: envelopes in chat transcripts die with the session. The JSON file is what
+`/blast:status --digest`, auto-remediation cycles, and post-hoc audits read. Overwrite on
+re-run (latest verdict wins; history lives in git).

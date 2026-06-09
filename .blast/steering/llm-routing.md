@@ -64,7 +64,14 @@ spec-tdd-impl-agent:
     - spec_json:
         complexity_hint: "high"       # AND task has subtle correctness (state cycles, txns, consistency)
     - local_failed_this_task: true    # red tests on this task → next tier up (coder-next first, then Sonnet)
+    - task_domain: ["parser", "observability"]   # Spike-3 empirical blind spot — see below
 ```
+
+> **Qwen blind spot (Spike-3, empirical)**: Qwen critics/coders consistently miss issues in
+> **parser code** and **observability/instrumentation code**. Tasks touching grammars,
+> tokenizers, AST/lexers, log/metric/trace instrumentation → escalate straight to Sonnet
+> (tier 3), skipping the local ladder. This is an evidence-based exception consistent with
+> the no-keyword-reflex policy — the evidence already exists, no fresh spike needed.
 
 **Three-tier ladder** (non-security tasks):
 ```

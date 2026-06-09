@@ -1,0 +1,15 @@
+#!/bin/sh
+# blast pre-push hook — deterministic spec gate before anything leaves the repo.
+# Install: cp .claude/scripts/git-hooks/pre-push .git/hooks/pre-push && chmod +x .git/hooks/pre-push
+# Bypass (deliberate): git push --no-verify
+
+echo "[blast pre-push] lint --all (deterministic, <1s)"
+python3 .claude/scripts/blast-lint.py --all
+rc=$?
+if [ $rc -eq 2 ]; then
+  echo ""
+  echo "[blast pre-push] BLOCKED — spec lint FAIL (ERROR-level findings)."
+  echo "  Fix findings or push with --no-verify (deliberate bypass only)."
+  exit 1
+fi
+exit 0

@@ -123,6 +123,14 @@ Under 80 words:
 3. Dissent count
 4. Path to updated scratchpad
 
+## Falsifiability filter (applies to all modes)
+
+When tallying findings into the verdict: a juror's CRITICAL/WARNING finding counts ONLY if
+it carries a falsifiable check (command / test / concrete observable scenario). Findings
+without one are downgraded to INFO and excluded from the FINDINGS count. Note downgrades in
+the synthesis ("N findings downgraded — no verification step"). This is the counterweight to
+Protocol D's forced-weakness rule: forced findings must still be checkable, not rhetorical.
+
 ## Critical Constraints
 
 - **Preserve dissent verbatim** — never paraphrase minority positions
