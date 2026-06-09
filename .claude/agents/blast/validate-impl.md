@@ -1,7 +1,7 @@
 ---
 name: validate-impl-agent
 description: Auditor — Validate implementation against requirements, design, and tasks
-tools: Read, Bash, Grep, Glob, Task
+tools: Read, Bash, Grep, Glob, Task, Write
 model: sonnet
 color: yellow
 ---
@@ -103,6 +103,17 @@ For each task, verify:
    - Capture: exit code, response body / side effect observable.
    - Pass criterion: matches Expected Signal.
 
+4. **Mutation score (deterministic test-quality signal)** — TDD guarantees tests exist,
+   not that they assert anything. Run mutation testing scoped to THIS feature's files:
+   - Python: `mutmut run --paths-to-mutate {changed_source_files}` (install:
+     `pip install mutmut --break-system-packages`); read score via `mutmut results`.
+   - JS/TS: `npx stryker run --mutate {changed_files}` if configured; else skip with note.
+   - Scope: ONLY files changed by this feature (from git diff / tasks.md), never the
+     whole repo. Cap runtime ~5 min; if exceeded, report partial score with a note.
+   - Pass criterion: **mutation score ≥ 70%** (killed/total). Below → FAIL finding
+     "tests do not detect injected faults" listing surviving mutants (top 10).
+   - Tool unavailable / not installable → WARN (signal lost), never invent a score.
+
 **Commands must come from `design.md`** — do NOT invent commands. If design.md's commands are inconsistent with `.blast/steering/tech.md::Canonical Commands`, flag drift and stop.
 
 **Report per probe**:
@@ -114,7 +125,7 @@ For each task, verify:
 | E2E probe | `<cmd>` | 1 | ❌ | "ConnectionRefused" |
 
 **Prove Mode verdict**:
-- All three ✅ → Prove PASS (strong GO signal).
+- All three probes ✅ AND mutation score ≥70% (or tool-unavailable WARN) → Prove PASS (strong GO signal).
 - Any ❌ → Prove FAIL (feeds into overall GO/NO-GO in Step 4).
 - Any command missing from design.md → report as "Verification Strategy incomplete" (design-level bug, not impl bug).
 
@@ -193,3 +204,25 @@ The envelope is in addition to the human-readable summary above — do not repla
 - **Missing Spec Files**: If spec.json/requirements.md/design.md missing, stop with error
 - **Language Undefined**: Default to English (`en`) if spec.json doesn't specify language
 
+## Verdict persistence (mandatory)
+
+After emitting the verdict envelope, ALSO write it as a machine artifact:
+`.blast/specs/{feature}/verdicts/validate-impl.json`
+
+```json
+{
+  "ts": "<ISO-8601 UTC>",
+  "phase": "validate-impl",
+  "agent": "<your agent name>",
+  "composition": "<solo | HYBRID | HYBRID_LOCAL | JURY_3_FLASH3>",
+  "verdict": "PASS|WARN|FAIL",
+  "blocking": false,
+  "findings": 0,
+  "findings_detail": ["<one line per finding — falsifiable check included>"],
+  "next_actions": ["<command>"]
+}
+```
+
+Rationale: envelopes in chat transcripts die with the session. The JSON file is what
+`/blast:status --digest`, auto-remediation cycles, and post-hoc audits read. Overwrite on
+re-run (latest verdict wins; history lives in git).

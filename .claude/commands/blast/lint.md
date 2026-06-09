@@ -93,10 +93,13 @@ Format zgodny z Falą 4 verdict envelope — można pipe'ować do innych narzęd
 
 ## Integration
 
-Lint NIE jest automatycznie wpięty w pipeline (na razie). Możesz dodać manualnie:
-- jako gate przed `/blast:design` — sprawdź że requirements są clean
-- po `/blast:tasks` — sprawdź traceability przed implementacją
+Lint JEST wpięty w pipeline jako twardy gate: `blast-lint-gate.py` (PreToolUse hook)
+odpala linter przed spawnem spec-design/tasks/impl agenta i blokuje na ERROR findings
+(exit 2). WARN nie blokuje. Bypass: `Lint-bypass: true` w prompcie agenta (świadome WIP).
+
+Dodatkowo:
 - w CI — `python3 .claude/scripts/blast-lint.py --all` przed merge
+- pre-push — patrz `.blast/settings/rules/quality-gates.md` (drift + lint)
 
 ## Limitacje (świadome)
 
@@ -108,5 +111,5 @@ Lint NIE jest automatycznie wpięty w pipeline (na razie). Możesz dodać manual
 ## Następny krok
 
 Po PASS → dalej w pipeline (`/blast:design`, `/blast:tasks`, `/blast:impl`).
-Po FAIL → fixuj ERROR findings → re-run.
-Po WARN → review, fixuj manual lub akceptuj (`/blast:lint` jest informacyjny, nie blokuje pipeline'u).
+Po FAIL → fixuj ERROR findings → re-run (gate i tak zablokuje kolejną fazę).
+Po WARN → review, fixuj manual lub akceptuj (WARN nie blokuje).

@@ -9,6 +9,11 @@ argument-hint: <project-description> [--auto] [--source path/to/file] [--researc
 <instructions>
 Execute 8 pipeline phases sequentially: init → requirements → [research] → design → [validate-design] → tasks → impl → [validate-impl] → complete → security → steering [→ push]. Security audit always runs. With `--validate`: insert validate-design (after design) and validate-impl (after impl) — both gate on FAIL+BLOCKING:true. With `--auto`: non-stop until any blocking verdict or last phase. Without: prompt between phases.
 
+## Approval checks
+
+Phase-approval logic is defined ONCE in `.blast/settings/rules/approval-check.md`
+(includes risk-tiered autonomy). Apply it before each gated phase — do not restate it.
+
 ## Execution Steps
 
 ### Step 1: Parse Arguments and Initialize
@@ -141,9 +146,46 @@ Note: `-y` flag auto-approves requirements.
 
 ---
 
+#### Auto-remediation loop (shared policy for ALL validate phases below)
+
+When a validate phase returns `FAIL + BLOCKING: true`, do NOT stop immediately.
+Run a **bounded remediation loop** first:
+
+1. **Cycle** (max **2** per phase, then stop for human):
+   a. Extract the envelope's findings + `NEXT_ACTIONS` from the validator output.
+   b. Re-invoke the producing phase via Skill tool with the findings injected:
+      `args: "{feature-name} -y --remediate"` and append to the agent prompt:
+      `Remediation context (cycle N/2): <findings + NEXT_ACTIONS verbatim>`.
+   c. Re-run the SAME validate phase.
+2. **Converged** (PASS or WARN) → continue the pipeline; log
+   `auto-remediation: {phase} converged after N cycle(s)`.
+3. **Budget exhausted** (still FAIL+BLOCKING after 2 cycles) → STOP per the
+   phase's handler below. Log both cycles' findings — non-convergence is a
+   calibration signal (prompt/spec clarity), not a reason to raise the budget.
+4. Every cycle gets logged by telemetry (PostToolUse). Respect
+   `.blast/steering/cost-policy.md` ceilings — if the next cycle would exceed
+   the phase ceiling, stop early and report.
+
+Phase→producer mapping: validate-design→`blast:design`, validate-tasks→`blast:tasks`,
+validate-impl→`blast:impl` (resume mode — only failing tasks).
+
 #### Phase: Validate Design (conditional — only with `--validate`)
 
 **Skip this phase entirely if `--validate` flag was NOT provided.**
+
+**Pipelined execution (overlap with tasks generation)**: validate-design is read-only, so
+do NOT serialize it before tasks. In Automatic Mode launch BOTH in ONE message:
+1. `Skill` with `skill: "blast:validate-design"`, `args: "{feature-name}"`
+2. `Skill` with `skill: "blast:tasks"`, `args: "{feature-name} -y"` (draft — cheap Haiku)
+
+Then reconcile:
+- validate-design **PASS/WARN** → the tasks draft is already done — skip the separate
+  tasks phase below, saved 1-2 min.
+- validate-design **FAIL+BLOCKING** → DISCARD the tasks draft (delete tasks.md, reset
+  `approvals.tasks` in spec.json), run auto-remediation on design, regenerate tasks after.
+  Cost of a discarded draft (~1-3k Haiku tokens) ≪ the latency saved on every clean pass.
+
+In Interactive Mode keep it sequential (the user reviews between phases anyway).
 
 **Invoke via Skill tool** (literal — do NOT use Task tool to spawn the agent directly): call `Skill` with `skill: "blast:validate-design"` and `args: "{feature-name}"`
 
@@ -151,7 +193,7 @@ Wait for completion. **Parse the Verdict Envelope** at the tail of the subagent 
 
 - **`VERDICT: PASS`** → Continue to next phase silently.
 - **`VERDICT: WARN`** → Continue, but echo: `⚠️  validate-design: WARN ({FINDINGS} findings) — review .blast/specs/{feature}/design.md before tasks if concerned.`
-- **`VERDICT: FAIL` AND `BLOCKING: true`** → **STOP the pipeline.** Display the envelope's `NEXT_ACTIONS` verbatim. Suggest: `Re-run /blast:design {feature-name}` after addressing findings, then re-run `/blast:full` from design phase.
+- **`VERDICT: FAIL` AND `BLOCKING: true`** → **Auto-remediation loop** (max 2 cycles, see shared policy above). If still FAIL+BLOCKING: **STOP the pipeline.** Display the envelope's `NEXT_ACTIONS` verbatim. Suggest: `Re-run /blast:design {feature-name}` after addressing findings, then re-run `/blast:full` from design phase.
 - **`VERDICT: FAIL` AND `BLOCKING: false`** → Continue with stronger warning, log findings.
 - **Envelope missing** → Treat as `WARN` (advisory) and log "validate-design returned no envelope; treating as advisory."
 
@@ -163,6 +205,9 @@ Wait for completion. **Parse the Verdict Envelope** at the tail of the subagent 
 ---
 
 #### Phase: Generate Tasks
+
+**Skip if already produced by the pipelined validate-design phase above** (draft kept on
+PASS/WARN). Otherwise:
 
 **Invoke via Skill tool** (literal — do NOT use Task tool to spawn the agent directly): call `Skill` with `skill: "blast:tasks"` and `args: "{feature-name} -y"`
 
@@ -196,7 +241,7 @@ If neither --validate nor any auto-fire condition holds, you MAY skip — but lo
 Read agent verdict envelope:
 - `VERDICT: PASS` → continue to impl normally
 - `VERDICT: WARN` → show findings to user, continue (non-blocking)
-- `VERDICT: FAIL + BLOCKING: true` → STOP, suggest `/blast:tasks {feature} --regenerate`
+- `VERDICT: FAIL + BLOCKING: true` → auto-remediation loop (max 2 cycles, shared policy above); if still failing → STOP, suggest `/blast:tasks {feature} --regenerate`
 - `VERDICT: FAIL + BLOCKING: false` → continue with explicit warning logged
 
 #### Phase: Implement All Tasks (TDD)
@@ -228,7 +273,7 @@ The `--prove` flag triggers Behavioral Verification (runs Verification Strategy 
 
 - **`VERDICT: PASS`** → Continue to complete phase silently.
 - **`VERDICT: WARN`** → Continue, echo: `⚠️  validate-impl: WARN ({FINDINGS} findings) — see report before shipping.`
-- **`VERDICT: FAIL` AND `BLOCKING: true`** → **STOP the pipeline.** Display `NEXT_ACTIONS`. Suggest fixing tasks: `/blast:impl {feature-name}` (resume) or specific failing task. Re-run `/blast:full` from impl phase after fix.
+- **`VERDICT: FAIL` AND `BLOCKING: true`** → **Auto-remediation loop** (max 2 cycles: re-impl failing tasks with findings as context, re-validate). If still FAIL+BLOCKING: **STOP the pipeline.** Display `NEXT_ACTIONS`. Suggest fixing tasks: `/blast:impl {feature-name}` (resume) or specific failing task. Re-run `/blast:full` from impl phase after fix.
 - **`VERDICT: FAIL` AND `BLOCKING: false`** → Continue with strong warning.
 - **Envelope missing** → Treat as `WARN`.
 

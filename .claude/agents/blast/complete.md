@@ -54,6 +54,28 @@ This agent handles two flows:
 - Grep for TODO/FIXME/HACK in feature-related files
 - Output gate report. If FAIL on incomplete tasks → ask user to confirm. Rest are warnings.
 
+### Step 1b: Deterministic ship gates (hard minimum — autonomous mode safe)
+
+These checks are mechanical and MUST all pass before shipping. They are the only
+blocking gates (LLM validators advise via WARN, they do not block — Constitution Art. I/X):
+
+1. **Spec lint**: `python3 .claude/scripts/blast-lint.py {feature}` → exit != 2.
+2. **Acceptance tests green**: if `tests/acceptance/test_{feature}*.py` exists, run it —
+   all green AND zero remaining `acceptance stub` markers (Grep for
+   `pytest.fail("acceptance stub`). Red/leftover stub = requirement not delivered → STOP.
+3. **Full test suite green** (canonical command from `tech.md::Canonical Commands`).
+4. **Verification Strategy probes**: re-run Local Test + Smoke from
+   `design.md::Verification Strategy`, compare against Expected Signal.
+5. **Security Phase-1 scan clean**: no CRITICAL findings from the mechanical scan
+   (hardcoded secrets, eval/exec, shell=True, SQL injection patterns) on changed files.
+6. **Coverage**: log it (signal-only, never a gate — decision 2026-05-29).
+7. **Mutation score**: if validate-impl --prove recorded one, log it; <70% → loud WARN
+   in the ship summary (gate lives in validate-impl, not here — don't double-block).
+
+On any hard-gate failure: STOP, report which gate and why, suggest the fix command.
+Do NOT mark the feature shipped. `autonomy: low|medium` specs rely on THESE gates as
+the entire safety net — never skip them "because the validator already passed".
+
 ### Step 2: Extract Deliverables
 
 From design.md, extract all delivered artifacts:

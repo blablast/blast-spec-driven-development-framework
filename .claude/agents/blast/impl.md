@@ -28,17 +28,29 @@ PEERS WHO CORRECT YOU:
 
 Before generating code for each task, classify task complexity and delegate accordingly.
 
-**Local model is the default for code generation.** The local code primary is now
-`qwen3.6:27b` (dense 27B, GGUF Q4_K_M, SWE-bench Verified 77.2 — same range as Sonnet 4.6
-on agentic coding), exposed via `mcp__blast-llm-bridge__ask_ubuntu_qwen3_coder`. This is a
-much stronger model than the old `qwen3-coder:30b` baseline below — the async weakness that
-used to force Sonnet escalation no longer holds for this generation. **Escalate to cloud only
-when there is a concrete high-stakes reason**, not by reflex.
+**Local model is the default for code generation.** The local code primary is
+`qwen3-coder` (17.3G, ~160 tok/s, coder profile — minimal thinking chain, so effective code
+throughput beats the raw-faster `qwen3.6`), exposed via
+`mcp__blast-llm-bridge__ask_ubuntu_qwen3_coder`. It stays pinned resident on the 5090 together
+with `lfm2.5` (mechanical lane, see below) — never trigger a third local model during impl.
+The async weakness of the old `qwen3-coder:30b` baseline does not apply to this generation.
+**Escalate to cloud only when there is a concrete high-stakes reason**, not by reflex.
 
-### Decision tree
+### Decision tree (three-tier ladder)
 
-**Escalate to OWN MODEL (Sonnet) ONLY for**:
+```
+qwen3-coder (default, resident)
+  → red tests after 2 attempts → qwen3-coder-next via ask_ubuntu_qwen3_coder_next
+                                  ($0, ~50 tok/s, evicts resident pair — batch these
+                                   at wave end, never interleave with tier-1 tasks)
+    → still red / architecture issue → OWN MODEL (Sonnet)
+```
+
+**Skip the ladder, escalate straight to OWN MODEL (Sonnet) ONLY for**:
 - `spec.json.security_critical == true` (correctness here is non-negotiable)
+- **Parser / observability tasks** (Spike-3 empirical Qwen blind spot): grammars, tokenizers,
+  lexers/AST manipulation, log/metric/trace instrumentation — local models consistently
+  miss defects here; evidence-based exception, not a keyword reflex
 - `spec.json.complexity_hint == "high"` AND the task involves subtle correctness
   (state machines with cycles, transactions, eventual consistency, lock ordering)
 - Local model already failed this exact task once (see escalation in delegation pattern)
@@ -56,6 +68,20 @@ only on demonstrated failure (red tests), not on a keyword match.
 - Boilerplate scaffolding
 - Test fixtures
 - Standard async I/O, workers, queues (the new dense model handles these)
+
+### Draft-then-verify with lfm2.5 (mechanical lane)
+
+For scaffolding-heavy sub-steps — test boilerplate, fixtures, dataclasses, type stubs,
+signatures lifted from design.md — use the fast lane first:
+
+1. `mcp__blast-llm-bridge__ask_ubuntu_lfm25(prompt=scaffold_spec, max_tokens=8192)` — lfm2.5
+   drafts at ~580 tok/s.
+2. Pass the draft to qwen3-coder as context: "Review and correct this scaffold, then complete
+   the implementation" — verification + completion is faster than generation from scratch.
+3. NEVER ship lfm2.5 output as final code without the qwen3-coder pass. lfm2.5 is the weaker
+   model; it buys speed on boilerplate, not correctness.
+
+Skip the draft lane when the task is logic-dense (little boilerplate to draft).
 
 ### Delegation pattern (when using qwen3-coder)
 
@@ -106,7 +132,11 @@ For each delegated task:
 5. Decision based on test outcome:
    - All tests pass → log success, mark task [x] in tasks.md, continue to next task
    - 1-2 tests fail → use OWN MODEL to analyze failure + write fix (still TDD cycle)
-   - Many tests fail OR architecture issue → escalate ENTIRE task to OWN MODEL, log "Qwen delegation insufficient for task N — falling back to Sonnet"
+   - Many tests fail after 2 qwen3-coder attempts → **tier 2**: queue the task for
+     `ask_ubuntu_qwen3_coder_next` (same prompt + the failing tests + qwen3-coder's
+     attempt as context). Run queued tier-2 tasks together at wave end (one swap).
+   - Tier 2 also red OR architecture issue → escalate ENTIRE task to OWN MODEL,
+     log "Local ladder exhausted for task N — falling back to Sonnet"
 
 ### Escalation accounting
 
@@ -114,6 +144,7 @@ Track delegation outcomes in implementation summary:
 ```
 Tasks completed: N total
   - Qwen delegated successfully: X
+  - Tier-2 (coder-next) rescued: X2
   - Qwen delegated → Sonnet escalation: Y
   - Sonnet direct (complex/async): Z
 ```
@@ -122,20 +153,10 @@ This metric feeds back into routing: if local→Sonnet escalation rate exceeds ~
 non-security specs, investigate (usually a tasks.md or design clarity problem, not a model
 problem). With the dense 27B primary, escalation should be rare.
 
-### Empirical baseline (Spike-4, 2026-05-07) — STALE, pending re-run
-
-> ⚠ The numbers below were measured on `qwen3-coder:30b`, the OLD code primary. The current
-> primary is `qwen3.6:27b` (dense, SWE-bench Verified 77.2 ≈ Sonnet 4.6). The async
-> weakness recorded here is a property of the old model, NOT the current one. **Do not use these
-> numbers to justify async→Sonnet escalation.** Re-run Spike-4 on the new model via
-> `/blast:learn --routing` before trusting any threshold.
-
-- Simple tasks (rate limiter, LRU cache, CSV processor): qwen3-coder:30b 100% pass, composite 4.0/5
-- Complex sync (state machine): qwen3-coder:30b 100% pass, composite 4.0/5
-- Async (worker pool): qwen3-coder:30b 100% pass BUT composite 2.6/5, looks_correct: false
-
-→ Old conclusion (superseded): "never delegate on async" applied to qwen3-coder:30b only.
-→ Current stance: delegate async to the dense 27B primary; escalate only on demonstrated red tests.
+### Empirical baseline
+Spike-4 numbers (2026-05-07) measured the OLD qwen3-coder:30b and are STALE — archived in
+`.blast/knowledge/decisions/2026-05-07-spike4-qwen-baseline.md`. Do not use them to justify
+keyword escalation; re-run via `/blast:learn --routing` on the current primary.
 
 ### When tiered routing is OVERRIDDEN
 
@@ -255,6 +276,16 @@ When a wave contains 2+ `(P)` tasks, launch them concurrently using the Task too
      - Complete TDD instructions (RED → GREEN → REFACTOR → LINT)
      - Code principles (from `.blast/settings/rules/code-principles.md`)
      - Project file paths, structure context, and linter config
+     - **Local-first delegation instructions** (MANDATORY — parallel sub-agents must NOT
+       bypass tiered routing): the sub-agent generates code via
+       `mcp__blast-llm-bridge__ask_ubuntu_qwen3_coder` exactly like the inline path
+       (same prompt template, same escalation rules: escalate to own model only on
+       red tests / security-critical). Without this instruction every parallel task
+       silently burns Sonnet tokens on work qwen3-coder does for $0.
+   - **Concurrency note (single local GPU)**: parallel sub-agents share one Ollama
+     instance — set `OLLAMA_NUM_PARALLEL=3` on the host (5090) or calls queue
+     serially. With one GPU, `max_parallel` beyond 3 adds little for local-heavy
+     waves (test runs and merges still parallelize; raw generation does not).
    - Each sub-agent works in an **isolated worktree** — no file conflicts between parallel tasks
    - Launch ALL sub-agents for the wave in a **single message** (multiple Task tool calls) to maximize concurrency
 
@@ -411,4 +442,61 @@ b. **End-to-end probe** — if Verification Strategy defines one (HTTP request, 
 - Unused imports / dead helpers introduced by 4d's test deletions
 - Whole-feature linter rules that fire only when seen together (e.g., circular imports across files modified in different tasks)
 
-**Scope**: files changed in this impl run, NOT entire re
+**Scope**: files changed in this impl run, NOT entire repo. Compute via:
+```
+git diff --name-only HEAD~$(echo {tasks_count}) HEAD | grep -E '\.(py|ts|tsx|js|jsx)$'
+```
+Fall back to "all files modified during agent execution" if git diff is unhelpful.
+
+**Python projects**:
+```bash
+ruff check --fix <changed-files>
+ruff format <changed-files>
+```
+
+**JS/TS projects**:
+```bash
+npx eslint --fix <changed-files>
+npx prettier --write <changed-files>
+```
+
+**Linter not installed**: install once (`pip install ruff --break-system-packages` or `npm install -D eslint prettier`). If installation fails (offline, no network): emit warning "linter unavailable — skipping final pass" and proceed; do NOT block the impl on tooling.
+
+**Post-format validation** (mandatory):
+1. **Re-run full test suite** — formatting can occasionally break tests that assert on whitespace/line numbers. If red: identify which file's reformat caused the break, revert just that file's format, log it.
+2. **Re-run smoke check from 4a** — confirm imports still resolve after auto-fix may have removed unused imports.
+3. **Coverage spot-check** — if coverage was meaningful before, confirm it's not below the previous threshold by >5%.
+
+**Zero-violations rule**: any remaining ruff/eslint warnings after auto-fix must be addressed before proceeding to user-facing summary. Do NOT add `# noqa` or `// eslint-disable` to silence — fix the underlying issue. Exception: rules listed in `.blast/settings/rules/code-principles.md § Linter Exceptions` (if defined).
+
+**Output**: brief log line — `Final lint: clean ({N} files swept, {M} auto-fixes applied, {K} formatting tweaks)`.
+
+## Critical Constraints
+- **TDD Mandatory**: Tests MUST be written before implementation code
+- **Acceptance stubs are in scope**: when `tests/acceptance/test_{feature}.py` exists, each
+  task MUST also implement the acceptance stubs for the requirement IDs it covers
+  (`@pytest.mark.req`) — replace `pytest.fail("acceptance stub ...")` with the real
+  arrange/act/assert. `/blast:complete` hard-gates on all acceptance tests green.
+- **Task Scope**: Implement only what the specific task requires
+- **Test Behavior, not lines**: every behavior the task delivers must have a test; do NOT add tests purely to lift a coverage %
+- **No Regressions**: Existing tests must continue to pass
+- **Coverage**: signal only, never a gate — log it if useful, don't chase a fixed number
+- **Test Relevance** (Step 4d): tests that don't map to requirements/design get audited and either DELETE'd, REFACTOR'd, or flagged as TODO. Brittle pins on implementation detail are not allowed past finalization.
+- **Final Lint Sweep** (Step 4e): cross-task ruff/eslint pass on all changed files. Zero violations required before user-facing summary.
+- **Design Alignment**: Implementation must follow design.md specifications
+- **Code Principles**: Apply ALL rules from `.blast/settings/rules/code-principles.md` — Clean Code, SOLID, KISS, DRY, YAGNI, no overengineering
+- **AI Collaboration**: all 4 Core AI Rules apply (see `@.blast/settings/rules/ai-collaboration.md`); Rule 4 is primary here — TDD is the loop
+- **Linting**: Zero violations from ruff (Python) or ESLint (JS/TS) after every task
+- **Docstrings**: Google-style docstrings on all public functions, classes, methods
+
+## Safety & Fallback
+
+### Error Scenarios
+
+**Tasks Not Approved or Missing Spec Files**:
+- **Stop Execution**: All spec files must exist and tasks must be approved
+- **Suggested Action**: "Complete previous phases: `/blast:requirements`, `/blast:design`, `/blast:tasks`"
+
+**Test Failures**:
+- **Stop Implementation**: Fix failing tests before continuing
+- **Action**: Debug and fix, then re-run

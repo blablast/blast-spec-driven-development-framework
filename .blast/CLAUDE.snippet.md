@@ -145,7 +145,8 @@ Każdy agent w `.claude/agents/blast/` ma jawnie ustawiony `model:` zamiast `inh
 
 | Model | Agenci | Rationale |
 |---|---|---|
-| **lokalny `qwen3.6:27b`** | impl (Forge) — generowanie kodu | Dense 27B, SWE-bench 77.2 ≈ Sonnet 4.6, na GPU 5090, $0. Default dla większości tasków; eskalacja do Sonnet tylko security-critical / demonstrated failure (patrz llm-routing.md) |
+| **lokalny `qwen3-coder`** | impl (Forge) — generowanie kodu | 17.3G, ~160 tok/s, coder profile (minimalny thinking → najwyższy efektywny throughput kodu), na GPU 5090, $0. Default dla większości tasków; eskalacja do Sonnet tylko security-critical / demonstrated failure (patrz llm-routing.md) |
+| **lokalny `lfm2.5`** | mechanika — drafty, parsing, digesty | 4.8G, ~580 tok/s, rezydentny obok qwen3-coder (22.1G < 32G VRAM). Draft-then-verify scaffolding, parsing envelope, digesty telemetrii, aggregator w privacy mode. Nigdy finalny kod |
 | `haiku` | requirements, tasks, complete, deprecate, steering-custom, tiny | Templating + structured output, niska złożoność reasoning |
 | `sonnet` | research, review, steering, validate-gap, validate-design, validate-impl, simplify; impl-escalation | Code reasoning, multi-file analysis, balanced cost/quality |
 | `opus` | design, security | Architecture decisions + high-stakes audits |
@@ -200,7 +201,7 @@ blast obsługuje wieloprovider'owy code review przez `debate_config:` w `.blast/
 
 ### MCP bridge
 
-`.claude/mcp/blast-llm-bridge.py` exposes lokalne Ollama models jako MCP tools: `ask_ubuntu_qwen36` (qwen3.6:latest, general critic) i `ask_ubuntu_qwen3_coder` (teraz → **qwen3.6:27b** dense, code primary dla impl). Bridge registered w `.mcp.json`. Tylko Ubuntu/5090 wrappers (Win11/4090 wrapper'y nie istnieją — na razie świadomie pomijamy drugi GPU).
+`.claude/mcp/blast-llm-bridge.py` exposes lokalne Ollama models jako MCP tools: `ask_ubuntu_qwen36` (qwen3.6, general critic/juror), `ask_ubuntu_qwen3_coder` (→ **qwen3-coder**, code primary dla impl, rezydentny) i `ask_ubuntu_lfm25` (**lfm2.5**, mechanika 580 tok/s, rezydentny). Bridge registered w `.mcp.json`.
 
 ## R&D vs Framework separation
 
@@ -218,4 +219,17 @@ Sprawdź `.blast/specs/` lub użyj `/blast:status [feature]`.
 
 Przy `/compact` zachowaj:
 
-- Nazwę aktyw
+- Nazwę aktywnego ficzera i `phase` z `.blast/specs/{f}/spec.json`
+- Otwarte taski (`- [ ]` w `tasks.md`) i lessons candidates z retrospekcji (jeśli są)
+- Ostatni run Verification Strategy (test / smoke / e2e + exit codes)
+- Decyzje architektoniczne podjęte w tej sesji
+
+Odrzuć: output `/blast:help`, duplikaty Read, stary kontekst innych feature'ów, pełne tool outputs po tym, jak konkluzja już jest w chacie.
+
+---
+
+@.blast/settings/rules/ai-collaboration.md
+
+---
+
+*blast by Błażej Strus — bo programowanie powinno mieć flow, nie chaos.*

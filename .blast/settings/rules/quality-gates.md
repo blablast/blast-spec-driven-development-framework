@@ -38,6 +38,9 @@ Quality gates run automatically before phase transitions. They don't block (user
 3. **Task sizing**: Flag tasks with descriptions suggesting >4 hours of work
 4. **No orphan tasks**: Every major task has at least one sub-task
 5. **Dependency order**: Tasks with dependencies listed after their prerequisites
+6. **Acceptance stubs RED**: `tests/acceptance/test_{feature}*.py` exists with one
+   `@pytest.mark.req("N.M")` stub per acceptance criterion, and the stubs FAIL when run
+   (red-before-impl is the contract — a green stub before impl means it asserts nothing)
 
 **Output**: Pass/Warn per check.
 
@@ -53,8 +56,10 @@ Quality gates run automatically before phase transitions. They don't block (user
 5. **`provides` accuracy**: Components in `provides` array actually exist in codebase
 6. **Requirements→deliverables match**: Every file, document, and artifact explicitly named in requirements.md exists on disk. Grep for named files (README.md, etc.), verify quantitative thresholds (≥N tests, ≥N items), confirm documentation artifacts are non-trivial (>20 lines)
 7. **Smoke test**: Entry point runs without import/startup errors (see impl.md Step 4a for tech-specific commands)
+8. **Acceptance tests GREEN**: all `@pytest.mark.req` tests pass AND zero leftover
+   `acceptance stub` markers — the deterministic req→test→code closure (complete.md Step 1b)
 
-**Output**: Pass/Warn/Fail. Fail on #1 (incomplete tasks), #6 (missing deliverables), #7 (app doesn't start). Rest are warnings.
+**Output**: Pass/Warn/Fail. Fail on #1 (incomplete tasks), #6 (missing deliverables), #7 (app doesn't start), #8 (acceptance not green). Rest are warnings.
 
 ## Reporting Format
 

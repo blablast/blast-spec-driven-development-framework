@@ -53,6 +53,9 @@ Load in one batch:
 - `.blast/steering/*.md` — project context, tech stack, conventions
 - `.blast/steering/INVENTORY.md` — what already exists (avoid duplication)
 - **Knowledge base scan** (single batch):
+  - FIRST: `python3 .claude/scripts/blast-knowledge-index.py --search "{feature keywords}"` (Bash)
+    — ranked prior-art hits in one call (semantic if Ollama is up, keyword otherwise).
+    Read the top hits directly instead of scanning everything. Rebuild stale index with `--build`.
   - `Glob .blast/knowledge/**/*.md` — list every knowledge file
   - `Read` each one whose path/name suggests relevance to the feature topic
   - For files NOT obviously relevant by name, do ONE broad `Grep` across `.blast/knowledge/` for feature keywords; Read only what matches
@@ -225,4 +228,3 @@ Provide brief summary in the language specified in spec.json:
 - Warn: "Design already exists. Research findings may conflict — review design after research."
 - Proceed and note potential conflicts
 
-                          

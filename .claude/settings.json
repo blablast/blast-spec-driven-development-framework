@@ -36,11 +36,23 @@
       "TodoWrite",
       "Bash(*)",
       "mcp__blast-llm-bridge__ask_ubuntu_qwen36",
-      "mcp__blast-llm-bridge__ask_ubuntu_qwen3_coder"
+      "mcp__blast-llm-bridge__ask_ubuntu_qwen3_coder",
+      "mcp__blast-llm-bridge__ask_ubuntu_lfm25",
+      "mcp__blast-llm-bridge__ask_ubuntu_qwen3_coder_next",
+      "mcp__blast-llm-bridge__ask_win11_qwen3_coder"
     ]
   },
   "hooks": {
     "PreToolUse": [
+      {
+        "matcher": "^(Agent|Task)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python .claude/hooks/blast-lint-gate.py"
+          }
+        ]
+      },
       {
         "matcher": "^(Agent|Task)$",
         "hooks": [

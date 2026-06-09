@@ -270,3 +270,26 @@ The envelope is in addition to the human-readable summary above — do not repla
 **Security Tools Not Available**:
 - Fall back to grep-based scanning + manual review
 - Note in report which automated tools were unavailable
+
+## Verdict persistence (mandatory)
+
+After emitting the verdict envelope, ALSO write it as a machine artifact:
+`.blast/specs/{feature}/verdicts/security.json`
+
+```json
+{
+  "ts": "<ISO-8601 UTC>",
+  "phase": "security",
+  "agent": "<your agent name>",
+  "composition": "<solo | HYBRID | HYBRID_LOCAL | JURY_3_FLASH3>",
+  "verdict": "PASS|WARN|FAIL",
+  "blocking": false,
+  "findings": 0,
+  "findings_detail": ["<one line per finding — falsifiable check included>"],
+  "next_actions": ["<command>"]
+}
+```
+
+Rationale: envelopes in chat transcripts die with the session. The JSON file is what
+`/blast:status --digest`, auto-remediation cycles, and post-hoc audits read. Overwrite on
+re-run (latest verdict wins; history lives in git).

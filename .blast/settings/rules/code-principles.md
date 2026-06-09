@@ -94,4 +94,28 @@ Standard software engineering principles apply. Specific blast enforcements:
 
 - TDD is the default (see agent `impl`), but the unit of testing is **observable behavior**, not
   every private function or line. One test that pins a real contract beats three that pin internals.
-- **Coverage is a 
+- **Coverage is a signal, never a gate.** Do not add tests purely to lift a coverage %. There is no
+  hard ≥80% bar; a meaningful untested path is a gap to fill, trivial glue is not.
+- Test count is not a quality metric. A suite that grows faster than the behavior it covers is debt
+  (`impl` Step 4d audits and prunes this). Prefer fewer, behavioral, durable tests.
+- Every principle above must be testable — if you can't test it, you've overcomplicated it.
+- Tests are documentation: they show intended behavior.
+
+## Review Checklist
+
+Used by agent `review` to score principles. Answer yes/no per question:
+
+- [ ] Does it do one thing well? (SRP, KISS)
+- [ ] Is there duplication that should be extracted? (DRY — with Rule of Three)
+- [ ] Is there abstraction that isn't needed yet? (YAGNI)
+- [ ] Can I understand it without the author explaining? (Clean Code)
+- [ ] Are dependencies injected, not hardcoded? (DIP)
+- [ ] Is the pattern justified by a real problem? (No overengineering)
+- [ ] Are we using current best practices? (SOTA)
+- [ ] Does linter pass with zero violations? (Linting)
+- [ ] Is formatting consistent and automated? (Formatting)
+- [ ] Do all public symbols have Google-style docstrings? (Documentation)
+- [ ] Is the code free of requirement-traceability tags? (No `# Req: N` / `# Requirement` in source — Traceability §5)
+- [ ] Are tests behavioral rather than padding for coverage %? (Testing §6)
+- [ ] Are comments and code that weren't fully understood left untouched? (Surgical Changes — no silent deletion of comments/logic whose intent is unclear)
+- [ ] Were only *your* orphans removed, with pre-existing dead code merely flagged, not deleted? (Surgical Changes)
