@@ -42,21 +42,49 @@ Zmiana defaults: edytuj frontmatter `model:` w `.claude/agents/blast/{agent}.md`
 ## Tiered impl routing (local-first)
 
 `spec-tdd-impl-agent` (Forge) generates code **locally by default**. The code primary is
-`qwen3.6:27b` (dense 27B, GGUF Q4_K_M, 17GB fully on-GPU on the 5090) — SWE-bench Verified
-77.2, the same range as Sonnet 4.6 on agentic coding. Cloud escalation is now the exception,
-not a keyword reflex.
+`qwen3-coder` (17.3G, ~160 tok/s on the 5090). Rationale vs `qwen3.6` (243 tok/s raw): the
+coder profile produces almost no thinking chain, so its EFFECTIVE code throughput is higher —
+thinking tokens are pure waste in a TDD loop. Cloud escalation is the exception, not a
+keyword reflex.
+
+**VRAM residency (RTX 5090, 32G)**: `qwen3-coder` (17.3G) + `lfm2.5` (4.8G) = 22.1G — both
+pinned resident (`keep_alive=-1` in the bridge) with headroom for KV cache. `qwen3.6` (22.3G)
+does NOT co-fit with a second model; it stays a debate juror, never the impl primary. Never
+load a third local model mid-impl — it evicts the resident pair and costs a reload per call.
 
 ```yaml
 spec-tdd-impl-agent:
-  default_model: qwen3.6:27b          # via mcp__blast-llm-bridge__ask_ubuntu_qwen3_coder
-  escalate_to: claude-sonnet-4-6
+  default_model: qwen3-coder          # via mcp__blast-llm-bridge__ask_ubuntu_qwen3_coder
+  draft_model: lfm2.5                 # via mcp__blast-llm-bridge__ask_ubuntu_lfm25 (draft-then-verify, never final code)
+  escalate_local: qwen3-coder-next    # tier 2 — via ask_ubuntu_qwen3_coder_next ($0, slow, deliberate swap)
+  escalate_to: claude-sonnet-4-6      # tier 3 — cloud, last resort
   escalation_triggers:                # ONLY these — async/complexity keywords removed
     - spec_json:
-        security_critical: true       # correctness non-negotiable
+        security_critical: true       # correctness non-negotiable → straight to tier 3 (Sonnet)
     - spec_json:
         complexity_hint: "high"       # AND task has subtle correctness (state cycles, txns, consistency)
-    - local_failed_this_task: true    # local model produced red tests on this exact task → escalate it
+    - local_failed_this_task: true    # red tests on this task → next tier up (coder-next first, then Sonnet)
 ```
+
+**Three-tier ladder** (non-security tasks):
+```
+qwen3-coder (160 tok/s, resident, default)
+  → 2 failed attempts (red tests) → qwen3-coder-next (50 tok/s, $0, CPU offload — deliberate swap)
+    → still red / architectural issue → claude-sonnet (cloud, ~$0.04/task)
+```
+Rationale: coder-next catches a chunk of tasks that previously went straight to cloud.
+The swap costs a model reload (resident pair evicted) — batch tier-2 escalations at the
+END of a wave when possible, never interleave. Target from telemetry: cloud escalation
+rate <10% (was <20% with the two-tier ladder).
+
+### lfm2.5 — mechanical lane (580 tok/s)
+
+`lfm2.5` is a weaker model: **never final code**. Route to it (via `ask_ubuntu_lfm25`):
+- draft-then-verify scaffolding: test boilerplate, fixtures, dataclasses, signatures from
+  design.md — qwen3-coder verifies/corrects the draft (verification is faster than generation)
+- verdict-envelope parsing, debate scratchpad digests, stalemate-similarity checks
+- telemetry summaries for `/blast:learn`, commit-message drafts
+- judge + aggregator in privacy mode (`local-only`), where Haiku is blocked
 
 > ⚠ Spike-4 (2026-05-07) baselines are STALE — they measured the OLD `qwen3-coder:30b`, whose
 > async weakness (composite 2.6/5) drove the now-removed `async`/`asyncio` escalation triggers.
@@ -64,7 +92,7 @@ spec-tdd-impl-agent:
 > keyword triggers without a fresh Spike-4 on the current model.
 
 Cost trade-off per impl phase:
-- Default (local qwen3.6:27b): $0, fully on-GPU, no async carve-out needed
+- Default (local qwen3-coder): $0, fully on-GPU, no async carve-out needed
 - Escalated (sonnet): ~$0.04 per task — reserved for security-critical / demonstrated failure only
 
 Re-validate the new baseline via `/blast:learn --routing` once a few specs have shipped on it.
@@ -199,27 +227,4 @@ debate_config:
   review:
     enabled: true
     trigger: debate_flag          # opt-in: solo Sonnet unless user passes --debate
-    composition: JURY_3_FLASH3
-    cost_ceiling_usd: 1.00
-
-  simplify:
-    enabled: true
-    trigger: high_stakes          # solo Sonnet by default; debate only on auth/payments/schema or explicit --debate
-    composition: HYBRID
-    cost_ceiling_usd: 0.40
-```
-
-Compositions (HYBRID, JURY_3_FLASH3) defined above. **Trigger semantics**:
-- `debate_flag` — opt-in: fire debate ONLY when the calling slash command injected `Debate: true` into the agent prompt (user passed `--debate`). Otherwise run the solo composition from Model routing.
-- `always` — fire debate unconditionally (e.g. security).
-- `high_stakes` — fire only when risk_level=high or security_critical=true.
-
-To **disable** debate for a phase without removing config: set `enabled: false`. To **force always-on**: set `trigger: always`.
-
-### Privacy mode override (`spec.json.privacy: local-only`)
-
-All compositions fall back to local-only via `blast-privacy-gate.py`:
-- jurors → `[qwen3.6:latest, qwen3-coder:30b]` (or `[qwen3.6:latest, qwen3-coder:30b, gpt-oss:latest]` for security)
-- aggregator → `qwen3.6:latest` (Haiku blocked)
-- cost_ceiling_usd → 0.00
-
+    composition

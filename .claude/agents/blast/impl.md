@@ -36,9 +36,17 @@ with `lfm2.5` (mechanical lane, see below) — never trigger a third local model
 The async weakness of the old `qwen3-coder:30b` baseline does not apply to this generation.
 **Escalate to cloud only when there is a concrete high-stakes reason**, not by reflex.
 
-### Decision tree
+### Decision tree (three-tier ladder)
 
-**Escalate to OWN MODEL (Sonnet) ONLY for**:
+```
+qwen3-coder (default, resident)
+  → red tests after 2 attempts → qwen3-coder-next via ask_ubuntu_qwen3_coder_next
+                                  ($0, ~50 tok/s, evicts resident pair — batch these
+                                   at wave end, never interleave with tier-1 tasks)
+    → still red / architecture issue → OWN MODEL (Sonnet)
+```
+
+**Skip the ladder, escalate straight to OWN MODEL (Sonnet) ONLY for**:
 - `spec.json.security_critical == true` (correctness here is non-negotiable)
 - `spec.json.complexity_hint == "high"` AND the task involves subtle correctness
   (state machines with cycles, transactions, eventual consistency, lock ordering)
@@ -121,7 +129,11 @@ For each delegated task:
 5. Decision based on test outcome:
    - All tests pass → log success, mark task [x] in tasks.md, continue to next task
    - 1-2 tests fail → use OWN MODEL to analyze failure + write fix (still TDD cycle)
-   - Many tests fail OR architecture issue → escalate ENTIRE task to OWN MODEL, log "Qwen delegation insufficient for task N — falling back to Sonnet"
+   - Many tests fail after 2 qwen3-coder attempts → **tier 2**: queue the task for
+     `ask_ubuntu_qwen3_coder_next` (same prompt + the failing tests + qwen3-coder's
+     attempt as context). Run queued tier-2 tasks together at wave end (one swap).
+   - Tier 2 also red OR architecture issue → escalate ENTIRE task to OWN MODEL,
+     log "Local ladder exhausted for task N — falling back to Sonnet"
 
 ### Escalation accounting
 
@@ -129,6 +141,7 @@ Track delegation outcomes in implementation summary:
 ```
 Tasks completed: N total
   - Qwen delegated successfully: X
+  - Tier-2 (coder-next) rescued: X2
   - Qwen delegated → Sonnet escalation: Y
   - Sonnet direct (complex/async): Z
 ```

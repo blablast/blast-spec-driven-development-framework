@@ -22,6 +22,8 @@ Tools exposed:
                                co-resident with lfm2.5: 17.3G + 4.8G = 22.1G fits 32G VRAM together)
   ask_ubuntu_lfm25           — lfm2.5 @ Ubuntu/5090 (mechanical workhorse, 4.8G, ~580 tok/s:
                                drafts/scaffolding, envelope parsing, digests, privacy-mode aggregator)
+  ask_ubuntu_qwen3_coder_next — qwen3-coder-next @ Ubuntu/5090 (tier-2 local escalation, 48.2G,
+                               ~50 tok/s w/ CPU offload; deliberate swap, never resident)
   ask_gemini_3_flash_preview — Gemini 3 Flash Preview via Google AI API (cloud juror, multilingual, fast)
 
 VRAM residency policy (RTX 5090, 32G): qwen3-coder + lfm2.5 are pinned (keep_alive=-1) and
@@ -130,6 +132,20 @@ CONFIG = {
                 "dataclasses, signatures — verified by qwen3-coder), verdict-envelope parsing, "
                 "debate scratchpad digests, telemetry summaries, commit-message drafts, and "
                 "judge/aggregator in privacy mode (local-only) where Haiku is blocked."
+            ),
+        },
+        "ask_ubuntu_qwen3_coder_next": {
+            "provider": "ollama",
+            "endpoint": "ubuntu",
+            "model": "qwen3-coder-next",
+            "keep_alive": "5m",     # escalation tier — transient by design, never pinned
+            "num_ctx": 32768,
+            "description": (
+                "Local escalation tier — qwen3-coder-next (48.2G, ~50 tok/s; exceeds 32G VRAM "
+                "so it partially offloads to CPU AND evicts the resident pair when loaded). "
+                "Use ONLY as tier-2 escalation when qwen3-coder produced red tests twice on a "
+                "task — a deliberate swap that buys a stronger local attempt before paying for "
+                "cloud Sonnet. Never use as the default primary; never during parallel waves."
             ),
         },
         "ask_gemini_3_flash_preview": {
