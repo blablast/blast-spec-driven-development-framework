@@ -218,4 +218,17 @@ Sprawdź `.blast/specs/` lub użyj `/blast:status [feature]`.
 
 Przy `/compact` zachowaj:
 
-- Nazwę aktyw
+- Nazwę aktywnego ficzera i `phase` z `.blast/specs/{f}/spec.json`
+- Otwarte taski (`- [ ]` w `tasks.md`) i lessons candidates z retrospekcji (jeśli są)
+- Ostatni run Verification Strategy (test / smoke / e2e + exit codes)
+- Decyzje architektoniczne podjęte w tej sesji
+
+Odrzuć: output `/blast:help`, duplikaty Read, stary kontekst innych feature'ów, pełne tool outputs po tym, jak konkluzja już jest w chacie.
+
+---
+
+@.blast/settings/rules/ai-collaboration.md
+
+---
+
+*blast by Błażej Strus — bo programowanie powinno mieć flow, nie chaos.*

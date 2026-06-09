@@ -219,4 +219,7 @@ To **disable** debate for a phase without removing config: set `enabled: false`.
 ### Privacy mode override (`spec.json.privacy: local-only`)
 
 All compositions fall back to local-only via `blast-privacy-gate.py`:
-- jurors
+- jurors → `[qwen3.6:latest, qwen3-coder:30b]` (or `[qwen3.6:latest, qwen3-coder:30b, gpt-oss:latest]` for security)
+- aggregator → `qwen3.6:latest` (Haiku blocked)
+- cost_ceiling_usd → 0.00
+

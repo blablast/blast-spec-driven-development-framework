@@ -231,4 +231,24 @@ After this your existing root files keep working, blast layers on top.
 ```bash
 gh repo clone blablast/blast-spec-driven-development-framework my-new-project
 cd my-new-project
-rm -rf .git .blast/specs/          
+rm -rf .git .blast/specs/             # drop author's specs (.priv is gitignored, won't be in clone)
+cp .blast/settings/templates/steering/llm-routing.md.template .blast/steering/llm-routing.md
+cp .blast/settings/templates/steering/cost-policy.md.template .blast/steering/cost-policy.md
+git init && git add -A && git commit -m "Initial commit from blast template"
+```
+
+See `.blast/MANIFEST.md` for the full FRAMEWORK / HYBRID / personal classification.
+
+## Requirements
+
+- [Claude Code](https://docs.anthropic.com/en/docs/claude-code) (CLI)
+- Python 3.10+ or Node.js 18+ (depending on your project)
+
+## License
+
+MIT
+
+---
+
+*.blast by Błażej Strus — because coding should have flow, not chaos.*
+                                                    
