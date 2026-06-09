@@ -1,6 +1,6 @@
 ---
 description: "Gdzie jesteśmy? blast pokazuje status i postęp"
-allowed-tools: Bash, Read, Glob, Write, Edit, MultiEdit, Update, mcp__blast-llm-bridge__ask_ubuntu_qwen36
+allowed-tools: Bash, Read, Glob, Write, Edit, MultiEdit, Update, mcp__blast-llm-bridge__ask_ubuntu_qwen36, mcp__blast-llm-bridge__ask_ubuntu_lfm25
 argument-hint: <feature-name>
 ---
 
@@ -9,7 +9,8 @@ argument-hint: <feature-name>
 ## Parse Arguments
 
 Parse `$ARGUMENTS` as a single string:
-- Strip any flags (tokens starting with `-`) — this command has no flags
+- Detect `--digest` flag (boolean — autonomous-runs audit digest, see below)
+- Strip remaining flags
 - Extract feature name from remaining tokens (kebab-case identifier)
 - If empty after stripping → list all specs
 
@@ -17,8 +18,24 @@ Examples:
 ```
 "zoo-garden"     → feature=zoo-garden
 ""               → feature=null (list all specs)
+"--digest"       → digest mode (all specs)
 "zoo-garden -y"  → feature=zoo-garden (flag ignored)
 ```
+
+## Digest mode (`--digest`) — audit instead of supervision
+
+Compensating control for risk-tiered autonomy: the human reviews AFTER the fact what ran
+WITHOUT them. Gather (Bash/Read):
+1. `.blast/logs/auto-approvals.jsonl` — what auto-approved since last digest (count per feature/phase)
+2. `.blast/specs/*/verdicts/*.json` — latest verdicts per phase (PASS/WARN/FAIL + findings)
+3. `.blast/logs/agent-runs.jsonl` — escalation rates (local_ok vs escalated), error rate, debate compositions fired
+4. shipped features since last digest (INVENTORY / spec.json.completed_at)
+
+Then produce a compact digest via the mechanical lane (NOT your own model):
+`mcp__blast-llm-bridge__ask_ubuntu_lfm25(prompt=<raw data + "summarize as 10-line audit digest:
+shipped, auto-approved, verdicts, escalation rate, anomalies">)` — $0, ~580 tok/s.
+If the bridge is down, summarize yourself (shorter). Flag anomalies LOUDLY:
+auto-approved phase followed by FAIL verdict, cloud escalation >10%, security WARN+.
 
 **IMPORTANT**: `$ARGUMENTS` is a single string, NOT positional `$1`. Parse it yourself.
 

@@ -1,7 +1,7 @@
 ---
 name: validate-tasks-agent
 description: Pragmatist — KISS + SOTA review of tasks.md before impl phase commits resources
-tools: Read, Bash, Glob, Grep, WebSearch, Task
+tools: Read, Bash, Glob, Grep, WebSearch, Task, Write
 model: sonnet
 color: cyan
 ---
@@ -158,3 +158,26 @@ Solo Sonnet covers ~80% reviews. Escalate to HYBRID composition (via debate_conf
 Verdict envelope (machine-parseable, mandatory).
 Plus human-readable findings table sorted by severity.
 Plus 1-2 concrete code/structural suggestions per WARNING+.
+
+## Verdict persistence (mandatory)
+
+After emitting the verdict envelope, ALSO write it as a machine artifact:
+`.blast/specs/{feature}/verdicts/validate-tasks.json`
+
+```json
+{
+  "ts": "<ISO-8601 UTC>",
+  "phase": "validate-tasks",
+  "agent": "<your agent name>",
+  "composition": "<solo | HYBRID | HYBRID_LOCAL | JURY_3_FLASH3>",
+  "verdict": "PASS|WARN|FAIL",
+  "blocking": false,
+  "findings": 0,
+  "findings_detail": ["<one line per finding — falsifiable check included>"],
+  "next_actions": ["<command>"]
+}
+```
+
+Rationale: envelopes in chat transcripts die with the session. The JSON file is what
+`/blast:status --digest`, auto-remediation cycles, and post-hoc audits read. Overwrite on
+re-run (latest verdict wins; history lives in git).

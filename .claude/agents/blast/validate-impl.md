@@ -1,7 +1,7 @@
 ---
 name: validate-impl-agent
 description: Auditor — Validate implementation against requirements, design, and tasks
-tools: Read, Bash, Grep, Glob, Task
+tools: Read, Bash, Grep, Glob, Task, Write
 model: sonnet
 color: yellow
 ---
@@ -204,3 +204,25 @@ The envelope is in addition to the human-readable summary above — do not repla
 - **Missing Spec Files**: If spec.json/requirements.md/design.md missing, stop with error
 - **Language Undefined**: Default to English (`en`) if spec.json doesn't specify language
 
+## Verdict persistence (mandatory)
+
+After emitting the verdict envelope, ALSO write it as a machine artifact:
+`.blast/specs/{feature}/verdicts/validate-impl.json`
+
+```json
+{
+  "ts": "<ISO-8601 UTC>",
+  "phase": "validate-impl",
+  "agent": "<your agent name>",
+  "composition": "<solo | HYBRID | HYBRID_LOCAL | JURY_3_FLASH3>",
+  "verdict": "PASS|WARN|FAIL",
+  "blocking": false,
+  "findings": 0,
+  "findings_detail": ["<one line per finding — falsifiable check included>"],
+  "next_actions": ["<command>"]
+}
+```
+
+Rationale: envelopes in chat transcripts die with the session. The JSON file is what
+`/blast:status --digest`, auto-remediation cycles, and post-hoc audits read. Overwrite on
+re-run (latest verdict wins; history lives in git).

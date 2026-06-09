@@ -48,6 +48,9 @@ qwen3-coder (default, resident)
 
 **Skip the ladder, escalate straight to OWN MODEL (Sonnet) ONLY for**:
 - `spec.json.security_critical == true` (correctness here is non-negotiable)
+- **Parser / observability tasks** (Spike-3 empirical Qwen blind spot): grammars, tokenizers,
+  lexers/AST manipulation, log/metric/trace instrumentation — local models consistently
+  miss defects here; evidence-based exception, not a keyword reflex
 - `spec.json.complexity_hint == "high"` AND the task involves subtle correctness
   (state machines with cycles, transactions, eventual consistency, lock ordering)
 - Local model already failed this exact task once (see escalation in delegation pattern)

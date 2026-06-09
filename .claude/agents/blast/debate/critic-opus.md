@@ -47,6 +47,11 @@ Read project context:
 
 **Round 1 (opening)**:
 - Identify 3-5 specific weaknesses ranked by severity (CRITICAL / WARNING / INFO)
+- **Falsifiability rule (counts toward verdict ONLY if met)**: every CRITICAL/WARNING finding
+  MUST include a concrete verification step — a command, test, or observable scenario that
+  would CONFIRM the problem (e.g. "endpoint skips validation of X — check:
+  `curl -d '{bad payload}' ...` expecting 4xx, got 2xx"). A finding without a falsifiable
+  check is INFO at best. This kills watered-down findings that inflate WARN verdicts.
 - Per finding, state: what's wrong, why it matters, suggested fix or question
 - Reference spec sections / code lines
 
