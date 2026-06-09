@@ -270,6 +270,16 @@ When a wave contains 2+ `(P)` tasks, launch them concurrently using the Task too
      - Complete TDD instructions (RED → GREEN → REFACTOR → LINT)
      - Code principles (from `.blast/settings/rules/code-principles.md`)
      - Project file paths, structure context, and linter config
+     - **Local-first delegation instructions** (MANDATORY — parallel sub-agents must NOT
+       bypass tiered routing): the sub-agent generates code via
+       `mcp__blast-llm-bridge__ask_ubuntu_qwen3_coder` exactly like the inline path
+       (same prompt template, same escalation rules: escalate to own model only on
+       red tests / security-critical). Without this instruction every parallel task
+       silently burns Sonnet tokens on work qwen3-coder does for $0.
+   - **Concurrency note (single local GPU)**: parallel sub-agents share one Ollama
+     instance — set `OLLAMA_NUM_PARALLEL=3` on the host (5090) or calls queue
+     serially. With one GPU, `max_parallel` beyond 3 adds little for local-heavy
+     waves (test runs and merges still parallelize; raw generation does not).
    - Each sub-agent works in an **isolated worktree** — no file conflicts between parallel tasks
    - Launch ALL sub-agents for the wave in a **single message** (multiple Task tool calls) to maximize concurrency
 
