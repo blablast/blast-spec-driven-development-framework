@@ -225,4 +225,3 @@ Provide brief summary in the language specified in spec.json:
 - Warn: "Design already exists. Research findings may conflict — review design after research."
 - Proceed and note potential conflicts
 
-                          

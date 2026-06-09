@@ -411,4 +411,57 @@ b. **End-to-end probe** — if Verification Strategy defines one (HTTP request, 
 - Unused imports / dead helpers introduced by 4d's test deletions
 - Whole-feature linter rules that fire only when seen together (e.g., circular imports across files modified in different tasks)
 
-**Scope**: files changed in this impl run, NOT entire re
+**Scope**: files changed in this impl run, NOT entire repo. Compute via:
+```
+git diff --name-only HEAD~$(echo {tasks_count}) HEAD | grep -E '\.(py|ts|tsx|js|jsx)$'
+```
+Fall back to "all files modified during agent execution" if git diff is unhelpful.
+
+**Python projects**:
+```bash
+ruff check --fix <changed-files>
+ruff format <changed-files>
+```
+
+**JS/TS projects**:
+```bash
+npx eslint --fix <changed-files>
+npx prettier --write <changed-files>
+```
+
+**Linter not installed**: install once (`pip install ruff --break-system-packages` or `npm install -D eslint prettier`). If installation fails (offline, no network): emit warning "linter unavailable — skipping final pass" and proceed; do NOT block the impl on tooling.
+
+**Post-format validation** (mandatory):
+1. **Re-run full test suite** — formatting can occasionally break tests that assert on whitespace/line numbers. If red: identify which file's reformat caused the break, revert just that file's format, log it.
+2. **Re-run smoke check from 4a** — confirm imports still resolve after auto-fix may have removed unused imports.
+3. **Coverage spot-check** — if coverage was meaningful before, confirm it's not below the previous threshold by >5%.
+
+**Zero-violations rule**: any remaining ruff/eslint warnings after auto-fix must be addressed before proceeding to user-facing summary. Do NOT add `# noqa` or `// eslint-disable` to silence — fix the underlying issue. Exception: rules listed in `.blast/settings/rules/code-principles.md § Linter Exceptions` (if defined).
+
+**Output**: brief log line — `Final lint: clean ({N} files swept, {M} auto-fixes applied, {K} formatting tweaks)`.
+
+## Critical Constraints
+- **TDD Mandatory**: Tests MUST be written before implementation code
+- **Task Scope**: Implement only what the specific task requires
+- **Test Behavior, not lines**: every behavior the task delivers must have a test; do NOT add tests purely to lift a coverage %
+- **No Regressions**: Existing tests must continue to pass
+- **Coverage**: signal only, never a gate — log it if useful, don't chase a fixed number
+- **Test Relevance** (Step 4d): tests that don't map to requirements/design get audited and either DELETE'd, REFACTOR'd, or flagged as TODO. Brittle pins on implementation detail are not allowed past finalization.
+- **Final Lint Sweep** (Step 4e): cross-task ruff/eslint pass on all changed files. Zero violations required before user-facing summary.
+- **Design Alignment**: Implementation must follow design.md specifications
+- **Code Principles**: Apply ALL rules from `.blast/settings/rules/code-principles.md` — Clean Code, SOLID, KISS, DRY, YAGNI, no overengineering
+- **AI Collaboration**: all 4 Core AI Rules apply (see `@.blast/settings/rules/ai-collaboration.md`); Rule 4 is primary here — TDD is the loop
+- **Linting**: Zero violations from ruff (Python) or ESLint (JS/TS) after every task
+- **Docstrings**: Google-style docstrings on all public functions, classes, methods
+
+## Safety & Fallback
+
+### Error Scenarios
+
+**Tasks Not Approved or Missing Spec Files**:
+- **Stop Execution**: All spec files must exist and tasks must be approved
+- **Suggested Action**: "Complete previous phases: `/blast:requirements`, `/blast:design`, `/blast:tasks`"
+
+**Test Failures**:
+- **Stop Implementation**: Fix failing tests before continuing
+- **Action**: Debug and fix, then re-run
