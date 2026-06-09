@@ -15,6 +15,8 @@ Code is never the first artifact. Every feature passes through `requirements →
 
 **Operational detail:** `.blast/specs/{feature}/spec.json::approvals` and `.claude/hooks/blast-approval-gate.py` enforce this at SDK level — the impl agent cannot start if tasks aren't approved, the tasks agent cannot start if design isn't approved, etc. This is a hard gate, not a guideline.
 
+**Risk-tiered autonomy:** the approval may be satisfied by policy instead of a human, per `spec.json.autonomy`: `low` → all phase gates auto-approve; `medium` → auto-approve when the phase artifact is generated AND deterministic lint (blast-lint-gate.py) does not FAIL; `high` (default) → explicit `/blast:approve` required. Hard cap enforced in the hook: `security_critical: true` or `risk_level: high` forces `high` regardless of the autonomy field. Every auto-approval is appended to `.blast/logs/auto-approvals.jsonl` — append-only audit trail; the human moves from the loop to the audit. Only deterministic checks may block an autonomous pipeline; LLM validators advise (WARN), they do not gate.
+
 **See:** `CLAUDE.md` (pipeline diagram), `.claude/commands/blast/full.md` (orchestrator), `.claude/hooks/blast-approval-gate.py` (gate enforcement).
 
 ---

@@ -12,6 +12,18 @@ Bypasses (allow without checking spec.json):
   - spec-tiny-agent (self-approves all phases as part of its workflow)
   - spec.json has top-level "tiny": true (tiny-spec already self-approved)
 
+Risk-tiered autonomy (spec.json.autonomy: low|medium|high):
+  - "low"    -> auto-approve all phase gates (tiny-class change, no new deps,
+                no migrations, not security-critical)
+  - "medium" -> auto-approve when the prior phase artifact was generated AND
+                deterministic lint does not FAIL (blast-lint-gate.py blocks
+                ERROR-level findings separately)
+  - "high" / missing -> explicit human approval required (current behavior)
+  HARD CAP: security_critical==true or risk_level=="high" forces "high"
+  regardless of the autonomy field — an LLM cannot talk its way past this.
+  Every auto-approval is appended to .blast/logs/auto-approvals.jsonl
+  (append-only audit trail; human reviews after the fact, not in the loop).
+
 Exit codes:
   0 = allow tool call
   2 = block tool call (Claude Code shows stderr to user as error message)
@@ -44,6 +56,36 @@ def log_warn(msg):
 
 def log_block(msg):
     print(f"\n[blast-gate] HARD BLOCK\n{msg}\n", file=sys.stderr)
+
+
+def _audit_auto_approval(spec_path, feature, phase, autonomy, subagent_type):
+    """Append-only audit record for every gate passed without a human.
+
+    The file is the compensating control for removing the human from the loop:
+    .blast/logs/auto-approvals.jsonl - reviewed after the fact (e.g. via
+    /blast:status --digest), never edited or rotated by agents.
+    """
+    import datetime as dt
+    try:
+        # .blast/specs/{feature}/spec.json -> project root is 3 parents up
+        root = spec_path.resolve().parent.parent.parent.parent
+        log_dir = root / ".blast" / "logs"
+        log_dir.mkdir(parents=True, exist_ok=True)
+        record = {
+            "ts": dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "feature": feature,
+            "phase_auto_approved": phase,
+            "autonomy": autonomy,
+            "spawned_agent": subagent_type,
+            "basis": "generated==true + lint gate green",
+        }
+        with (log_dir / "auto-approvals.jsonl").open("a", encoding="utf-8") as f:
+            f.write(json.dumps(record, ensure_ascii=False) + "\n")
+        print(f"[blast-gate] auto-approved {phase} for '{feature}' (autonomy={autonomy}) - audited", file=sys.stderr)
+    except Exception as e:
+        # Audit failure must not block the (legitimately allowed) call,
+        # but make it loud.
+        print(f"[blast-gate] WARN: auto-approval audit write failed ({e})", file=sys.stderr)
 
 
 def main():
@@ -150,6 +192,29 @@ def main():
 
     if approved is True:
         return 0
+
+    # 10b. Risk-tiered autonomy — auto-approve low/medium risk specs.
+    #      HARD CAP: security_critical / risk_level=high always require a human,
+    #      regardless of what the autonomy field claims.
+    autonomy = str(spec.get("autonomy", "high") or "high").lower()
+    if spec.get("security_critical") is True or str(spec.get("risk_level", "")).lower() == "high":
+        autonomy = "high"
+
+    if autonomy in ("low", "medium"):
+        generated = (
+            spec.get("approvals", {}).get(prev_phase, {}).get("generated", False)
+        )
+        if generated is True:
+            # medium additionally relies on blast-lint-gate.py, which has already
+            # blocked this very tool call if lint FAILed (hook order in settings.json).
+            _audit_auto_approval(spec_path, feature, prev_phase, autonomy, subagent_type)
+            return 0
+        log_block(
+            f"autonomy={autonomy} cannot auto-approve '{prev_phase}' for '{feature}': "
+            f"phase artifact not generated yet.\n"
+            f"  Fix: run the {prev_phase} phase first."
+        )
+        return 2
 
     # 11. BLOCK — emit clear remediation
     next_command = {
