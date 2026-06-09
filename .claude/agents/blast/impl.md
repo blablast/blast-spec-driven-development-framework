@@ -467,6 +467,10 @@ npx prettier --write <changed-files>
 
 ## Critical Constraints
 - **TDD Mandatory**: Tests MUST be written before implementation code
+- **Acceptance stubs are in scope**: when `tests/acceptance/test_{feature}.py` exists, each
+  task MUST also implement the acceptance stubs for the requirement IDs it covers
+  (`@pytest.mark.req`) — replace `pytest.fail("acceptance stub ...")` with the real
+  arrange/act/assert. `/blast:complete` hard-gates on all acceptance tests green.
 - **Task Scope**: Implement only what the specific task requires
 - **Test Behavior, not lines**: every behavior the task delivers must have a test; do NOT add tests purely to lift a coverage %
 - **No Regressions**: Existing tests must continue to pass

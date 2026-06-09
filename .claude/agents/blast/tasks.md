@@ -57,7 +57,34 @@ PEERS WHO CORRECT YOU:
 - If sequential mode is true, omit `(P)` entirely
 - If existing tasks.md found, merge with new content
 
-### Step 3: Finalize
+### Step 3: Generate acceptance test stubs (EARS → executable requirements)
+
+EARS criteria are structured (`When X, the system shall Y`) — compile each one into a
+RED acceptance test stub. This makes requirements **executable**: the requirement→test→code
+chain is closed deterministically at /blast:complete (all stubs green), instead of an LLM
+re-reading markdown.
+
+- Target file: `tests/acceptance/test_{feature_snake}.py` (Python/pytest) or
+  `tests/acceptance/{feature}.acceptance.test.ts` (JS/TS) — follow `tech.md::Stack`.
+- For EVERY acceptance criterion `N.M` in requirements.md generate exactly ONE stub:
+  ```python
+  @pytest.mark.req("N.M")
+  def test_req_N_M__{short_slug}():
+      """<EARS clause verbatim>"""
+      # Arrange: <derived from When/While clause>
+      # Act:     <derived from the trigger>
+      # Assert:  <derived from the shall clause>
+      pytest.fail("acceptance stub — implement during /blast:impl")
+  ```
+- One stub per criterion — do NOT invent criteria that aren't in requirements.md.
+- Register the `req` marker (conftest.py / pytest.ini) if not already present.
+- Stubs MUST be RED before impl starts (they fail by construction). Forge fills them
+  in as part of each task's scope; `/blast:complete` hard-gates on: all acceptance
+  tests green AND zero remaining `acceptance stub` markers.
+- Add a final major task to tasks.md: "Acceptance: wszystkie testy akceptacyjne zielone"
+  `[Req: all]` — it is the explicit done-condition for the feature.
+
+### Step 4: Finalize
 
 **Write and update**:
 - Create/update `.blast/specs/{feature}/tasks.md`
