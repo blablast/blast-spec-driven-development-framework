@@ -24,13 +24,15 @@ Tools exposed:
                                drafts/scaffolding, envelope parsing, digests, privacy-mode aggregator)
   ask_ubuntu_qwen3_coder_next — qwen3-coder-next @ Ubuntu/5090 (tier-2 local escalation, 48.2G,
                                ~50 tok/s w/ CPU offload; deliberate swap, never resident)
+  ask_win11_qwen3_coder      — qwen3-coder @ Win11/4090 (parallel debate juror — dual-GPU jury)
   ask_gemini_3_flash_preview — Gemini 3 Flash Preview via Google AI API (cloud juror, multilingual, fast)
 
 VRAM residency policy (RTX 5090, 32G): qwen3-coder + lfm2.5 are pinned (keep_alive=-1) and
 must BOTH stay resident during impl — never load a third local model mid-impl (forces swap).
 
-Win11 wrappers absent — RTX 4090 24 GB cannot host 32B Q4 + KV cache without
-CPU offload. Re-add to CONFIG when hardware permits (>32 GB VRAM or Q3 quants).
+Dual-GPU jury: ask_win11_qwen3_coder runs on the 4090 (192.168.5.70) in parallel
+with 5090 jurors — local debates no longer serialize on one card. qwen3-coder
+(17.3G) fits the 4090's 24G; larger models still don't.
 
 API keys:
   GEMINI_API_KEY — required for ask_gemini_3_flash_preview. Read from os.environ
@@ -92,8 +94,10 @@ _load_dotenv_into_environ()
 CONFIG = {
     "endpoints": {
         "ubuntu": os.environ.get("BLAST_OLLAMA_UBUNTU", "http://192.168.5.60:11434"),
-        # win11 endpoint absent — re-add when 4090 hardware swap or Q3 quants
-        # make 32B models viable (currently CPU offload, ~5 tok/s).
+        # win11/4090 (24G): hosts qwen3-coder (17.3G — fits with KV headroom) as a
+        # PARALLEL debate juror. Dual-GPU jury: qwen3.6 on the 5090 + qwen3-coder on
+        # the 4090 run simultaneously instead of swapping models on one card.
+        "win11": os.environ.get("BLAST_OLLAMA_WIN11", "http://192.168.5.70:11434"),
         "gemini_openai_compat": "https://generativelanguage.googleapis.com/v1beta/openai",
     },
     "models": {
@@ -146,6 +150,20 @@ CONFIG = {
                 "Use ONLY as tier-2 escalation when qwen3-coder produced red tests twice on a "
                 "task — a deliberate swap that buys a stronger local attempt before paying for "
                 "cloud Sonnet. Never use as the default primary; never during parallel waves."
+            ),
+        },
+        "ask_win11_qwen3_coder": {
+            "provider": "ollama",
+            "endpoint": "win11",
+            "model": "qwen3-coder",
+            "keep_alive": "30m",    # warm across a jury cycle
+            "num_ctx": 16384,
+            "description": (
+                "Parallel debate juror — qwen3-coder @ Win11/4090 (17.3G fits 24G VRAM). "
+                "Runs SIMULTANEOUSLY with qwen3.6 on the 5090 in local jury compositions: "
+                "two jurors, two GPUs, zero model swapping. Code-profile critic for "
+                "validate-impl/review debates and privacy-mode juries. If the Win11 host "
+                "is offline the juror is skipped and the jury degrades transparently."
             ),
         },
         "ask_gemini_3_flash_preview": {

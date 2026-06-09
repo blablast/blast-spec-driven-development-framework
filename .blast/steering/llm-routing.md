@@ -171,6 +171,17 @@ HYBRID:
     name: claude-haiku-4-5-20251001
     subagent: debate-aggregator          # spawned via Task tool (uses haiku model)
 
+HYBRID_LOCAL:                            # dual-GPU local jury — privacy mode / $0 validation
+  protocol: B   # parallel jury, N=2 — single message, parallel tool calls
+  jurors:
+    - name: qwen3.6 @ 5090
+      mcp_tool: ask_ubuntu_qwen36       # Ubuntu/5090
+    - name: qwen3-coder @ 4090
+      mcp_tool: ask_win11_qwen3_coder   # Win11/4090 — runs in PARALLEL with the 5090 juror
+  aggregator:
+    name: lfm2.5
+    mcp_tool: ask_ubuntu_lfm25          # mechanical tally, 580 tok/s
+
 JURY_3_FLASH3:
   protocol: B   # parallel jury, N=3 — single message, parallel tool calls
   jurors:
@@ -227,4 +238,30 @@ debate_config:
   review:
     enabled: true
     trigger: debate_flag          # opt-in: solo Sonnet unless user passes --debate
-    composition
+    composition: JURY_3_FLASH3
+    cost_ceiling_usd: 1.00
+
+  simplify:
+    enabled: true
+    trigger: high_stakes          # solo Sonnet by default; debate only on auth/payments/schema or explicit --debate
+    composition: HYBRID
+    cost_ceiling_usd: 0.40
+```
+
+Compositions (HYBRID, HYBRID_LOCAL, JURY_3_FLASH3) defined above. **Trigger semantics**:
+- `debate_flag` — opt-in: fire debate ONLY when the calling slash command injected `Debate: true` into the agent prompt (user passed `--debate`). Otherwise run the solo composition from Model routing.
+- `always` — fire debate unconditionally (e.g. security).
+- `high_stakes` — fire only when risk_level=high or security_critical=true.
+
+To **disable** debate for a phase without removing config: set `enabled: false`. To **force always-on**: set `trigger: always`.
+
+### Privacy mode override (`spec.json.privacy: local-only`)
+
+All compositions fall back to local-only via `blast-privacy-gate.py` → composition `HYBRID_LOCAL`:
+- jurors → `[qwen3.6 @5090 (ask_ubuntu_qwen36), qwen3-coder @4090 (ask_win11_qwen3_coder)]`
+  — **dual-GPU parallel jury**: both jurors run simultaneously, no model swap. If the
+  Win11 host is offline, fall back to `ask_ubuntu_qwen3_coder` (serialized on the 5090).
+  Security adds `gemma4` @5090 as third juror — different corpus for diversity; 16 tok/s
+  is slow but acceptable for a security audit, and ONLY there.
+- aggregator → `lfm2.5` via `ask_ubuntu_lfm25` (Haiku blocked; tallying votes is mechanical)
+- cost_ceiling_usd → 0.00
