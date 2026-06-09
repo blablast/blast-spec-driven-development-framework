@@ -52,6 +52,13 @@ VERDICT_RE = re.compile(
     r"BLOCKING:\s*(?P<blocking>true|false)",
     re.IGNORECASE | re.MULTILINE,
 )
+FINDINGS_RE = re.compile(r"^FINDINGS:\s*(\d+)", re.IGNORECASE | re.MULTILINE)
+# Escalation accounting block emitted by spec-tdd-impl-agent (Forge)
+ESCALATION_RE = re.compile(
+    r"Qwen delegated successfully:\s*(?P<local_ok>\d+).*?"
+    r"Sonnet escalation:\s*(?P<escalated>\d+)",
+    re.IGNORECASE | re.DOTALL,
+)
 FEATURE_RE = re.compile(r"^Feature:\s*([A-Za-z0-9._-]+)\s*$", re.MULTILINE)
 
 
@@ -140,6 +147,32 @@ def main():
 
     verdict, blocking = extract_verdict(result_text)
 
+    findings = None
+    fm2 = FINDINGS_RE.search(result_text) if result_text else None
+    if fm2:
+        try:
+            findings = int(fm2.group(1))
+        except ValueError:
+            findings = None
+
+    # Local->cloud escalation accounting (impl phase only; None elsewhere)
+    local_ok = escalated = None
+    em = ESCALATION_RE.search(result_text) if result_text else None
+    if em:
+        try:
+            local_ok = int(em.group("local_ok"))
+            escalated = int(em.group("escalated"))
+        except ValueError:
+            local_ok = escalated = None
+
+    # Tool-call duration when the event carries it (varies by Claude Code version)
+    duration_ms = None
+    for k in ("duration_ms", "durationMs", "elapsed_ms"):
+        v = event.get(k)
+        if isinstance(v, (int, float)):
+            duration_ms = int(v)
+            break
+
     # Detect gate-blocked: tool_response often has "is_error": true OR
     # text starts with "[blast-gate] HARD BLOCK"
     is_error = bool(tool_response.get("is_error")) if isinstance(tool_response, dict) else False
@@ -155,6 +188,10 @@ def main():
         "result_chars": len(result_text),
         "verdict": verdict,
         "blocking": blocking,
+        "findings": findings,
+        "local_ok": local_ok,
+        "escalated": escalated,
+        "duration_ms": duration_ms,
         "is_error": is_error,
         "gate_blocked": gate_blocked,
     }
@@ -169,7 +206,30 @@ def main():
     return 0
 
 
+def self_test():
+    """Write a probe record so the user can verify hook wiring end-to-end.
+
+    Run manually: python .claude/hooks/blast-telemetry.py --self-test
+    Then check .blast/logs/agent-runs.jsonl for a {"subagent": "self-test"} line.
+    If pipeline runs produce no records while self-test does, the hook command
+    in .claude/settings.json is not firing (check `python` vs `python3` on PATH).
+    """
+    fake = {
+        "tool_name": "Task",
+        "cwd": str(Path(__file__).resolve().parent.parent.parent),
+        "tool_input": {"subagent_type": "self-test", "prompt": "Feature: self-test\n", "description": "telemetry self-test"},
+        "tool_response": {"result": "---VERDICT---\nVERDICT: PASS\nBLOCKING: false\nFINDINGS: 0\n---END---"},
+    }
+    import io
+    sys.stdin = io.StringIO(json.dumps(fake))
+    rc = main()
+    print(f"[blast-telemetry] self-test wrote probe record (rc={rc}) — check .blast/logs/agent-runs.jsonl")
+    return rc
+
+
 if __name__ == "__main__":
+    if "--self-test" in sys.argv:
+        sys.exit(self_test())
     try:
         sys.exit(main())
     except Exception as e:
