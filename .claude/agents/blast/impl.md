@@ -28,12 +28,13 @@ PEERS WHO CORRECT YOU:
 
 Before generating code for each task, classify task complexity and delegate accordingly.
 
-**Local model is the default for code generation.** The local code primary is now
-`qwen3.6:27b` (dense 27B, GGUF Q4_K_M, SWE-bench Verified 77.2 — same range as Sonnet 4.6
-on agentic coding), exposed via `mcp__blast-llm-bridge__ask_ubuntu_qwen3_coder`. This is a
-much stronger model than the old `qwen3-coder:30b` baseline below — the async weakness that
-used to force Sonnet escalation no longer holds for this generation. **Escalate to cloud only
-when there is a concrete high-stakes reason**, not by reflex.
+**Local model is the default for code generation.** The local code primary is
+`qwen3-coder` (17.3G, ~160 tok/s, coder profile — minimal thinking chain, so effective code
+throughput beats the raw-faster `qwen3.6`), exposed via
+`mcp__blast-llm-bridge__ask_ubuntu_qwen3_coder`. It stays pinned resident on the 5090 together
+with `lfm2.5` (mechanical lane, see below) — never trigger a third local model during impl.
+The async weakness of the old `qwen3-coder:30b` baseline does not apply to this generation.
+**Escalate to cloud only when there is a concrete high-stakes reason**, not by reflex.
 
 ### Decision tree
 
@@ -56,6 +57,20 @@ only on demonstrated failure (red tests), not on a keyword match.
 - Boilerplate scaffolding
 - Test fixtures
 - Standard async I/O, workers, queues (the new dense model handles these)
+
+### Draft-then-verify with lfm2.5 (mechanical lane)
+
+For scaffolding-heavy sub-steps — test boilerplate, fixtures, dataclasses, type stubs,
+signatures lifted from design.md — use the fast lane first:
+
+1. `mcp__blast-llm-bridge__ask_ubuntu_lfm25(prompt=scaffold_spec, max_tokens=8192)` — lfm2.5
+   drafts at ~580 tok/s.
+2. Pass the draft to qwen3-coder as context: "Review and correct this scaffold, then complete
+   the implementation" — verification + completion is faster than generation from scratch.
+3. NEVER ship lfm2.5 output as final code without the qwen3-coder pass. lfm2.5 is the weaker
+   model; it buys speed on boilerplate, not correctness.
+
+Skip the draft lane when the task is logic-dense (little boilerplate to draft).
 
 ### Delegation pattern (when using qwen3-coder)
 
@@ -125,7 +140,7 @@ problem). With the dense 27B primary, escalation should be rare.
 ### Empirical baseline (Spike-4, 2026-05-07) — STALE, pending re-run
 
 > ⚠ The numbers below were measured on `qwen3-coder:30b`, the OLD code primary. The current
-> primary is `qwen3.6:27b` (dense, SWE-bench Verified 77.2 ≈ Sonnet 4.6). The async
+> primary is `qwen3-coder` (current generation, 17.3G). The async
 > weakness recorded here is a property of the old model, NOT the current one. **Do not use these
 > numbers to justify async→Sonnet escalation.** Re-run Spike-4 on the new model via
 > `/blast:learn --routing` before trusting any threshold.
@@ -135,7 +150,7 @@ problem). With the dense 27B primary, escalation should be rare.
 - Async (worker pool): qwen3-coder:30b 100% pass BUT composite 2.6/5, looks_correct: false
 
 → Old conclusion (superseded): "never delegate on async" applied to qwen3-coder:30b only.
-→ Current stance: delegate async to the dense 27B primary; escalate only on demonstrated red tests.
+→ Current stance: delegate async to the current qwen3-coder primary; escalate only on demonstrated red tests.
 
 ### When tiered routing is OVERRIDDEN
 

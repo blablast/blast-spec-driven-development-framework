@@ -16,10 +16,16 @@ Environment variables (override config):
 
 
 Tools exposed:
-  ask_ubuntu_qwen36          — qwen3.6:latest @ Ubuntu/5090 (general critic, ~24s warm @ 177 tok/s)
-  ask_ubuntu_qwen3_coder     — qwen3.6:27b @ Ubuntu/5090 (code primary, dense 27B GGUF Q4_K_M,
-                               SWE-bench Verified 77.2 ≈ Sonnet 4.6; 17GB fully on-GPU, fast)
+  ask_ubuntu_qwen36          — qwen3.6 @ Ubuntu/5090 (general critic, ~243 tok/s raw, thinking-heavy)
+  ask_ubuntu_qwen3_coder     — qwen3-coder @ Ubuntu/5090 (code primary, 17.3G, ~160 tok/s,
+                               coder profile = minimal thinking → highest EFFECTIVE code throughput;
+                               co-resident with lfm2.5: 17.3G + 4.8G = 22.1G fits 32G VRAM together)
+  ask_ubuntu_lfm25           — lfm2.5 @ Ubuntu/5090 (mechanical workhorse, 4.8G, ~580 tok/s:
+                               drafts/scaffolding, envelope parsing, digests, privacy-mode aggregator)
   ask_gemini_3_flash_preview — Gemini 3 Flash Preview via Google AI API (cloud juror, multilingual, fast)
+
+VRAM residency policy (RTX 5090, 32G): qwen3-coder + lfm2.5 are pinned (keep_alive=-1) and
+must BOTH stay resident during impl — never load a third local model mid-impl (forces swap).
 
 Win11 wrappers absent — RTX 4090 24 GB cannot host 32B Q4 + KV cache without
 CPU offload. Re-add to CONFIG when hardware permits (>32 GB VRAM or Q3 quants).
@@ -94,18 +100,36 @@ CONFIG = {
             "provider": "ollama",
             "endpoint": "ubuntu",
             "model": "qwen3.6:latest",
-            "description": "General critic — Qwen3.6 35B-A3B MoE (Claude-class quality, ~20s warm). Use for validate-design role. Default primary critic.",
+            "description": "General critic — qwen3.6 (22.3G, ~243 tok/s raw, thinking-heavy: effective output slower than raw). Juror/critic for debates and validate-design. NOT the impl code primary (that is qwen3-coder) — loading it during impl evicts the resident pair.",
         },
         "ask_ubuntu_qwen3_coder": {
             "provider": "ollama",
             "endpoint": "ubuntu",
-            "model": "qwen3.6:27b",
+            "model": "qwen3-coder",
+            "keep_alive": -1,       # pinned resident — impl code primary
+            "num_ctx": 32768,
             "description": (
-                "Code primary — Qwen3.6-27B dense (GGUF Q4_K_M, 17GB, fully on-GPU on the 5090). "
-                "SWE-bench Verified 77.2 (≈ Sonnet 4.6 on agentic coding). "
-                "Default code generator for spec-tdd-impl-agent (Forge) and code critic for validate-impl/review. "
-                "Already installed (digest a50eda8ed977). NVFP4/MXFP8 variants are MLX-only (macOS) — "
-                "do NOT use on Linux. Tool name kept for backward compat."
+                "Code primary — qwen3-coder (17.3G, ~160 tok/s on the 5090). Coder profile: "
+                "minimal thinking overhead → highest EFFECTIVE code throughput (qwen3.6 has higher "
+                "raw tok/s but burns it on reasoning chains — pure waste in a TDD loop). "
+                "Default code generator for spec-tdd-impl-agent (Forge) and code critic for "
+                "validate-impl/review. Co-resident with lfm2.5 (22.1G total < 32G VRAM). "
+                "Tool name kept for backward compat."
+            ),
+        },
+        "ask_ubuntu_lfm25": {
+            "provider": "ollama",
+            "endpoint": "ubuntu",
+            "model": "lfm2.5",
+            "keep_alive": -1,       # pinned resident — mechanical workhorse
+            "num_ctx": 8192,        # small KV cache: leaves VRAM headroom for qwen3-coder ctx
+            "default_max_tokens": 8192,
+            "description": (
+                "Mechanical workhorse — lfm2.5 (4.8G, ~580 tok/s). WEAKER model: never use for "
+                "final code. Roles: draft-then-verify scaffolding (test boilerplate, fixtures, "
+                "dataclasses, signatures — verified by qwen3-coder), verdict-envelope parsing, "
+                "debate scratchpad digests, telemetry summaries, commit-message drafts, and "
+                "judge/aggregator in privacy mode (local-only) where Haiku is blocked."
             ),
         },
         "ask_gemini_3_flash_preview": {
@@ -201,19 +225,22 @@ async def _call_ollama(name: str, entry: dict, arguments: dict[str, Any]) -> lis
     # qwen3.6:latest is a thinking model — reasoning chain consumes the budget before output.
     # Default is 32k to give 8x headroom over the spike-3 fix (16k). Local model = zero token cost,
     # latency only on actually generated tokens (model stops at natural completion).
-    max_tokens = arguments.get("max_tokens", 32768)
+    max_tokens = arguments.get("max_tokens", entry.get("default_max_tokens", 32768))
 
-    # Build Ollama API payload
+    # Build Ollama API payload. keep_alive: pinned residents (qwen3-coder, lfm2.5) use -1,
+    # transient jurors default to 30m (warm across a jury cycle).
     payload = {
         "model": model,
         "prompt": prompt,
         "stream": False,
-        "keep_alive": "30m",  # keep model warm across jury cycle (validate-* calls bridge ~3x in a row)
+        "keep_alive": entry.get("keep_alive", "30m"),
         "options": {
             "num_predict": max_tokens,
-            "think": False,   # disable Qwen3 reasoning chain — we want the answer, not the working
+            "think": False,   # disable reasoning chain — we want the answer, not the working
         },
     }
+    if entry.get("num_ctx"):
+        payload["options"]["num_ctx"] = entry["num_ctx"]
     if system:
         payload["system"] = system
 
