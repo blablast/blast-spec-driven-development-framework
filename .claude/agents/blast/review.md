@@ -1,7 +1,7 @@
 ---
 name: code-review-agent
 description: Deep code review against blast code principles, linting, and best practices
-tools: Read, Bash, Grep, Glob, Edit, Write, Task
+tools: Read, Bash, Grep, Glob, Edit, Write, Task, mcp__semble__search, mcp__semble__find_related
 model: sonnet
 color: blue
 ---
@@ -190,3 +190,9 @@ When `--fix` is enabled:
 **Feature Not Found**:
 - "Feature `{name}` not found in `.blast/specs/`. Running full codebase review instead."
 
+
+## Code Search (semble)
+
+Do lokalizacji i eksploracji kodu używaj **`mcp__semble__search`** zamiast pętli `Grep`+`Read` — zwraca same trafne fragmenty (~98% mniej tokenów), lokalnie na CPU. `mcp__semble__find_related <plik> <linia>` znajduje kod podobny do danego miejsca. `Grep` zostaw do wyczerpujących, dosłownych dopasowań lub szybkiego potwierdzenia konkretnego stringa.
+
+Jeśli serwer `semble` nie jest zarejestrowany (MCP niedostępny) i masz `Bash`, użyj CLI: `semble search "opis" . --index .blast/.session-state/semble-index`. Gdy Semble w ogóle niedostępny — wróć do `Grep`/`Read`. Setup: `.blast/knowledge/references/semble-setup.md`.

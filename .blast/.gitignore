@@ -1,0 +1,14 @@
+# ── blast framework — nested .gitignore (ships inside .blast/) ──
+# Ignores blast's own runtime state and local secrets WITHOUT touching the
+# host project's root .gitignore. Git applies nested .gitignore files
+# additively, so dropping `.blast/` into any repo "just works".
+
+# Local secrets for blast's MCP bridge (GEMINI_API_KEY etc.) — never commit
+.env
+.env.local
+
+# Per-session runtime state — never commit
+.session-state/
+
+# Agent telemetry log — never commit
+logs/agent-runs.jsonl

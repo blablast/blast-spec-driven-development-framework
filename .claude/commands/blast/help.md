@@ -267,7 +267,7 @@ curl -sSL https://raw.githubusercontent.com/blablast/blast-spec-driven-developme
 python .claude/scripts/blast-init.py my-project [--here] [--no-git] [--branch=main] [--from=URL]
 ```
 
-`blast init` clones the template, wipes the author's specs/code/INVENTORY/CHANGELOG/memory (note: `.priv/` is gitignored so it never ships in the first place), resets steering files to clean stubs, copies `.blast/.env.example` → `.env` (secrets blank), and runs `git init` with an initial commit. The result is a fresh blast scaffold ready for `/blast:steering` + `/blast:init <feature>`.
+`blast init` clones the template, wipes the author's specs/code/INVENTORY/CHANGELOG/memory (note: `.priv/` is gitignored so it never ships in the first place), resets steering files to clean stubs, copies `.blast/.env.example` → `.blast/.env` (secrets blank), and runs `git init` with an initial commit. The result is a fresh blast scaffold ready for `/blast:steering` + `/blast:init <feature>`.
 
 ## Setup before first run
 
@@ -277,8 +277,8 @@ Działa od razu — Claude Code subscription wystarczy. Pipeline (init→complet
 ### Multi-LLM (HYBRID, JURY_3_FLASH3, privacy mode)
 
 ```bash
-cp .blast/.env.example .env             # wypełnij klucze które chcesz
-set -a; source .env; set +a
+cp .blast/.env.example .blast/.env      # wypełnij klucze które chcesz
+set -a; source .blast/.env; set +a
 # Restart Claude Code (MCP bridge re-reads env)
 /blast:ping-llm                  # smoke test
 ```

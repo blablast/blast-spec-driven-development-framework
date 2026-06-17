@@ -14,7 +14,18 @@ When updating shared information, edit the canonical source — never duplicate.
 - **Spec schema (`spec.json` fields, `phase`/`status` enums)** → `.blast/settings/templates/specs/init.json`
 - **Approval / privacy / telemetry gate logic** → `.claude/hooks/blast-*.py`
 - **Persona names + agent contracts** → `.claude/agents/blast/*.md` frontmatter + body
-- **Pipeline phases (canonical order)** → `CLAUDE.md::Pipeline` (replicated to README, help; sync manually if changed)
+- **Pipeline phases (canonical order)** → `.blast/CLAUDE.snippet.md::Pipeline` (auto-loaded via `.claude/CLAUDE.md`; replicated to README, help; sync manually if changed)
+
+## Drop-in guarantee (root stays clean)
+
+blast requires **zero** required files at the repo root. Everything lives inside the `.blast/` and `.claude/` namespaces, so integrating with an existing project is literally: copy `.blast/` and `.claude/`, done.
+
+- **AI instructions** auto-load from `.claude/CLAUDE.md` (Claude Code loads both `./CLAUDE.md` and `./.claude/CLAUDE.md` additively — your root `CLAUDE.md`, if any, is untouched).
+- **Secrets** live in `.blast/.env` (the bridge reads it; legacy root `.env` still works as fallback).
+- **gitignore** is nested (`.blast/.gitignore` + `.claude/.gitignore`) — git applies them additively, no root edit.
+- **MCP bridge** is the only thing Claude Code can read *only* from root `.mcp.json` — and it is **optional** (local Ollama). Merge `.blast/.mcp.json.snippet` or `claude mcp add` if you want it; without it blast runs cloud-only.
+- **Code search (semble)** — optional local code-search MCP (`semble`), registered the same way (`claude mcp add semble -s user -- uvx --from "semble[mcp]" semble`, or via `.blast/.mcp.json.snippet`). Agents prefer `mcp__semble__search` over grep+read (~98% fewer tokens) and fall back to grep when it is absent. Setup: `.blast/knowledge/references/semble-setup.md`.
+- Anything at the repo root (e.g. `README.md`) is **informational only**.
 
 ## FRAMEWORK — universal blast (ship as-is)
 
@@ -41,11 +52,12 @@ Te pliki SĄ częścią blast'a. Każdy klonujący repo dostaje je 1:1.
 .blast/knowledge/sota/                                 — curated SOTA recommendations per domain (FRAMEWORK; refreshed via /blast:learn --refresh-sota)
 .blast/{specs,steering}/.gitkeep                       — empty dir markers (populated per project)
 
-README.md                                              — top-level readme + Setup + blast-init one-liner
-CLAUDE.md                                              — AI instructions (template version)
-.blast/.env.example                                           — env vars template (incl. GEMINI_API_KEY for JURY_3_FLASH3)
-.gitignore
-.mcp.json                                              — MCP bridge registration
+README.md                                              — top-level readme (informational only — no wiring needed)
+.claude/CLAUDE.md                                      — auto-loaded include stub → @../.blast/CLAUDE.snippet.md
+.blast/CLAUDE.snippet.md                               — framework AI instructions (single source of truth)
+.blast/.env.example                                    — env vars template (incl. GEMINI_API_KEY for JURY_3_FLASH3)
+.blast/.gitignore + .claude/.gitignore                 — nested, additive (no root .gitignore edit needed)
+.blast/.mcp.json.snippet                               — OPTIONAL bridge entry (merge into root .mcp.json, or `claude mcp add`)
 .blast/MANIFEST.md                                     — this file (framework manifest)
 ```
 

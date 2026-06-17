@@ -13,7 +13,7 @@ allowed-tools: Read, Task, Glob
 
 Use Grep to check if ANY of `product.md`, `tech.md`, `structure.md` contains the stub marker `<!-- BLAST_STUB: fresh scaffold from \`blast init\` -->`. If yes → **Bootstrap Mode (fresh scaffold)**.
 
-This catches the post-`blast init` state where files exist (so the legacy "files exist → sync" rule misfires) but content is still placeholder. Steward MUST ask the user about purpose/stack/structure rather than infer from `.blast/MANIFEST.md` / `.blast/CONSTITUTION.md` / `.blast/CLAUDE.snippet.md` — those are framework reference, not project signals. Root `CLAUDE.md` is user content but starts as a minimal include-stub; its `## Project-specific notes` only counts after the user fills it in.
+This catches the post-`blast init` state where files exist (so the legacy "files exist → sync" rule misfires) but content is still placeholder. Steward MUST ask the user about purpose/stack/structure rather than infer from `.blast/MANIFEST.md` / `.blast/CONSTITUTION.md` / `.blast/CLAUDE.snippet.md` — those are framework reference, not project signals. Root `CLAUDE.md` (if present) is purely the user's project file — blast's own instructions live in `.claude/CLAUDE.md`, so any root `CLAUDE.md` content CAN inform steering.
 
 ### Step 2: Empty/missing core files
 
@@ -25,7 +25,7 @@ If no stub marker but `product.md` / `tech.md` / `structure.md` is missing OR ha
 
 ### Step 4: Fresh-scaffold safety check (Bootstrap Mode only)
 
-If Bootstrap Mode triggered AND the project has BOTH `CLAUDE.md` AND `.blast/CONSTITUTION.md` AND no `src/` AND `.blast/specs/` is empty → flag `BOOTSTRAP_REASON=fresh-scaffold` in subagent prompt. Steward will switch to ASK mode (5–7 user questions) and explicitly ignore framework metadata files.
+If Bootstrap Mode triggered AND the project has `.blast/CONSTITUTION.md` AND no `src/` AND `.blast/specs/` is empty → flag `BOOTSTRAP_REASON=fresh-scaffold` in subagent prompt. Steward will switch to ASK mode (5–7 user questions) and explicitly ignore framework metadata files.
 
 ## Invoke Subagent
 
@@ -48,7 +48,7 @@ File patterns to read:
 
 If Bootstrap reason = fresh-scaffold:
   - Files exist with BLAST_STUB markers — content is placeholder, NOT user data
-  - DO NOT infer project description from CLAUDE.md, .blast/CONSTITUTION.md, or any other framework file
+  - DO NOT infer project description from .claude/CLAUDE.md, .blast/CLAUDE.snippet.md, .blast/CONSTITUTION.md, or any other framework file
   - DO ask the user 5–7 short questions (purpose, target audience, stack, key dependencies, conventions, deployment, integrations)
   - Stack Fingerprint: still try filesystem detection first (.python-version, package.json, etc.) but fall back to ASK rather than guess from framework allow-lists
 

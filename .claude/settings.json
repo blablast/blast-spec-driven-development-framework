@@ -43,6 +43,17 @@
     ]
   },
   "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python .claude/scripts/blast-mcp-check.py"
+          }
+        ]
+      }
+    ],
     "PreToolUse": [
       {
         "matcher": "^(Agent|Task)$",

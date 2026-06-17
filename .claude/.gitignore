@@ -1,0 +1,6 @@
+# ── blast framework — nested .gitignore (ships inside .claude/) ──
+# Keeps per-machine local settings out of version control without requiring
+# any edit to the host project's root .gitignore.
+
+# Claude Code per-machine local settings (never commit)
+settings.local.json

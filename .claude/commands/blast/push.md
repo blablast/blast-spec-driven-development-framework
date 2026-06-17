@@ -61,7 +61,7 @@ Stage, commit, and push changes related to a feature (or all uncommitted changes
 - Stage test files for the feature
 - Stage `.blast/specs/{feature}/` — spec files
 - Stage `.blast/steering/` — if updated by `/blast:complete` or `/blast:steering`
-- Stage `CLAUDE.md` if modified
+- Stage `CLAUDE.md` and `.claude/CLAUDE.md` if modified
 
 **Full scope** (no feature):
 - Stage all modified/new files except skipped patterns

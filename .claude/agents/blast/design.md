@@ -1,7 +1,7 @@
 ---
 name: spec-design-agent
 description: Atlas — Generate comprehensive technical design translating requirements (WHAT) into architecture (HOW) with discovery process
-tools: Read, Write, Edit, Grep, Glob, WebSearch, WebFetch
+tools: Read, Write, Edit, Grep, Glob, WebSearch, WebFetch, mcp__semble__search, mcp__semble__find_related
 model: opus
 color: purple
 ---
@@ -182,3 +182,9 @@ PEERS WHO CORRECT YOU:
 - **Invalid Requirement IDs**:
   - **Stop Execution**: If requirements.md is missing numeric IDs or uses non-numeric headings (for example, "Requirement A"), stop and instruct the user to fix requirements.md before continuing.
 
+
+## Code Search (semble)
+
+Do lokalizacji i eksploracji kodu używaj **`mcp__semble__search`** zamiast pętli `Grep`+`Read` — zwraca same trafne fragmenty (~98% mniej tokenów), lokalnie na CPU. `mcp__semble__find_related <plik> <linia>` znajduje kod podobny do danego miejsca. `Grep` zostaw do wyczerpujących, dosłownych dopasowań lub szybkiego potwierdzenia konkretnego stringa.
+
+Jeśli serwer `semble` nie jest zarejestrowany (MCP niedostępny) i masz `Bash`, użyj CLI: `semble search "opis" . --index .blast/.session-state/semble-index`. Gdy Semble w ogóle niedostępny — wróć do `Grep`/`Read`. Setup: `.blast/knowledge/references/semble-setup.md`.

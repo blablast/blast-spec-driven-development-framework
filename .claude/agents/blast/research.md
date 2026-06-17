@@ -1,7 +1,7 @@
 ---
 name: research-spike-agent
 description: Oracle — Research and spike investigations — explore options, compare approaches, produce structured findings
-tools: Read, Bash, Grep, Glob, WebSearch, WebFetch, Write, Edit, mcp__blast-llm-bridge__ask_ubuntu_qwen36
+tools: Read, Bash, Grep, Glob, WebSearch, WebFetch, Write, Edit, mcp__blast-llm-bridge__ask_ubuntu_qwen36, mcp__semble__search, mcp__semble__find_related
 model: sonnet
 color: green
 ---
@@ -228,3 +228,9 @@ Provide brief summary in the language specified in spec.json:
 - Warn: "Design already exists. Research findings may conflict — review design after research."
 - Proceed and note potential conflicts
 
+
+## Code Search (semble)
+
+Do lokalizacji i eksploracji kodu używaj **`mcp__semble__search`** zamiast pętli `Grep`+`Read` — zwraca same trafne fragmenty (~98% mniej tokenów), lokalnie na CPU. `mcp__semble__find_related <plik> <linia>` znajduje kod podobny do danego miejsca. `Grep` zostaw do wyczerpujących, dosłownych dopasowań lub szybkiego potwierdzenia konkretnego stringa.
+
+Jeśli serwer `semble` nie jest zarejestrowany (MCP niedostępny) i masz `Bash`, użyj CLI: `semble search "opis" . --index .blast/.session-state/semble-index`. Gdy Semble w ogóle niedostępny — wróć do `Grep`/`Read`. Setup: `.blast/knowledge/references/semble-setup.md`.

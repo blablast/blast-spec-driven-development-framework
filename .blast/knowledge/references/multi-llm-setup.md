@@ -225,9 +225,9 @@ Source: `.blast/.env.example` na repo root. Skopiuj do `.env`, wypełnij, source
 ### Activation flow
 
 ```bash
-cp .blast/.env.example .env
-# Edit .env: fill in the keys you actually need
-set -a; source .env; set +a
+cp .blast/.env.example .blast/.env
+# Edit .blast/.env: fill in the keys you actually need
+set -a; source .blast/.env; set +a
 # Restart Claude Code so MCP bridge picks up env vars on stdio reconnect
 ```
 

@@ -1,7 +1,7 @@
 ---
 name: validate-impl-agent
 description: Auditor — Validate implementation against requirements, design, and tasks
-tools: Read, Bash, Grep, Glob, Task, Write
+tools: Read, Bash, Grep, Glob, Task, Write, mcp__semble__search, mcp__semble__find_related
 model: sonnet
 color: yellow
 ---
@@ -226,3 +226,9 @@ After emitting the verdict envelope, ALSO write it as a machine artifact:
 Rationale: envelopes in chat transcripts die with the session. The JSON file is what
 `/blast:status --digest`, auto-remediation cycles, and post-hoc audits read. Overwrite on
 re-run (latest verdict wins; history lives in git).
+
+## Code Search (semble)
+
+Do lokalizacji i eksploracji kodu używaj **`mcp__semble__search`** zamiast pętli `Grep`+`Read` — zwraca same trafne fragmenty (~98% mniej tokenów), lokalnie na CPU. `mcp__semble__find_related <plik> <linia>` znajduje kod podobny do danego miejsca. `Grep` zostaw do wyczerpujących, dosłownych dopasowań lub szybkiego potwierdzenia konkretnego stringa.
+
+Jeśli serwer `semble` nie jest zarejestrowany (MCP niedostępny) i masz `Bash`, użyj CLI: `semble search "opis" . --index .blast/.session-state/semble-index`. Gdy Semble w ogóle niedostępny — wróć do `Grep`/`Read`. Setup: `.blast/knowledge/references/semble-setup.md`.

@@ -60,14 +60,19 @@ from mcp.types import Tool, TextContent
 # === .env loader (no python-dotenv dependency) ===
 
 def _load_dotenv_into_environ() -> None:
-    """Load KEY=VALUE pairs from .env in cwd into os.environ if not already set.
+    """Load KEY=VALUE pairs from blast's .env into os.environ if not already set.
 
     Bridge is started by Claude Code which doesn't auto-load .env. This lets
-    GEMINI_API_KEY (and similar) live in the project's .env file (gitignored)
+    GEMINI_API_KEY (and similar) live in blast's own env file (gitignored)
     without forcing the user to export it system-wide or duplicate it in .mcp.json.
+    Looks in `.blast/.env` first (namespaced), then legacy root `.env`.
     """
-    env_path = os.path.join(os.getcwd(), ".env")
-    if not os.path.exists(env_path):
+    # Lookup order (first hit wins): `.blast/.env` (namespaced — keeps blast's
+    # env out of the host project's root) then legacy root `.env` (back-compat).
+    cwd = os.getcwd()
+    candidates = [os.path.join(cwd, ".blast", ".env"), os.path.join(cwd, ".env")]
+    env_path = next((c for c in candidates if os.path.exists(c)), None)
+    if env_path is None:
         return
     try:
         with open(env_path, "r", encoding="utf-8") as f:

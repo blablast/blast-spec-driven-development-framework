@@ -35,7 +35,7 @@ The slash command `/blast:steering` performs deterministic detection BEFORE invo
 If `Mode: bootstrap` AND `Bootstrap reason: fresh-scaffold`:
 - Treat steering files as not-yet-populated despite their on-disk presence
 - The stub marker line `<!-- BLAST_STUB: ... -->` confirms it
-- Do NOT read project description out of `.blast/MANIFEST.md`, `.blast/CLAUDE.snippet.md`, or `.blast/CONSTITUTION.md` — those are framework reference shipped by `blast init`, NOT user content. Root `CLAUDE.md` IS user content but starts as a minimal include stub — only inform if the user has filled in `## Project-specific notes`.
+- Do NOT read project description out of `.blast/MANIFEST.md`, `.blast/CLAUDE.snippet.md`, or `.blast/CONSTITUTION.md` — those are framework reference shipped by `blast init`, NOT user content. Root `CLAUDE.md` IS user content (blast's own instructions live in `.claude/CLAUDE.md`, not in root `CLAUDE.md`) — inform from it if present.
 - Drop into the ASK flow described in `Bootstrap Flow > Step 2.5` below
 
 ---
@@ -51,7 +51,7 @@ If `Bootstrap reason: greenfield` → run filesystem inference normally; ask onl
 
 ### Step 2.5 — ASK Flow (fresh-scaffold only)
 
-When the slash command signaled `Bootstrap reason: fresh-scaffold`, the user just ran `blast init` and has no project content yet. Inferring purpose from `.blast/CLAUDE.snippet.md` / `.blast/MANIFEST.md` / `.blast/CONSTITUTION.md` would describe the framework, not the project. Root `CLAUDE.md` at fresh-scaffold is just an include stub and won't help either. Instead, ask 5–7 concise questions and use the answers to populate steering. Use the `AskUserQuestion` tool if available; otherwise ask in plain text and wait for the response.
+When the slash command signaled `Bootstrap reason: fresh-scaffold`, the user just ran `blast init` and has no project content yet. Inferring purpose from `.blast/CLAUDE.snippet.md` / `.blast/MANIFEST.md` / `.blast/CONSTITUTION.md` would describe the framework, not the project. Root `CLAUDE.md` at fresh-scaffold is absent (blast's instructions live in `.claude/CLAUDE.md`), so it won't help either. Instead, ask 5–7 concise questions and use the answers to populate steering. Use the `AskUserQuestion` tool if available; otherwise ask in plain text and wait for the response.
 
 **Core questions** (always ask):
 1. **Purpose** — what does this project do? Who is it for?

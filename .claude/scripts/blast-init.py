@@ -17,9 +17,9 @@ What it does:
     1. Validates target directory (must be empty or non-existent unless --here)
     2. git clones the template repo (default: github.com/blablast/blast-spec-driven-development-framework) into target
     3. Removes the template's .git history
-    4. Cleans personal artefacts (specs/*, INVENTORY entries, src/*, tests/*, .env, etc.)
+    4. Cleans personal artefacts (specs/*, INVENTORY entries, src/*, tests/*, .blast/.env, etc.)
     5. Resets steering files to clean stubs (product.md / tech.md / structure.md / INVENTORY.md)
-    6. Creates a fresh .env at repo root from .blast/.env.example (with secrets blank)
+    6. Creates a fresh .blast/.env from .blast/.env.example (with secrets blank)
     7. Initializes a fresh git repo (unless --no-git)
     8. Prints next-step guidance
 
@@ -57,7 +57,7 @@ WIPE_PATHS = [
     "tests/",
     "CHANGELOG.md",
     "memory/",
-    ".env",
+    ".blast/.env",
     ".priv/",
     ".blast/MANIFEST.md",  # framework distribution metadata; user-project does not need the meta-doc
 ]
@@ -209,9 +209,10 @@ Code is never the first artifact. First you know WHAT, then HOW, then you implem
 
 def apply_claude_template(dest: Path, project_name: str) -> None:
     """Substitute author-specific framing in CLAUDE.md with project-neutral wording."""
-    claude_md = dest / "CLAUDE.md"
+    # Author framing now lives in .blast/CLAUDE.snippet.md (auto-loaded via .claude/CLAUDE.md).
+    claude_md = dest / ".blast" / "CLAUDE.snippet.md"
     if not claude_md.exists():
-        log("CLAUDE.md not found in scaffold; skipping template patch.", "warn")
+        log(".blast/CLAUDE.snippet.md not found in scaffold; skipping template patch.", "warn")
         return
 
     content = claude_md.read_text(encoding="utf-8")
@@ -343,17 +344,17 @@ def reset_steering(dest: Path, project_name: str) -> None:
 
 
 def create_env_from_example(dest: Path) -> None:
-    """Create root .env from .blast/.env.example (post-namespace refactor)."""
+    """Create .blast/.env from .blast/.env.example (namespaced — keeps blast env out of repo root)."""
     src = dest / ".blast" / ".env.example"
-    dst = dest / ".env"
+    dst = dest / ".blast" / ".env"
     if not src.exists():
         log(".blast/.env.example not found; skipping .env scaffold.", "warn")
         return
     if dst.exists():
-        log(".env already exists; not overwriting.", "warn")
+        log(".blast/.env already exists; not overwriting.", "warn")
         return
     shutil.copy(src, dst)
-    log("Created .env from .blast/.env.example (populate secrets manually).", "ok")
+    log("Created .blast/.env from .blast/.env.example (populate secrets manually).", "ok")
 
 
 def init_fresh_git(dest: Path) -> None:
@@ -379,7 +380,7 @@ def print_next_steps(dest: Path, project_name: str) -> None:
     print(f"  cd {dest}")
     print()
     print("  # 1. Populate secrets if you'll use multi-LLM debate:")
-    print("  #    edit .env -> set GEMINI_API_KEY (for JURY_3_FLASH3 third juror)")
+    print("  #    edit .blast/.env -> set GEMINI_API_KEY (for JURY_3_FLASH3 third juror)")
     print("  #    set BLAST_OLLAMA_UBUNTU if you have a local Ollama host")
     print()
     print("  # 2. Open in Claude Code (or your IDE) and run:")

@@ -67,7 +67,17 @@ blast wymusza zasady Clean Code, SOLID, KISS, DRY, YAGNI, odpowiednie wzorce pro
 - Myśl po angielsku, odpowiadaj po angielsku. Cała treść Markdown zapisywana do plików projektowych (np. requirements.md, design.md, tasks.md, research.md, raporty walidacyjne) MUSI być napisana w języku docelowym skonfigurowanym dla danej specyfikacji (patrz spec.json.language).
 - Postępuj zgodnie z instrukcjami użytkownika i w ich zakresie działaj autonomicznie: zbieraj potrzebny kontekst i realizuj zadanie od A do Z, pytając tylko wtedy gdy brakuje krytycznych informacji.
 - Stosuj zasady z `.blast/settings/rules/code-principles.md` na etapie designu i implementacji.
-- **Core AI Rules** (załadowane na końcu tego pliku via `@.blast/settings/rules/ai-collaboration.md`) mają pierwszeństwo przed domyślnym "helpful" zachowaniem modelu.
+- **Core AI Rules** (załadowane na końcu tego pliku via `@settings/rules/ai-collaboration.md`, ścieżka relatywna względem `.blast/`) mają pierwszeństwo przed domyślnym "helpful" zachowaniem modelu.
+
+## Code Search (semble — opcjonalne, zalecane)
+
+Do lokalizacji i eksploracji kodu preferuj **semble** zamiast `grep`+`Read`: zwraca same trafne fragmenty (~98% mniej tokenów), lokalnie na CPU, $0. Toole: `search` (zapytanie naturalne lub symbol) i `find_related` (kod podobny do `<plik>:<linia>`).
+
+- **Top-level i sub-agenci** z nadanym narzędziem wołają MCP: `mcp__semble__search`, `mcp__semble__find_related` (tak jak blast nadaje `mcp__blast-llm-bridge__*` per-agent we frontmatter). Rejestracja: `claude mcp add semble -s user -- uvx --from "semble[mcp]" semble` (user-scope, root czysty) albo merge `.blast/.mcp.json.snippet`.
+- **Fallback Bash** (agenci z `Bash`, lub gdy MCP niezarejestrowany): `semble search "opis" . --index .blast/.session-state/semble-index`; indeks: `semble index -o .blast/.session-state/semble-index`. `--content code|docs|config|all`.
+- **grep/Grep** zostaw do wyczerpujących, dosłownych dopasowań lub szybkiego potwierdzenia konkretnego stringa.
+
+Semble jest w 100% lokalny → privacy-safe (przechodzi `blast-privacy-gate.py`; zero wywołań zewnętrznych). Komplementarny do knowledge-index (`blast-knowledge-index.py` indeksuje `.blast/knowledge`, nie kod źródłowy). Setup: `.blast/knowledge/references/semble-setup.md`.
 
 ## Smart Routing — automatyczna nawigacja
 
@@ -201,13 +211,13 @@ blast obsługuje wieloprovider'owy code review przez `debate_config:` w `.blast/
 
 ### MCP bridge
 
-`.claude/mcp/blast-llm-bridge.py` exposes lokalne Ollama models jako MCP tools: `ask_ubuntu_qwen36` (qwen3.6, general critic/juror), `ask_ubuntu_qwen3_coder` (→ **qwen3-coder**, code primary dla impl, rezydentny) i `ask_ubuntu_lfm25` (**lfm2.5**, mechanika 580 tok/s, rezydentny). Bridge registered w `.mcp.json`.
+`.claude/mcp/blast-llm-bridge.py` exposes lokalne Ollama models jako MCP tools: `ask_ubuntu_qwen36` (qwen3.6, general critic/juror), `ask_ubuntu_qwen3_coder` (→ **qwen3-coder**, code primary dla impl, rezydentny) i `ask_ubuntu_lfm25` (**lfm2.5**, mechanika 580 tok/s, rezydentny). Bridge jest **opt-in**: zarejestruj go w root `.mcp.json` (merge z `.blast/.mcp.json.snippet`) albo user-scope przez `claude mcp add`. Bez bridge'a blast działa cloud-only. Przy starcie sesji hook `SessionStart` (`.claude/scripts/blast-mcp-check.py`, zarejestrowany w `settings.json`) sprawdza czy bridge jest zainstalowany (wpis w `.mcp.json`/user-scope + zależności `mcp`/`httpx`) i — jeśli nie — wypisuje gotowe komendy instalacji. Wyciszenie: `touch .blast/.mcp-check-skip` lub `BLAST_SKIP_MCP_CHECK=1`.
 
 ## R&D vs Framework separation
 
 To repo zawiera 3 kategorie plików — patrz `.blast/MANIFEST.md` na repo root:
 
-- **FRAMEWORK** — `.claude/`, `.blast/settings/`, top-level READMEs/CLAUDE.md/.env.example. Universal blast, dystrybuowane jako template.
+- **FRAMEWORK** — `.claude/` (w tym `.claude/CLAUDE.md` auto-loaded), `.blast/settings/`, `.blast/.env.example`, top-level README. Universal blast, dystrybuowane jako template.
 - **HYBRID** — `.blast/steering/llm-routing.md` + `cost-policy.md`. Framework-required path, project-specific content. Templates dla nowego clone'a w `.blast/settings/templates/steering/*.template`.
 - **R&D** — `.priv/` (roadmap, spikes, INVENTORY snapshot, steering snapshots). Personal content, NIE jest częścią dystrybuowanego template'a.
 
@@ -228,7 +238,7 @@ Odrzuć: output `/blast:help`, duplikaty Read, stary kontekst innych feature'ów
 
 ---
 
-@.blast/settings/rules/ai-collaboration.md
+@settings/rules/ai-collaboration.md
 
 ---
 

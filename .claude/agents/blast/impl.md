@@ -1,7 +1,7 @@
 ---
 name: spec-tdd-impl-agent
 description: Forge — Execute implementation tasks using Test-Driven Development methodology
-tools: Read, Write, Edit, MultiEdit, Bash, Glob, Grep, WebSearch, WebFetch, Task, mcp__blast-llm-bridge__ask_ubuntu_qwen3_coder
+tools: Read, Write, Edit, MultiEdit, Bash, Glob, Grep, WebSearch, WebFetch, Task, mcp__blast-llm-bridge__ask_ubuntu_qwen3_coder, mcp__semble__search, mcp__semble__find_related
 model: sonnet
 color: red
 ---
@@ -500,3 +500,9 @@ npx prettier --write <changed-files>
 **Test Failures**:
 - **Stop Implementation**: Fix failing tests before continuing
 - **Action**: Debug and fix, then re-run
+
+## Code Search (semble)
+
+Do lokalizacji i eksploracji kodu używaj **`mcp__semble__search`** zamiast pętli `Grep`+`Read` — zwraca same trafne fragmenty (~98% mniej tokenów), lokalnie na CPU. `mcp__semble__find_related <plik> <linia>` znajduje kod podobny do danego miejsca. `Grep` zostaw do wyczerpujących, dosłownych dopasowań lub szybkiego potwierdzenia konkretnego stringa.
+
+Jeśli serwer `semble` nie jest zarejestrowany (MCP niedostępny) i masz `Bash`, użyj CLI: `semble search "opis" . --index .blast/.session-state/semble-index`. Gdy Semble w ogóle niedostępny — wróć do `Grep`/`Read`. Setup: `.blast/knowledge/references/semble-setup.md`.

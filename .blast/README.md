@@ -14,6 +14,9 @@ Filozofia kodowania (Clean Code, SOLID, KISS, DRY, YAGNI, wzorce projektowe, bra
 ```
 .blast/
 ├── CONSTITUTION.md        ← top-level governance, 11 Articles (read first)
+├── CLAUDE.snippet.md      ← instrukcje frameworka dla AI (OSOT; auto-load przez .claude/CLAUDE.md)
+├── .env.example           ← szablon sekretów; sekrety lądują w .blast/.env (gitignored)
+├── .gitignore             ← nested ignore (.session-state/, logs/, .env)
 ├── settings/
 │   ├── rules/             ← reguły procesu (EARS, design, taski, code principles...)
 │   └── templates/         ← szablony specs / steering / steering-custom
@@ -22,14 +25,16 @@ Filozofia kodowania (Clean Code, SOLID, KISS, DRY, YAGNI, wzorce projektowe, bra
 └── specs/                 ← specyfikacje ficzerów (generowane przez /blast:init)
 
 .claude/
+├── CLAUDE.md              ← instrukcje dla AI (auto-load; @import ../.blast/CLAUDE.snippet.md)
+├── .gitignore             ← nested ignore (settings.local.json)
 ├── agents/blast/          ← personas (Atlas, Forge, Loom, ...) + debate sub-agents (critic, critic-opus, author, judge, aggregator)
 ├── commands/blast/        ← slash commands (init, requirements, design, tasks, impl, validate-*, security, complete, evolve, ...)
 ├── hooks/                 ← SDK-level gates (approval, privacy, telemetry)
-├── mcp/                   ← MCP bridges (blast-llm-bridge: Ollama + Gemini)
+├── mcp/                   ← MCP bridges (blast-llm-bridge: Ollama + Gemini, opt-in)
 ├── scripts/               ← project automation (blast-init, blast-learn, blast-graph, ...)
 └── settings.json          ← hook + permission config (settings.local.json git-ignored)
 
-CLAUDE.md                  ← instrukcje dla AI (ładowane automatycznie)
+# Repo root = tylko pliki informacyjne (README.md). blast NIE wymaga żadnego pliku w root.
 ```
 
 **Scaffolding new project**: `python .claude/scripts/blast-init.py <name>` (or one-liner curl — see [README.md](../README.md)).
@@ -198,7 +203,7 @@ blast obsługuje multi-LLM compositions:
 - **JURY_3_FLASH3** dla `security` + high-stakes (Opus + qwen3.6 + Gemini-3-Flash → Haiku)
 - **Privacy mode** (`spec.json.privacy: local-only`) blokuje external calls
 
-Setup: `cp .blast/.env.example .env`, fill keys, see `.blast/MANIFEST.md` + `.blast/steering/llm-routing.md`.
+Setup: `cp .blast/.env.example .blast/.env`, fill keys, see `.blast/MANIFEST.md` + `.blast/steering/llm-routing.md`.
 
 ## Pamięć projektu i DRY cross-spec
 
@@ -230,7 +235,7 @@ rm -rf .git && git init                            # opcjonalne
 /blast:init "pierwsza ficzerka"
 ```
 
-`.gitignore` powinien wykluczać: `.claude/settings.local.json`, standardowe artefakty (`*.pyc`, `__pycache__/`, `node_modules/`, `.env`).
+blast ships nested `.gitignore` files (`.blast/.gitignore` + `.claude/.gitignore`) that handle its own state (`.session-state/`, `logs/agent-runs.jsonl`, `.blast/.env`, `settings.local.json`) — no edit to your root `.gitignore` needed. Add your stack's usual ignores (`*.pyc`, `__pycache__/`, `node_modules/`) to your own root `.gitignore`.
 
 ## Kiedy blast, kiedy nie?
 

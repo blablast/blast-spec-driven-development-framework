@@ -178,18 +178,20 @@ The project's binding principles live in [`.blast/CONSTITUTION.md`](.blast/CONST
 
 ## Install paths — drop-in vs fresh-project
 
-blast ships almost everything inside `.blast/` and `.claude/` namespaces, so it can be dropped into an existing project without colliding with your own root files. Three things still need a tiny bit of wiring at the repo root, and blast provides them as **snippets** you either merge (drop-in) or auto-copy (fresh-project).
+blast lives **entirely** inside the `.blast/` and `.claude/` namespaces and needs **zero** required files at your repo root. Integrating with an existing project is literally: copy two directories, done. Nothing to merge, nothing to wire.
 
-### What's in `.blast/` namespace vs root
+### Everything blast needs is namespaced
 
-| File | Where blast ships it | Why |
+| What | Where blast ships it | Collision with your project? |
 |---|---|---|
-| `MANIFEST.md` | `.blast/MANIFEST.md` | framework metadata — no collision with `MANIFEST.in` / your own |
-| `.env.example` | `.blast/.env.example` | source-of-truth; root `.env` is your own |
-| `CLAUDE.md` content | `.blast/CLAUDE.snippet.md` | framework rules; your root `CLAUDE.md` `@`-includes it |
-| `.gitignore` patterns | `.blast/.gitignore.snippet` | only blast-specific lines; append to your `.gitignore` |
-| `.mcp.json` entry | `.blast/.mcp.json.snippet` | only the `blast-llm-bridge` server entry to merge into your `.mcp.json` |
-| `.blast/` and `.claude/` | as-is | the framework itself — your project keeps these in place |
+| AI instructions | `.claude/CLAUDE.md` (auto-loaded) → `.blast/CLAUDE.snippet.md` | **None** — Claude Code loads your root `CLAUDE.md` *and* `.claude/CLAUDE.md` additively |
+| Framework rules (OSOT) | `.blast/CLAUDE.snippet.md` | None — namespaced |
+| Secrets | `.blast/.env` (template: `.blast/.env.example`) | None — your root `.env` is untouched |
+| Ignore patterns | `.blast/.gitignore` + `.claude/.gitignore` (nested) | None — git merges nested ignores additively |
+| MCP bridge (**optional**) | `.blast/.mcp.json.snippet` | Only file Claude Code reads from root `.mcp.json` — opt-in; skip it and blast runs cloud-only |
+| Manifest / metadata | `.blast/MANIFEST.md` | None — no `MANIFEST.in` clash |
+
+Anything left at the repo root (e.g. `README.md`) is **informational only** — never required for blast to run.
 
 ### Fresh-project install (no existing repo)
 
@@ -204,27 +206,24 @@ Result: your project has `CLAUDE.md`, `.env`, `.gitignore`, `.mcp.json` at root 
 
 ### Drop-in install (existing project)
 
-If you already have a project with your own `CLAUDE.md` / `.gitignore` / `.mcp.json`, copy only the framework directories and **manually merge** the four snippets:
+Copy the two framework directories. That's the whole install.
 
 ```bash
-# 1. Copy framework dirs into your project
 cp -r .blast/ .claude/  /path/to/your-project/
-
-# 2. Wire root CLAUDE.md — add this one line near the top
-echo "@.blast/CLAUDE.snippet.md" >> /path/to/your-project/CLAUDE.md
-
-# 3. Append blast's gitignore patterns to yours
-cat .blast/.gitignore.snippet >> /path/to/your-project/.gitignore
-
-# 4. Merge blast-llm-bridge entry into your .mcp.json
-#    Open .blast/.mcp.json.snippet, copy the "blast-llm-bridge" object,
-#    paste it into your existing .mcp.json under "mcpServers".
-
-# 5. Copy .env.example contents into yours (manually merge variables)
-cat .blast/.env.example >> /path/to/your-project/.env.example
 ```
 
-After this your existing root files keep working, blast layers on top.
+`.claude/CLAUDE.md` auto-loads alongside your own root `CLAUDE.md`, the nested `.gitignore` files apply automatically, and blast runs cloud-only out of the box. Your existing root files are never touched.
+
+**Optional — local Ollama bridge** (only if you want free local `qwen3-coder` for `/blast:impl`):
+
+```bash
+# add the bridge server: merge .blast/.mcp.json.snippet into your root .mcp.json
+# (or, to keep root clean, register it user-scoped):
+claude mcp add blast-llm-bridge -- python .claude/mcp/blast-llm-bridge.py
+
+# secrets (GEMINI_API_KEY etc.) go in .blast/.env (gitignored):
+cp .blast/.env.example .blast/.env
+```
 
 ### Cloning the author's template directly
 
