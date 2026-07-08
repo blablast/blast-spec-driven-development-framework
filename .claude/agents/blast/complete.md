@@ -164,10 +164,19 @@ Preserve all existing fields. Only update the above.
    - **New** — genuinely new territory, no close neighbor. Add a single line.
 4. Never duplicate. Never add a new bullet if Refine fits.
 
-**User confirmation per candidate**:
-- Present each candidate with: classification, target section, proposed action (refine/supersede/new), exact diff.
-- User answers: `y` / `n` / `edit` per candidate.
-- Apply only confirmed edits.
+**Confirmation — mode-dependent** (never stall an autonomous pipeline on a lesson prompt):
+
+- **Interactive mode** (default): present each candidate with classification, target
+  section, proposed action (refine/supersede/new), exact diff. User answers `y` / `n` /
+  `edit` per candidate. Apply only confirmed edits.
+- **Autonomous mode** (`--auto`, or prompt contains `Autonomy: true`): do NOT prompt.
+  Append every candidate — full classification, target, action, and exact diff — as
+  JSON lines to `.blast/specs/{feature}/retrospection-pending.jsonl`, and record the
+  count in the ship summary ("N retrospection candidates queued — review with
+  `/blast:learn --retro` or apply per-candidate later"). Apply NOTHING to steering files
+  automatically; retrospection is advisory and must never mutate `.blast/steering/`
+  without a human, per Constitution Art. I/X. This keeps `/blast:full --auto` from
+  blocking at the second-to-last phase while preserving every candidate for batch review.
 
 **Formatting rules** (keep files short):
 - One line per entry. Lead with the rule in imperative form. Follow with a short "— reason" fragment.

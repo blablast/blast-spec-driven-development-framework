@@ -111,6 +111,9 @@ CONFIG = {
             "provider": "ollama",
             "endpoint": "ubuntu",
             "model": "qwen3.6:latest",
+            "think": True,          # reasoning juror — its VALUE is the reasoning chain;
+                                    # forcing think:False (the global default) strips exactly
+                                    # what llm-routing.md routes this model FOR.
             "description": "General critic — qwen3.6 (22.3G, ~243 tok/s raw, thinking-heavy: effective output slower than raw). Juror/critic for debates and validate-design. NOT the impl code primary (that is qwen3-coder) — loading it during impl evicts the resident pair.",
         },
         "ask_ubuntu_qwen3_coder": {
@@ -180,7 +183,54 @@ CONFIG = {
         },
     },
     "timeout_s": int(os.environ.get("BLAST_LLM_TIMEOUT_S", "120")),
+    # Split the single wall-clock timeout into phases: a short connect timeout
+    # surfaces a dead host in seconds (was: up to timeout_s of silence), while
+    # generation still gets the full read budget. Streaming (below) makes the
+    # read budget an INTER-CHUNK timeout, so a stalled generation aborts fast
+    # instead of freezing the caller for the whole window.
+    "connect_timeout_s": float(os.environ.get("BLAST_LLM_CONNECT_TIMEOUT_S", "5")),
+    "max_retries": int(os.environ.get("BLAST_LLM_MAX_RETRIES", "2")),
 }
+
+
+# === SHARED HTTP CLIENT + RETRY ===
+
+_CLIENT: httpx.AsyncClient | None = None
+
+
+def _get_client() -> httpx.AsyncClient:
+    """Lazily create one pooled AsyncClient for the server's lifetime.
+
+    A new client per call reopened a TCP/TLS connection every time; a single
+    pooled client reuses keep-alive connections to the Ollama hosts and Gemini.
+    The read timeout applies per-chunk once we stream, so a long-but-progressing
+    generation is fine while a truly stalled one trips the read timeout.
+    """
+    global _CLIENT
+    if _CLIENT is None:
+        timeout = httpx.Timeout(
+            CONFIG["timeout_s"],
+            connect=CONFIG["connect_timeout_s"],
+        )
+        _CLIENT = httpx.AsyncClient(timeout=timeout)
+    return _CLIENT
+
+
+def _is_retryable(exc: Exception) -> bool:
+    """Transient faults worth one more shot: connection refused/reset, timeouts,
+    and 5xx from the host. 4xx (bad request, auth) are NOT retried."""
+    if isinstance(exc, (httpx.ConnectError, httpx.ConnectTimeout, httpx.ReadTimeout,
+                        httpx.RemoteProtocolError)):
+        return True
+    if isinstance(exc, httpx.HTTPStatusError):
+        return 500 <= exc.response.status_code < 600
+    return False
+
+
+async def _sleep_backoff(attempt: int) -> None:
+    # 0.5s, 1.5s — bounded, cheap; jurors that would have silently dropped now
+    # get a second chance before the composition degrades.
+    await asyncio.sleep(0.5 + attempt)
 
 
 # === MCP SERVER ===
@@ -267,15 +317,16 @@ async def _call_ollama(name: str, entry: dict, arguments: dict[str, Any]) -> lis
     max_tokens = arguments.get("max_tokens", entry.get("default_max_tokens", 32768))
 
     # Build Ollama API payload. keep_alive: pinned residents (qwen3-coder, lfm2.5) use -1,
-    # transient jurors default to 30m (warm across a jury cycle).
+    # transient jurors default to 30m (warm across a jury cycle). think is PER-ROLE:
+    # reasoning jurors (qwen3.6) keep it on, coders/mechanical models keep it off.
     payload = {
         "model": model,
         "prompt": prompt,
-        "stream": False,
+        "stream": True,   # stream NDJSON: inter-chunk read timeout catches stalls fast
         "keep_alive": entry.get("keep_alive", "30m"),
         "options": {
             "num_predict": max_tokens,
-            "think": False,   # disable reasoning chain — we want the answer, not the working
+            "think": entry.get("think", False),
         },
     }
     if entry.get("num_ctx"):
@@ -283,54 +334,82 @@ async def _call_ollama(name: str, entry: dict, arguments: dict[str, Any]) -> lis
     if system:
         payload["system"] = system
 
-    # Execute the call
+    url = f"{endpoint}/api/generate"
+
+    async def _generate(pl: dict) -> tuple[str, int, float]:
+        """Stream one generation. Returns (text, eval_count, eval_duration_s).
+        Raises httpx transport/status errors for the retry wrapper to handle."""
+        chunks: list[str] = []
+        eval_count = 0
+        eval_duration_ns = 0
+        client = _get_client()
+        async with client.stream("POST", url, json=pl) as resp:
+            if resp.status_code >= 400:
+                await resp.aread()          # must read body before raise on a stream
+                resp.raise_for_status()
+            async for line in resp.aiter_lines():
+                if not line.strip():
+                    continue
+                obj = json.loads(line)
+                piece = obj.get("response", "")
+                if piece:
+                    chunks.append(piece)
+                if obj.get("done"):
+                    eval_count = obj.get("eval_count", 0)
+                    eval_duration_ns = obj.get("eval_duration", 0)
+        eval_duration_s = eval_duration_ns / 1_000_000_000 if eval_duration_ns else 0
+        return "".join(chunks), eval_count, eval_duration_s
+
+    async def _generate_with_retry(pl: dict) -> tuple[str, int, float]:
+        last_exc: Exception | None = None
+        for attempt in range(CONFIG["max_retries"] + 1):
+            try:
+                return await _generate(pl)
+            except Exception as e:  # noqa: BLE001 — classify below
+                last_exc = e
+                if _is_retryable(e) and attempt < CONFIG["max_retries"]:
+                    print(
+                        f"[blast-llm-bridge] {type(e).__name__} on {model} @ {machine}, "
+                        f"retry {attempt + 1}/{CONFIG['max_retries']}",
+                        file=sys.stderr,
+                    )
+                    await _sleep_backoff(attempt)
+                    continue
+                raise
+        assert last_exc is not None
+        raise last_exc
+
     try:
-        async with httpx.AsyncClient(timeout=CONFIG["timeout_s"]) as client:
-            response = await client.post(f"{endpoint}/api/generate", json=payload)
-            response.raise_for_status()
-            data = response.json()
+        generated, eval_count, eval_duration_s = await _generate_with_retry(payload)
+        retry_note = ""
 
-            # Extract relevant fields
-            generated = data.get("response", "")
-            eval_count = data.get("eval_count", 0)
-            eval_duration_ns = data.get("eval_duration", 0)
-            eval_duration_s = eval_duration_ns / 1_000_000_000 if eval_duration_ns else 0
-            tokens_per_sec = eval_count / eval_duration_s if eval_duration_s > 0 else 0
+        # Empty-response retry: reasoning burned the whole budget and emitted nothing →
+        # one more shot at double the budget.
+        if not generated.strip() and eval_count >= max_tokens * 0.9:
+            payload["options"]["num_predict"] = max_tokens * 2
+            generated, eval_count, eval_duration_s = await _generate_with_retry(payload)
+            retry_note = " | retried@2x"
 
-            # Empty-response retry: if Ollama burned the budget on reasoning and returned nothing,
-            # retry once with double budget. Belt and suspenders since think:False should already prevent this.
-            if not generated.strip() and eval_count >= max_tokens * 0.9:
-                payload["options"]["num_predict"] = max_tokens * 2
-                response = await client.post(f"{endpoint}/api/generate", json=payload)
-                response.raise_for_status()
-                data = response.json()
-                generated = data.get("response", "")
-                eval_count = data.get("eval_count", 0)
-                eval_duration_ns = data.get("eval_duration", 0)
-                eval_duration_s = eval_duration_ns / 1_000_000_000 if eval_duration_ns else 0
-                tokens_per_sec = eval_count / eval_duration_s if eval_duration_s > 0 else 0
-                retry_note = " | retried@2x"
-            else:
-                retry_note = ""
-
-            # Format response with metadata header
-            metadata = (
-                f"[{model} @ {machine} | {eval_count} tokens | "
-                f"{eval_duration_s:.1f}s | {tokens_per_sec:.1f} tok/s{retry_note}]"
-            )
-            return [TextContent(type="text", text=f"{metadata}\n\n{generated}")]
+        tokens_per_sec = eval_count / eval_duration_s if eval_duration_s > 0 else 0
+        metadata = (
+            f"[{model} @ {machine} | {eval_count} tokens | "
+            f"{eval_duration_s:.1f}s | {tokens_per_sec:.1f} tok/s{retry_note}]"
+        )
+        return [TextContent(type="text", text=f"{metadata}\n\n{generated}")]
 
     except httpx.TimeoutException:
         return [TextContent(
             type="text",
-            text=f"[blast-llm-bridge] Timeout after {CONFIG['timeout_s']}s on {model} @ {machine}. "
-                 "Model may be cold-loading (first call is slow). Retry, or check OLLAMA_KEEP_ALIVE.",
+            text=f"[blast-llm-bridge] Timeout on {model} @ {machine} after "
+                 f"{CONFIG['max_retries'] + 1} attempt(s) "
+                 f"(connect {CONFIG['connect_timeout_s']}s / read {CONFIG['timeout_s']}s). "
+                 "Model may be cold-loading or stalled; retry, or check OLLAMA_KEEP_ALIVE.",
         )]
     except httpx.ConnectError as e:
         return [TextContent(
             type="text",
-            text=f"[blast-llm-bridge] Cannot connect to {endpoint}. "
-                 f"Is Ollama running on {machine}? Error: {e}",
+            text=f"[blast-llm-bridge] Cannot connect to {endpoint} after "
+                 f"{CONFIG['max_retries'] + 1} attempt(s). Is Ollama running on {machine}? Error: {e}",
         )]
     except httpx.HTTPStatusError as e:
         return [TextContent(
@@ -377,16 +456,30 @@ async def _call_gemini(name: str, entry: dict, arguments: dict[str, Any]) -> lis
         "Content-Type": "application/json",
     }
 
-    try:
-        async with httpx.AsyncClient(timeout=CONFIG["timeout_s"]) as client:
-            response = await client.post(
-                f"{base_url}/chat/completions",
-                json=payload,
-                headers=headers,
-            )
-            response.raise_for_status()
-            data = response.json()
+    async def _post() -> dict:
+        client = _get_client()
+        response = await client.post(
+            f"{base_url}/chat/completions",
+            json=payload,
+            headers=headers,
+        )
+        response.raise_for_status()
+        return response.json()
 
+    try:
+        data = None
+        last_exc: Exception | None = None
+        for attempt in range(CONFIG["max_retries"] + 1):
+            try:
+                data = await _post()
+                break
+            except Exception as e:  # noqa: BLE001
+                last_exc = e
+                if _is_retryable(e) and attempt < CONFIG["max_retries"]:
+                    await _sleep_backoff(attempt)
+                    continue
+                raise
+        if data is not None:
             generated = ""
             try:
                 generated = data["choices"][0]["message"]["content"] or ""

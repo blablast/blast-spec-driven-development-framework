@@ -17,13 +17,16 @@ Bypasses:
   - subagent not in gated list
   - prompt contains "Lint-bypass: true" (escape hatch for intentional WIP runs)
   - spec-tiny-agent / spec.json.tiny == true (tiny specs are exempt)
-  - linter script missing or crashes -> allow (defensive: tooling failure must
-    not break the user's workflow; approval gate still applies)
+  - linter script missing or crashes -> allow by default, but LOUDLY (the gate's
+    guardian is absent; a silent allow-all reads like a passing gate). Set
+    BLAST_LINT_STRICT=1 (CI / autonomous runs) to turn a missing/broken linter
+    into a hard block instead — fail closed where correctness matters.
 
 Exit codes: 0 = allow, 2 = block.
 """
 
 import json
+import os
 import re
 import subprocess
 import sys
@@ -32,6 +35,30 @@ from pathlib import Path
 GATED_AGENTS = {"spec-design-agent", "spec-tasks-agent", "spec-tdd-impl-agent"}
 BYPASS_MARKER = "Lint-bypass: true"
 TINY_AGENT = "spec-tiny-agent"
+# Fail-closed switch: in CI / autonomous pipelines a missing linter is a
+# misconfiguration, not a normal condition — block rather than wave the run through.
+STRICT = os.environ.get("BLAST_LINT_STRICT", "").strip().lower() in ("1", "true", "yes")
+
+
+def log_missing_guardian(what: str, detail: str) -> int:
+    """Report an absent/broken linter. Block in strict mode, else loud-allow."""
+    if STRICT:
+        print(
+            f"\n[blast-lint-gate] HARD BLOCK (BLAST_LINT_STRICT)\n"
+            f"Deterministic lint guardian unavailable: {what}\n  {detail}\n"
+            f"  In strict mode the gate fails CLOSED. Install/repair blast-lint.py "
+            f"or unset BLAST_LINT_STRICT for interactive work.\n",
+            file=sys.stderr,
+        )
+        return 2
+    print(
+        f"\n[blast-lint-gate] ⚠ LINT GATE INACTIVE — {what}\n"
+        f"  {detail}\n"
+        f"  Spawning subagent WITHOUT deterministic lint. This is NOT a pass.\n"
+        f"  Set BLAST_LINT_STRICT=1 to fail closed in CI/autonomous runs.\n",
+        file=sys.stderr,
+    )
+    return 0
 
 
 def log_warn(msg):
@@ -89,8 +116,7 @@ def main():
 
     linter = root / ".claude" / "scripts" / "blast-lint.py"
     if not linter.exists():
-        log_warn(f"linter not found at {linter}; allowing")
-        return 0
+        return log_missing_guardian("blast-lint.py not found", f"expected at {linter}")
 
     try:
         result = subprocess.run(
@@ -98,8 +124,7 @@ def main():
             capture_output=True, text=True, timeout=30, cwd=str(root),
         )
     except Exception as e:
-        log_warn(f"linter failed to run ({e}); allowing")
-        return 0
+        return log_missing_guardian("linter failed to run", str(e))
 
     if result.returncode == 2:
         errors = [
