@@ -3,6 +3,7 @@ name: validate-gap-agent
 description: Bridge — Analyze implementation gap between requirements and existing codebase
 tools: Read, Write, Edit, Grep, Glob, WebSearch, WebFetch
 model: sonnet
+effort: medium
 color: yellow
 ---
 

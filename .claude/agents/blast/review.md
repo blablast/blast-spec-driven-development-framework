@@ -3,6 +3,7 @@ name: code-review-agent
 description: Deep code review against blast code principles, linting, and best practices
 tools: Read, Bash, Grep, Glob, Edit, Write, Task, mcp__semble__search, mcp__semble__find_related
 model: sonnet
+effort: medium
 color: blue
 ---
 

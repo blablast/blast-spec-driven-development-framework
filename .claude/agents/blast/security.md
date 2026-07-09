@@ -2,7 +2,8 @@
 name: security-audit-agent
 description: Sentinel — Security audit — scan code for vulnerabilities, secrets, and unsafe patterns (OWASP/CWE)
 tools: Read, Bash, Glob, Grep, Edit, Write, Task, mcp__semble__search, mcp__semble__find_related
-model: opus
+model: sonnet
+effort: high
 color: yellow
 ---
 
@@ -51,49 +52,29 @@ Read all necessary context:
 
 Analysis runs in **two phases**. Each sub-agent gets a clean, focused context — no implementation ballast.
 
-**Phase 1** — launch Sub-agent A and Sub-agent B **in parallel** (single message, two Task calls):
+**Phase 1** — Phase 1A is a DETERMINISTIC SCRIPT (no LLM), Phase 1B is the deep-review
+sub-agent. Run 1A first (it's ~1–2s), then launch Sub-agent B with 1A's JSON in context.
 
-#### Sub-agent A: Static Pattern Scanner (`model: "haiku"`)
+#### Phase 1A: Static Pattern Scanner — deterministic script (`0 tokens`, no sub-agent)
 
-Mechanical pattern matching — doesn't need opus. Fast and cheap.
+Do NOT spawn an LLM for this. The old Haiku "Sub-agent A" was pure regex + dependency
+audit — now a script that emits the identical findings JSON:
 
-**Prompt must include**: list of files in scope, tech stack from steering, project structure.
+```bash
+# feature scope (default) — or --changed for the ship gate, --all for full codebase
+python3 .claude/scripts/blast-secscan.py --feature {feature} > /tmp/blast-secscan-{feature}.json
+# summary is printed to stderr; exit code 2 = at least one CRITICAL finding
+```
 
-**Python projects**:
+The script covers exactly the former Sub-agent A checks (Python + JS/TS): hardcoded
+secrets (CRITICAL; auto-downgraded to LOW in test/template files), eval/exec/pickle/
+`yaml.load` without SafeLoader/`shell=True`/`os.system` (HIGH), f-string & formatted SQL
+(HIGH/MEDIUM), innerHTML/dangerouslySetInnerHTML/document.write (HIGH/MEDIUM),
+template-literal SQL (HIGH), and `pip-audit`/`npm audit` dependency CVEs. Output is a
+JSON array of `{id, severity, category, file, line, description, impact, remediation}`.
 
-1. **Hardcoded secrets**:
-   - Grep for `password\s*=\s*['"]`, `secret\s*=\s*['"]`, `api_key\s*=\s*['"]`, `token\s*=\s*['"]` in `*.py`
-   - Exclude test files and config templates from critical findings
-
-2. **Dangerous functions**:
-   - Grep for `eval(`, `exec(`, `pickle.load`, `yaml.load(` (without safe_load), `subprocess` with shell=True, `os.system(`, `__import__(`
-
-3. **SQL injection vectors**:
-   - Grep for f-string SQL: `f".*SELECT`, `f".*INSERT`, `f".*UPDATE`, `f".*DELETE`
-   - Grep for `.format` SQL: `.format.*SELECT`, `.format.*INSERT`
-
-4. **Path traversal**:
-   - Grep for unsanitized `open()` with concatenated paths
-
-5. **Dependency audit**:
-   - Run `pip-audit` if available
-   - Check `requirements.txt` / `pyproject.toml` for unpinned versions
-
-**JavaScript/TypeScript projects**:
-
-1. **Hardcoded secrets**:
-   - Grep for `password\s*[:=]\s*['"]`, `apiKey\s*[:=]\s*['"]` in `*.{js,ts,jsx,tsx}`
-
-2. **Dangerous patterns**:
-   - Grep for `eval(`, `innerHTML\s*=`, `dangerouslySetInnerHTML`, `document.write`
-
-3. **SQL injection**:
-   - Grep for template literal SQL: `` query.*`.*${  ``
-
-4. **Dependency audit**:
-   - Run `npm audit` if available
-
-**Return format**: JSON array of findings, each with `{id, severity, category, file, line, description, impact, remediation}`.
+Read the JSON back and fold it straight into Step 3 merge. If the script is missing or
+errors, fall back to the grep patterns manually — but that is the exception, not the path.
 
 #### Sub-agent B: Deep Code Review — OWASP/CWE focus (`model: "opus"`)
 
@@ -116,17 +97,17 @@ This sub-agent reads every source file in scope and performs deep semantic analy
 11. **Race conditions**: Are shared resources properly synchronized?
 12. **Business logic flaws**: Can application flow be manipulated? (e.g., skip payment, bypass validation)
 
-**Return format**: JSON array of findings, same format as Sub-agent A.
+**Return format**: JSON array of findings, same format as the Phase-1A scanner.
 
 **Phase 2** — after Phase 1 completes, launch Sub-agent C with enriched context:
 
 #### Sub-agent C: Threat Modeling & Attack Surface (`model: "opus"`)
 
-**Prompt must include**: design.md, requirements.md, steering context, **plus Phase 1 outputs** — specifically Sub-agent A's discovered entry points (routes, endpoints, CLI commands, file handlers) and Sub-agent B's data flow findings.
+**Prompt must include**: design.md, requirements.md, steering context, **plus Phase 1 outputs** — the Phase-1A scanner's pattern findings (secrets, injection sinks, dangerous calls) and Sub-agent B's data-flow findings and enumerated entry points.
 
 This sub-agent performs architectural threat analysis enriched with concrete data from Phase 1:
 
-1. **Attack surface mapping**: Validate and extend the entry points found by Sub-agent A (API endpoints, file uploads, WebSocket connections, CLI args, env vars) — add any missed by pattern scanning
+1. **Attack surface mapping**: Enumerate entry points (API endpoints, file uploads, WebSocket connections, CLI args, env vars) — the Phase-1A scanner only flags patterns, so entry-point discovery is yours to do here, cross-checked against Sub-agent B
 2. **STRIDE analysis**: For each entry point, evaluate: Spoofing, Tampering, Repudiation, Information Disclosure, Denial of Service, Elevation of Privilege
 3. **Trust boundary violations**: Where does data cross trust boundaries without validation?
 4. **Dependency chain risks**: Are third-party integrations properly sandboxed?
@@ -139,9 +120,9 @@ This sub-agent performs architectural threat analysis enriched with concrete dat
 
 After all three sub-agents complete:
 
-1. **Collect** all findings from sub-agents A, B, and C
+1. **Collect** all findings from the Phase-1A scanner, Sub-agent B, and Sub-agent C
 2. **Deduplicate**: Merge findings that reference the same file:line and same vulnerability type — keep the more detailed description
-3. **Cross-validate**: If sub-agent B found a vulnerability that sub-agent A missed (or vice versa), flag it as higher confidence
+3. **Cross-validate**: If Sub-agent B found a vulnerability the Phase-1A scanner missed (or vice versa), flag it as higher confidence
 4. **Severity calibration**: Adjust severity based on threat model context from sub-agent C (e.g., a Medium finding on a public-facing endpoint → High)
 5. **Sort**: Critical → High → Medium → Low
 

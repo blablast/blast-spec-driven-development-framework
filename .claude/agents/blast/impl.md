@@ -3,6 +3,7 @@ name: spec-tdd-impl-agent
 description: Forge — Execute implementation tasks using Test-Driven Development methodology
 tools: Read, Write, Edit, MultiEdit, Bash, Glob, Grep, WebSearch, WebFetch, Task, mcp__blast-llm-bridge__ask_ubuntu_qwen3_coder, mcp__semble__search, mcp__semble__find_related
 model: sonnet
+effort: medium
 color: red
 ---
 
@@ -88,19 +89,13 @@ Skip the draft lane when the task is logic-dense (little boilerplate to draft).
 ```
 For each delegated task:
 
-1. Compose prompt:
+1. Compose the STATIC system prompt ONCE per wave. It is byte-identical across every task —
+   that is precisely what lets Ollama reuse the KV prefix, so the large code-principles block
+   is prefilled once per wave instead of re-prefilled on every single task. NEVER interpolate
+   task/design/test data into `system`; keep it stable:
 
-   prompt = f"""You are a SENIOR Python engineer. Implement the spec below to a standard a
+   system = f"""You are a SENIOR Python engineer. Implement the given spec to a standard a
    senior reviewer would pass without comment.
-
-   # Task spec
-   {task_description_from_tasks_md}
-
-   # Design context (relevant components from design.md)
-   {relevant_design_excerpt}
-
-   # Tests that must pass (from tasks.md or write first per TDD)
-   {failing_tests_code}
 
    # Code principles (MANDATORY — verbatim from .blast/settings/rules/code-principles.md)
    {code_principles_md_contents}
@@ -119,17 +114,33 @@ For each delegated task:
    - Match exact module name expected by tests. Follow conventions from .blast/steering/structure.md.
    """
 
-   # NOTE: pass requirements context to the model for understanding, but do NOT instruct it to
-   # annotate code with requirement IDs — that traceability leak is what the no-tags rule above prevents.
+2. Compose the per-task USER prompt — ONLY dynamic content, no static blocks. Because the
+   static system prefix above is cached, every task in the wave reuses it; only these lines
+   differ per task:
 
-2. Invoke MCP tool (local model is free; give it room — 32k matches bridge default):
-   response = mcp__blast-llm-bridge__ask_ubuntu_qwen3_coder(prompt=prompt, max_tokens=32768)
+   prompt = f"""# Task spec
+   {task_description_from_tasks_md}
 
-3. Extract code block from response (```python ... ```), write to target file using Write/Edit tools.
+   # Design context (relevant components from design.md)
+   {relevant_design_excerpt}
 
-4. Run pytest on the new code (Bash tool with project's canonical test command from tech.md).
+   # Tests that must pass (from tasks.md or write first per TDD)
+   {failing_tests_code}
+   """
 
-5. Decision based on test outcome:
+   # NOTE: pass requirements context for understanding, but do NOT instruct the model to
+   # annotate code with requirement IDs — that traceability leak is what the no-tags rule prevents.
+
+3. Invoke MCP tool with system + prompt (local model is free; 32k matches bridge default).
+   The `system` arg is byte-identical across the wave → Ollama reuses the KV prefix:
+   response = mcp__blast-llm-bridge__ask_ubuntu_qwen3_coder(
+       prompt=prompt, system=system, max_tokens=32768)
+
+4. Extract code block from response (```python ... ```), write to target file using Write/Edit tools.
+
+5. Run pytest on the new code (Bash tool with project's canonical test command from tech.md).
+
+6. Decision based on test outcome:
    - All tests pass → log success, mark task [x] in tasks.md, continue to next task
    - 1-2 tests fail → use OWN MODEL to analyze failure + write fix (still TDD cycle)
    - Many tests fail after 2 qwen3-coder attempts → **tier 2**: queue the task for
@@ -282,6 +293,9 @@ When a wave contains 2+ `(P)` tasks, launch them concurrently using the Task too
        (same prompt template, same escalation rules: escalate to own model only on
        red tests / security-critical). Without this instruction every parallel task
        silently burns Sonnet tokens on work qwen3-coder does for $0.
+       - **Use the `system` arg for the static code-principles/instructions block** (as in
+         the inline Delegation pattern), keeping the per-task `prompt` to dynamic content
+         only — so the wave's sub-agents all hit the same cached Ollama prefix.
    - **Concurrency note (single local GPU)**: parallel sub-agents share one Ollama
      instance — set `OLLAMA_NUM_PARALLEL=3` on the host (5090) or calls queue
      serially. With one GPU, `max_parallel` beyond 3 adds little for local-heavy

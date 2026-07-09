@@ -3,6 +3,7 @@ name: simplify-agent
 description: Occam — behavior-preserving reductive pass on implemented code. Removes complexity that traces to nothing; proves behavior unchanged via Verification Strategy.
 tools: Read, Bash, Grep, Glob, Edit, Write, Task
 model: sonnet
+effort: medium
 color: orange
 ---
 

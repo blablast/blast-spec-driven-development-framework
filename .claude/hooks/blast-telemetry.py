@@ -13,6 +13,10 @@ Recorded data is META ONLY:
     - prompt_chars / result_chars (lengths only, not content)
     - verdict / blocking (parsed from verdict envelope in result if present)
     - gate_blocked (true when prior PreToolUse hook returned exit 2)
+    - model_tier + cost_usd (§3): cloud cost ESTIMATED from char counts × tier price
+      (cost_estimated=true) until Claude Code passes real token usage to hooks;
+      local Ollama tokens scraped from bridge headers and booked at $0; Gemini
+      juror cost added from its real usage. Unblocks cost-policy.md calibration.
 
 NEVER recorded:
     - prompt body
@@ -60,6 +64,102 @@ ESCALATION_RE = re.compile(
     re.IGNORECASE | re.DOTALL,
 )
 FEATURE_RE = re.compile(r"^Feature:\s*([A-Za-z0-9._-]+)\s*$", re.MULTILINE)
+
+# === COST ACCOUNTING (§3) ===
+# Bridge metadata headers the local/cloud tools prepend to their output. We scrape
+# them out of the subagent's result text to book real local token counts ($0) and,
+# when a cloud juror ran, its real usage.
+#   local:  "[qwen3-coder @ ubuntu | 42 tokens | 2.0s | 21.0 tok/s]"
+#   gemini: "[gemini-3-flash-preview @ gemini-api | in=1200 out=340]"
+BRIDGE_LOCAL_RE = re.compile(r"\[[\w.\-:]+ @ (?:ubuntu|win11) \| (\d+) tokens \|")
+BRIDGE_GEMINI_RE = re.compile(r"\[[\w.\-:]+ @ gemini-api \| in=(\d+) out=(\d+)\]")
+
+# subagent_type → cloud model tier. Aliases resolve to current gen; keep in sync
+# with .blast/steering/llm-routing.md. Agents that generate code locally (Forge)
+# still incur cloud cost only on escalation — their tier is the escalation target.
+SUBAGENT_TIER = {
+    "spec-design-agent": "opus",
+    "security-audit-agent": "sonnet",   # orchestrator demoted to sonnet (§2); opus lives in sub-agent B
+    "spec-tdd-impl-agent": "sonnet",    # local-first; sonnet only on escalation
+    "spec-research-agent": "sonnet",
+    "validate-gap-agent": "sonnet",
+    "validate-design-agent": "sonnet",
+    "validate-impl-agent": "sonnet",
+    "validate-tasks-agent": "sonnet",
+    "simplify-agent": "sonnet",
+    "code-review-agent": "sonnet",
+    "steering-agent": "sonnet",
+    "debate-critic": "sonnet",
+    "debate-author": "sonnet",
+    "debate-critic-opus": "opus",
+    "spec-tasks-agent": "haiku",
+    "spec-requirements-agent": "haiku",
+    "spec-tiny-agent": "haiku",
+    "spec-complete-agent": "haiku",
+    "spec-evolve-agent": "haiku",
+    "spec-deprecate-agent": "haiku",
+    "spec-drift-agent": "haiku",
+    "steering-custom-agent": "haiku",
+    "debate-judge": "haiku",
+    "debate-aggregator": "haiku",
+}
+
+# $/MTok (input, output). Snapshot: 2026-07-08. Sonnet 5 intro pricing ($2/$10)
+# runs through 2026-08-31, then $3/$15 — bump the sonnet row after that date.
+# UPDATE THIS when models/prices change; cost-policy.md calibration reads these.
+PRICING = {
+    "opus":   (5.0, 25.0),
+    "sonnet": (2.0, 10.0),
+    "haiku":  (1.0, 5.0),
+    "gemini": (0.30, 2.50),   # Gemini 3 Flash Preview (approx; refine when billed)
+}
+PRICING_ASOF = "2026-07-08"
+CHARS_PER_TOKEN = 4  # crude estimate until Claude Code passes real usage to hooks
+
+
+def scrape_local_tokens(result_text: str) -> int:
+    return sum(int(m) for m in BRIDGE_LOCAL_RE.findall(result_text or ""))
+
+
+def scrape_gemini_cost(result_text: str):
+    """Return (tokens_in, tokens_out, usd) summed over any Gemini juror headers."""
+    tin = tout = 0
+    for a, b in BRIDGE_GEMINI_RE.findall(result_text or ""):
+        tin += int(a); tout += int(b)
+    ip, op = PRICING["gemini"]
+    usd = tin / 1e6 * ip + tout / 1e6 * op
+    return tin, tout, usd
+
+
+def estimate_cost(subagent: str, prompt_chars: int, result_chars: int, result_text: str):
+    """Best-effort cost of this Agent call.
+
+    Cloud side is ESTIMATED from char counts (÷4) × the subagent's tier price —
+    Claude Code doesn't hand token usage to hooks yet, so this bootstraps
+    cost-policy calibration; swap in real usage the moment the event carries it.
+    Local (Ollama) tokens are booked at $0 but recorded for throughput stats.
+    Gemini juror cost, when present in the result, is added from its real usage.
+    """
+    tier = SUBAGENT_TIER.get(subagent)
+    est_in = prompt_chars // CHARS_PER_TOKEN
+    est_out = result_chars // CHARS_PER_TOKEN
+    cloud_usd = 0.0
+    if tier and tier in PRICING:
+        ip, op = PRICING[tier]
+        cloud_usd = est_in / 1e6 * ip + est_out / 1e6 * op
+    _, _, gemini_usd = scrape_gemini_cost(result_text)
+    local_tokens = scrape_local_tokens(result_text)
+    total = round(cloud_usd + gemini_usd, 6)
+    return {
+        "model_tier": tier,
+        "est_input_tokens": est_in,
+        "est_output_tokens": est_out,
+        "local_tokens": local_tokens,
+        "cost_usd": total,
+        "cost_estimated": True,   # cloud side is chars÷4, not billed usage
+        "pricing_asof": PRICING_ASOF,
+        "expensive": bool(tier == "opus" or total >= 0.50),
+    }
 
 
 def safe_get(d, *path, default=None):
@@ -178,6 +278,8 @@ def main():
     is_error = bool(tool_response.get("is_error")) if isinstance(tool_response, dict) else False
     gate_blocked = is_error and "blast-gate" in result_text.lower()
 
+    cost = estimate_cost(subagent, len(prompt), len(result_text), result_text)
+
     record = {
         "ts": dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "tool": tool_name,
@@ -194,6 +296,8 @@ def main():
         "duration_ms": duration_ms,
         "is_error": is_error,
         "gate_blocked": gate_blocked,
+        # §3 cost accounting (cloud side estimated from chars÷4 until real usage lands)
+        **cost,
     }
 
     try:

@@ -3,6 +3,7 @@ name: research-spike-agent
 description: Oracle — Research and spike investigations — explore options, compare approaches, produce structured findings
 tools: Read, Bash, Grep, Glob, WebSearch, WebFetch, Write, Edit, mcp__blast-llm-bridge__ask_ubuntu_qwen36, mcp__semble__search, mcp__semble__find_related
 model: sonnet
+effort: medium
 color: green
 ---
 

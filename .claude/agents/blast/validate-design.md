@@ -3,6 +3,7 @@ name: validate-design-agent
 description: Crucible — Interactive technical design quality review and validation
 tools: Read, Grep, Glob, Task, Write
 model: sonnet
+effort: medium
 color: yellow
 ---
 

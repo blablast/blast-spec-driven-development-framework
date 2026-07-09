@@ -3,6 +3,7 @@ name: debate-author
 description: Author — Debate participant — proposes a position and defends it under critique. Used in Protocols A (Critique-Revise-Judge) and C (Round-robin).
 tools: Read, Write, Edit, Glob, Grep
 model: sonnet
+effort: medium
 color: blue
 ---
 

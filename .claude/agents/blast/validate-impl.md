@@ -3,6 +3,7 @@ name: validate-impl-agent
 description: Auditor — Validate implementation against requirements, design, and tasks
 tools: Read, Bash, Grep, Glob, Task, Write, mcp__semble__search, mcp__semble__find_related
 model: sonnet
+effort: medium
 color: yellow
 ---
 

@@ -12,29 +12,73 @@ Plik czytany przez:
 
 ## Default routing per agent
 
-| Agent | Persona | Default model |
-|---|---|---|
-| spec-design-agent | Atlas | claude-opus |
-| spec-tdd-impl-agent | Forge | claude-sonnet |
-| spec-tasks-agent | Loom | claude-haiku |
-| spec-requirements-agent | Scribe | claude-haiku |
-| spec-tiny-agent | Sprint | claude-haiku |
-| spec-research-agent | Oracle | claude-sonnet |
-| spec-complete-agent | Ledger | claude-haiku |
-| spec-evolve-agent | Delta | claude-haiku |
-| spec-deprecate-agent | Curator | claude-haiku |
-| validate-gap-agent | Bridge | claude-sonnet |
-| validate-design-agent | Crucible | claude-sonnet |
-| validate-impl-agent | Auditor | claude-sonnet |
-| validate-tasks-agent | Pragmatist | claude-sonnet |
-| simplify-agent | Occam | claude-sonnet |
-| security-audit-agent | Sentinel | claude-opus |
-| code-review-agent | Compass | claude-sonnet |
-| spec-drift-agent | Tracker | claude-haiku |
-| steering-agent | Cartographer | claude-sonnet |
-| steering-custom-agent | Specialist | claude-haiku |
+Model aliases w frontmatterze (`haiku` / `sonnet` / `opus`) rozwiązują się do **aktualnej
+generacji**: Opus 4.8 ($5/$25), Sonnet 5 (intro **$2/$10 do 2026-08-31**, potem $3/$15),
+Haiku 4.5 ($1/$5). Trzymamy aliasy — same wskoczą na kolejną generację. `effort` (kolumna
+niżej) to drugi wymiar: przy tym samym modelu steruje budżetem tokenów wyjściowych
+(thinking+tekst). Domyślny effort silnika = `high`; obniżenie do `medium` na fazach
+Sonnet to główna dźwignia kosztu tej fali (Sonnet 5 `medium` ≈ jakość Sonnet 4.6 `high`).
 
-Zmiana defaults: edytuj frontmatter `model:` w `.claude/agents/blast/{agent}.md`. Ten plik jest **referencyjny**, nie autoritative dla single-agent path.
+> ⚠ Po migracji na Sonnet 5 / Opus 4.7+ tokenizer emituje ~30% więcej tokenów za ten sam
+> tekst — przelicz ceilingi w `cost-policy.md` na nowo (nie zmienia ceny za token, ale koszt
+> requestu rośnie). Rekalibracja dopiero po zebraniu telemetrii kosztów (§3).
+
+| Agent | Persona | Default model | Effort |
+|---|---|---|---|
+| spec-design-agent | Atlas | claude-opus | high |
+| spec-tdd-impl-agent | Forge | claude-sonnet | medium |
+| spec-tasks-agent | Loom | claude-haiku | — (haiku bez effort) |
+| spec-requirements-agent | Scribe | claude-haiku | — |
+| spec-tiny-agent | Sprint | claude-haiku | — |
+| spec-research-agent | Oracle | claude-sonnet | medium |
+| spec-complete-agent | Ledger | claude-haiku | — |
+| spec-evolve-agent | Delta | claude-haiku | — |
+| spec-deprecate-agent | Curator | claude-haiku | — |
+| validate-gap-agent | Bridge | claude-sonnet | medium |
+| validate-design-agent | Crucible | claude-sonnet | medium |
+| validate-impl-agent | Auditor | claude-sonnet | medium |
+| validate-tasks-agent | Pragmatist | claude-sonnet | medium |
+| simplify-agent | Occam | claude-sonnet | medium |
+| security-audit-agent | Sentinel | claude-sonnet † | high |
+| code-review-agent | Compass | claude-sonnet | medium |
+| spec-drift-agent | Tracker | claude-haiku | — |
+| steering-agent | Cartographer | claude-sonnet | medium |
+| steering-custom-agent | Specialist | claude-haiku | — |
+
+† **Sentinel** orkiestruje: sam jest `sonnet` (dispatch/merge/dedup/kalibracja severity — `effort: high`,
+bo to security), ale Phase 1A to deterministyczny skrypt `blast-secscan.py` (0 tokenów), a głęboka
+semantyka zostaje w spawnowanym Sub-agencie B (`opus`). Demote opus→sonnet dotyczy orkiestratora, nie
+deep-review. Jury (JURY_3_FLASH3) tylko przy `high_stakes` (patrz `debate_config.security`).
+
+Zmiana defaults: edytuj frontmatter `model:` (i `effort:`) w `.claude/agents/blast/{agent}.md`. Ten plik jest **referencyjny**, nie autoritative dla single-agent path.
+
+## Effort policy (budżet rozumowania per tier)
+
+`effort ∈ {low, medium, high, xhigh, max}` — dostępny na Opus 4.5+/Sonnet 4.6+/Fable 5
+(Haiku 4.5 go nie honoruje → agenci haiku nie mają tego pola). Ustawiany w frontmatterze
+subagenta (Claude Code czyta `effort:` per subagent). Zasada:
+
+- **Mechaniczne fazy (haiku)** — bez effort; model już jest najtańszy.
+- **Walidacja / transformacja / orkiestracja (sonnet)** → `medium`. Down z domyślnego `high`;
+  Sonnet 5 `medium` ≈ Sonnet 4.6 `high`. Główna oszczędność bez utraty jakości.
+- **Design / security (opus)** → `high` (default). Fazy jakościowo krytyczne — nie schodzimy.
+- **Eskalacja architektoniczna w impl** → podnieś ad hoc do `xhigh` na konkretne wywołanie,
+  nie na stałe we frontmatterze.
+
+Chcesz konkretnego agenta ostrzej (np. `spec-research-agent` na `high`) — zmień jego
+`effort:` we frontmatterze; ten plik jest opisem polityki, nie egzekwuje jej.
+
+## Steering digest (§5 — czytaj skrót, nie cały katalog)
+
+`.blast/steering/steering-digest.md` to **generowany** skrót całego `.blast/steering/`
+(sekcje + verbatim gotchas/invariants/canonical-commands/component-registry + pointery
+do pełnych plików). Generator: `python3 .claude/scripts/blast-steering-digest.py`
+(Cartographer odpala go na sync; `--check` wykrywa staleness do CI). Cel: fazy, które dziś
+czytają „**entire** `.blast/steering/`", mogą czytać **najpierw digest** i sięgać po pełny
+plik tylko przy drill-downie — steering przestaje być re-tokenizowany 7–8× na pipeline.
+Opt-in: przełączanie konkretnych agentów na digest-first to zmiana behawioralna — rób ją
+świadomie, agent po agencie (design może dalej czytać całość). Digest jest generowany —
+nigdy nie edytuj go ręcznie.
 
 ---
 
@@ -57,7 +101,7 @@ spec-tdd-impl-agent:
   default_model: qwen3-coder          # via mcp__blast-llm-bridge__ask_ubuntu_qwen3_coder
   draft_model: lfm2.5                 # via mcp__blast-llm-bridge__ask_ubuntu_lfm25 (draft-then-verify, never final code)
   escalate_local: qwen3-coder-next    # tier 2 — via ask_ubuntu_qwen3_coder_next ($0, slow, deliberate swap)
-  escalate_to: claude-sonnet-4-6      # tier 3 — cloud, last resort
+  escalate_to: claude-sonnet-5        # tier 3 — cloud, last resort (effort: medium; xhigh only on architectural)
   escalation_triggers:                # ONLY these — async/complexity keywords removed
     - spec_json:
         security_critical: true       # correctness non-negotiable → straight to tier 3 (Sonnet)
@@ -170,8 +214,8 @@ overrides `model:`).
 HYBRID:
   protocol: B   # parallel jury, N=2 — single message, parallel tool calls
   jurors:
-    - name: claude-sonnet-4-6
-      subagent: debate-critic           # spawned via Task tool (real Sonnet)
+    - name: claude-sonnet-5
+      subagent: debate-critic           # spawned via Task tool (real Sonnet, effort per frontmatter)
     - name: qwen3.6:latest
       mcp_tool: ask_ubuntu_qwen36       # real local Ollama via blast-llm-bridge
   aggregator:
@@ -192,7 +236,7 @@ HYBRID_LOCAL:                            # dual-GPU local jury — privacy mode 
 JURY_3_FLASH3:
   protocol: B   # parallel jury, N=3 — single message, parallel tool calls
   jurors:
-    - name: claude-opus-4-6
+    - name: claude-opus-4-8
       subagent: debate-critic-opus      # spawned via Task tool (model: opus in frontmatter)
     - name: qwen3.6:latest
       mcp_tool: ask_ubuntu_qwen36       # real local Ollama via blast-llm-bridge
@@ -238,8 +282,12 @@ debate_config:
 
   security:
     enabled: true
-    trigger: always               # security ALWAYS uses jury — cross-corpus diversity matters most here
-    composition: JURY_3_FLASH3
+    trigger: high_stakes          # jury (cross-corpus diversity) only where it pays: security_critical
+                                  # / risk_level=high / sensitive paths. Normal specs run SOLO Sentinel
+                                  # (sonnet orchestrator + deterministic Phase-1A scan + opus deep-review
+                                  # Sub-agent B + threat-model Sub-agent C) — still thorough, no jury tax.
+                                  # Spike-3: jury buys only +0.05 recall for +$0.57 and +96s vs solo.
+    composition: JURY_3_FLASH3    # used ONLY when high_stakes fires
     cost_ceiling_usd: 1.50
 
   review:

@@ -3,6 +3,7 @@ name: validate-tasks-agent
 description: Pragmatist — KISS + SOTA review of tasks.md before impl phase commits resources
 tools: Read, Bash, Glob, Grep, WebSearch, Task, Write
 model: sonnet
+effort: medium
 color: cyan
 ---
 

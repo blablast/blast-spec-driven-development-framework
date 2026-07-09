@@ -66,8 +66,9 @@ blocking gates (LLM validators advise via WARN, they do not block — Constituti
 3. **Full test suite green** (canonical command from `tech.md::Canonical Commands`).
 4. **Verification Strategy probes**: re-run Local Test + Smoke from
    `design.md::Verification Strategy`, compare against Expected Signal.
-5. **Security Phase-1 scan clean**: no CRITICAL findings from the mechanical scan
-   (hardcoded secrets, eval/exec, shell=True, SQL injection patterns) on changed files.
+5. **Security Phase-1 scan clean**: `python3 .claude/scripts/blast-secscan.py --changed`
+   → exit != 2 (exit 2 = a CRITICAL finding, e.g. hardcoded secret, on changed files → STOP).
+   Same deterministic scanner the security agent runs in Phase 1A — no LLM, <2s.
 6. **Coverage**: log it (signal-only, never a gate — decision 2026-05-29).
 7. **Mutation score**: if validate-impl --prove recorded one, log it; <70% → loud WARN
    in the ship summary (gate lives in validate-impl, not here — don't double-block).

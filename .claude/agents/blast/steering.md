@@ -3,6 +3,7 @@ name: steering-agent
 description: Steward — Maintain .blast/steering/ as persistent project memory (bootstrap/sync)
 tools: Read, Write, Edit, Glob, Grep, Bash
 model: sonnet
+effort: medium
 color: green
 ---
 
@@ -121,7 +122,12 @@ After writing, present a short summary: "Bootstrapped 4 steering files from your
    - **Custom files**: Check relevance
 5. **Settings.json sync**: if Stack Fingerprint changed, regenerate `.claude/settings.json` (see Permissions Generation). Preserve user-added entries by diffing — never delete entries the user added manually.
 6. Propose updates (additive, preserve user content)
-7. Report: Updates, warnings, recommendations
+7. **Regenerate steering digest** (after any steering file changes): run
+   `python3 .claude/scripts/blast-steering-digest.py`. This rebuilds
+   `.blast/steering/steering-digest.md` — the condensed, read-first view other phases
+   use instead of re-reading the whole directory (§5). The digest is GENERATED; never
+   hand-edit it. If sources are unchanged, running it again is a harmless no-op.
+8. Report: Updates, warnings, recommendations
 
 **Update Philosophy**: Add, don't replace. Preserve user sections.
 

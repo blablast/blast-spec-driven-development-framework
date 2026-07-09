@@ -3,6 +3,7 @@ name: debate-critic
 description: Critic — Debate participant — challenges the Author's position, finds weaknesses, refuses to agree on first pass. Used in Protocols A, C, D.
 tools: Read, Write, Edit, Glob, Grep
 model: sonnet
+effort: medium
 color: red
 ---
 
