@@ -165,58 +165,123 @@ def parse_telemetry() -> list[dict]:
     return rows
 
 
+def _pct(vals: list[float], q: float) -> float:
+    """Percentile with a nearest-rank fallback for tiny samples."""
+    s = sorted(vals)
+    if len(s) == 1:
+        return s[0]
+    idx = min(len(s) - 1, int(round(q * (len(s) - 1))))
+    return s[idx]
+
+
 def calibrate_cost_caps(rows: list[dict]) -> dict:
-    """Group costs by subagent + composition, compute percentiles."""
+    """Group real $ cost by subagent, compute percentiles + spend totals.
+
+    Uses the telemetry `cost_usd` field (added §3). Falls back to a char proxy
+    only for legacy rows written before cost accounting existed, so a mixed log
+    still produces useful numbers.
+    """
     if not rows:
         return {"_status": "empty log", "groups": {}}
-    # cost_usd is not always recorded yet — placeholder until telemetry hook
-    # adds it. For now use prompt_chars + result_chars as proxy.
-    groups = defaultdict(list)
+
+    groups = defaultdict(lambda: {"cost": [], "chars": [], "esc_local": 0, "esc_cloud": 0,
+                                  "expensive": 0, "estimated": 0})
+    total_spend = 0.0
+    have_cost = 0
     for r in rows:
         sub = r.get("subagent") or "unknown"
+        g = groups[sub]
+        cost = r.get("cost_usd")
+        if isinstance(cost, (int, float)):
+            g["cost"].append(float(cost))
+            total_spend += float(cost)
+            have_cost += 1
+            if r.get("cost_estimated"):
+                g["estimated"] += 1
         chars = (r.get("prompt_chars") or 0) + (r.get("result_chars") or 0)
         if chars > 0:
-            groups[sub].append(chars)
+            g["chars"].append(chars)
+        if r.get("expensive"):
+            g["expensive"] += 1
+        lo, es = r.get("local_ok"), r.get("escalated")
+        if isinstance(lo, int):
+            g["esc_local"] += lo
+        if isinstance(es, int):
+            g["esc_cloud"] += es
 
     out = {}
-    for sub, vals in groups.items():
-        if len(vals) < 3:
-            out[sub] = {"n": len(vals), "_note": "need ≥3 samples for percentiles"}
-            continue
-        out[sub] = {
-            "n": len(vals),
-            "p25_chars": int(statistics.quantiles(vals, n=4)[0]),
-            "p50_chars": int(statistics.median(vals)),
-            "p75_chars": int(statistics.quantiles(vals, n=4)[2]),
-            "p95_chars": int(sorted(vals)[int(0.95 * len(vals))]),
-            "max_chars": max(vals),
-        }
-    return {"groups": out, "total_runs": len(rows)}
+    for sub, g in groups.items():
+        cost = g["cost"]
+        entry = {"n": len(cost) or len(g["chars"]), "expensive_runs": g["expensive"]}
+        if len(cost) >= 3:
+            entry.update({
+                "cost_p25": round(_pct(cost, 0.25), 4),
+                "cost_p50": round(statistics.median(cost), 4),
+                "cost_p75": round(_pct(cost, 0.75), 4),
+                "cost_p95": round(_pct(cost, 0.95), 4),
+                "cost_total": round(sum(cost), 4),
+                "cost_estimated_frac": round(g["estimated"] / len(cost), 2),
+                "warning_at": round(_pct(cost, 0.75), 2),   # cost-policy suggestion
+                "block_at": round(_pct(cost, 0.95), 2),
+            })
+        elif cost:
+            entry["_note"] = f"{len(cost)} cost sample(s) — need ≥3 for percentiles"
+            entry["cost_total"] = round(sum(cost), 4)
+        else:
+            entry["_note"] = "no cost_usd yet (legacy rows); char proxy only"
+            if g["chars"]:
+                entry["p50_chars"] = int(statistics.median(g["chars"]))
+        tot_esc = g["esc_local"] + g["esc_cloud"]
+        if tot_esc:
+            entry["cloud_escalation_rate"] = round(g["esc_cloud"] / tot_esc, 3)
+        out[sub] = entry
+    return {"groups": out, "total_runs": len(rows),
+            "rows_with_cost": have_cost, "total_spend_usd": round(total_spend, 4)}
 
 
 def render_calibration_report(cal: dict) -> str:
     out = ["# Cost calibration report", ""]
-    out.append(f"Source: `{LOG_PATH.relative_to(REPO_ROOT)}` ({cal.get('total_runs', 0)} runs)")
+    out.append(f"Source: `{LOG_PATH.relative_to(REPO_ROOT)}` "
+               f"({cal.get('total_runs', 0)} runs, {cal.get('rows_with_cost', 0)} with cost_usd)")
+    out.append(f"**Total observed spend: ${cal.get('total_spend_usd', 0):.2f}** "
+               f"(cloud estimated from chars÷4 until real usage lands; local = $0).")
     out.append("")
     if not cal.get("groups"):
         out.append("_No telemetry data yet. Run blast specs to accumulate samples._")
         return "\n".join(out)
 
-    out.append("## Char budget per subagent (proxy for cost)")
+    out.append("## Cost per subagent (USD)")
     out.append("")
-    out.append("| Subagent | N | p25 | p50 | p75 | p95 | max |")
-    out.append("|---|---:|---:|---:|---:|---:|---:|")
-    for sub, stats in sorted(cal["groups"].items()):
-        if stats.get("n", 0) < 3:
-            out.append(f"| {sub} | {stats.get('n')} | _need ≥3 samples_ | | | | |")
-            continue
-        out.append(f"| {sub} | {stats['n']} | {stats['p25_chars']:,} | {stats['p50_chars']:,} | {stats['p75_chars']:,} | {stats['p95_chars']:,} | {stats['max_chars']:,} |")
+    out.append("| Subagent | N | p50 $ | p75 $ | p95 $ | total $ | expensive | cloud-esc | est-frac |")
+    out.append("|---|---:|---:|---:|---:|---:|---:|---:|---:|")
+    ready = []
+    for sub, s in sorted(cal["groups"].items()):
+        if "cost_p50" in s:
+            esc = f"{s['cloud_escalation_rate']:.0%}" if "cloud_escalation_rate" in s else "—"
+            out.append(f"| {sub} | {s['n']} | {s['cost_p50']:.4f} | {s['cost_p75']:.4f} | "
+                       f"{s['cost_p95']:.4f} | {s['cost_total']:.3f} | {s['expensive_runs']} | "
+                       f"{esc} | {s.get('cost_estimated_frac', 0):.0%} |")
+            ready.append((sub, s))
+        else:
+            out.append(f"| {sub} | {s.get('n', 0)} | {s.get('_note', 'n/a')} | | | "
+                       f"{s.get('cost_total', 0):.3f} | {s['expensive_runs']} | | |")
     out.append("")
-    out.append("## Recommended cost-policy.md updates")
+    out.append("## Recommended `cost-policy.md` caps (warning_at = p75, block_at = p95)")
     out.append("")
-    out.append("Once telemetry includes `cost_usd` field per run (Fala 10 v2), this script")
-    out.append("will auto-suggest hard limit updates: warning_at = p75, block_at = p95.")
-    out.append("Currently char-based proxy; manually map characters → tokens → $ to update.")
+    if not ready:
+        out.append("_Not enough samples yet — need ≥3 cost-bearing runs per subagent._")
+    else:
+        out.append("Paste into `.blast/steering/cost-policy.md` once samples are representative")
+        out.append("(the roadmap target: warning_at = historical p75, block_at = p95):")
+        out.append("")
+        out.append("```")
+        for sub, s in ready:
+            out.append(f"{sub:28s} warning_at: ${s['warning_at']:<6} block_at: ${s['block_at']}")
+        out.append("```")
+        out.append("")
+        out.append("> ⚠ `est-frac` = share of runs whose cloud cost is ESTIMATED (chars÷4), not")
+        out.append("> billed. Treat caps as provisional until real token usage reaches the hook,")
+        out.append("> and re-baseline after the Sonnet-5/Opus-4.7 tokenizer change (~+30% tokens).")
     return "\n".join(out)
 
 
