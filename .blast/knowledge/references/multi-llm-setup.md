@@ -178,6 +178,40 @@ Zalecenia:
 
 Po `OLLAMA_KEEP_ALIVE=24h` modele zostają w VRAM → cold start tylko po reboot.
 
+## vLLM — tryb wsadowy (batch), NIE drugi stały serwis
+
+Decyzja (trial 2026-07-09, RTX 5090 32G / Blackwell): **NO-GO jako stały drugi serwis obok Ollamy;
+GO jako narzędzie wsadowe.** Pełna notatka: `.priv/decisions/2026-07-09-vllm-vs-ollama-trial.md`.
+
+Zmierzone (identyczny skrypt asyncio, wspólny system-prefix, 24 żądania/poziom, `max_tokens=256`, `temp=0`):
+
+| Współbieżność | vLLM tok/s | Ollama tok/s | Przewaga | vLLM p95 | Ollama p95 |
+|---|---:|---:|---:|---:|---:|
+| 1 | 236.9 | 240.3 | remis (–1.4%) | 1.08 s | 1.05 s |
+| 3 | 487.9 | 381.8 | +27.8% | 1.55 s | 2.01 s |
+| 8 | 1018.1 | 400.8 | 2.5× | 1.87 s | 5.10 s |
+
+- **Interaktywnie (bridge, pętle agentowe, conc 1–3) → Ollama.** Punkt pracy to conc=1 (remis);
+  +28% przy conc=3 spłaca drugi serwis dopiero przy ≥3 równoległych sesjach na modelu coder.
+  Ollama trzyma współrezydentną trójkę (qwen3-coder + lfm2.5 + juror, `keep_alive=-1`) — zero cold-startów.
+- **Wsadowo (blast-bench: setki żądań, jeden model, okno na wyłączność karty, conc 8+) → vLLM.**
+  Przewaga 2.5× i rosnąca; utrata współrezydencji nic nie kosztuje, bo to okno na wyłączność.
+
+Receptura wsadowa (trzymana jako narzędzie, NIE demon — odpalana na czas eksperymentu):
+
+```bash
+# izolowany venv: torch 2.11+cu130, vLLM 0.24.0
+VLLM_USE_FLASHINFER_SAMPLER=0 \      # obejście landminy JIT samplera na sm_120 (Blackwell)
+vllm serve QuantTrio/Qwen3-Coder-30B-A3B-Instruct-AWQ \
+  --port 8001 --gpu-memory-utilization 0.90 --max-model-len 32768 --enable-prefix-caching
+# serwer OpenAI-compatible na :8001 — bench/bridge celują minimalną zmianą base_url
+```
+
+> ⚠ NIE uruchamiać równolegle z rezydentną parą Ollamy na jednej 32G karcie (15.7G wag + ~11G KV) —
+> to okno time-sharingu GPU, zwolnij modele Ollamy na czas przebiegu. Spec-decoding pomijać
+> (qwen3.6 / A3B-MoE = zero zysku). **Próg re-ewaluacji:** interaktyw regularnie ≥3 sesje równoległe
+> na coderze → wróć do tabeli.
+
 ## Failure modes
 
 | Scenario | Detection | Fallback |
