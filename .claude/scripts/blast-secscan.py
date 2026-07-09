@@ -217,14 +217,24 @@ def files_for_feature(root: Path, feature: str) -> list[Path]:
 
 
 def files_changed(root: Path) -> list[Path]:
+    """Union of everything 'in flight': committed vs the push base (upstream, else
+    main), PLUS staged (--cached) PLUS unstaged. Missing any of these lets a secret
+    slip through — e.g. a staged-but-uncommitted key at pre-push time."""
+    def _git(*args) -> str:
+        try:
+            return subprocess.run(["git", *args], capture_output=True, text=True,
+                                  cwd=str(root)).stdout
+        except Exception:
+            return ""
     try:
-        base = subprocess.run(["git", "merge-base", "HEAD", "main"], capture_output=True,
-                              text=True, cwd=str(root)).stdout.strip() or "HEAD~1"
-        out = subprocess.run(["git", "diff", "--name-only", f"{base}..HEAD"],
-                            capture_output=True, text=True, cwd=str(root)).stdout
-        also = subprocess.run(["git", "diff", "--name-only"], capture_output=True,
-                            text=True, cwd=str(root)).stdout
-        names = set(filter(None, (out + "\n" + also).splitlines()))
+        # Prefer the upstream range (what a push would send); fall back to main; then HEAD~1.
+        base = _git("rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}").strip()
+        if not base:
+            base = _git("merge-base", "HEAD", "main").strip() or "HEAD~1"
+        ranged = _git("diff", "--name-only", f"{base}..HEAD")
+        staged = _git("diff", "--cached", "--name-only")
+        unstaged = _git("diff", "--name-only")
+        names = set(filter(None, "\n".join([ranged, staged, unstaged]).splitlines()))
         return [root / n for n in names if os.path.splitext(n)[1].lower() in CODE_EXT
                 and (root / n).exists()]
     except Exception:

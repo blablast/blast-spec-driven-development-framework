@@ -1,0 +1,77 @@
+#!/usr/bin/env bash
+# blast pre-push — deterministic CI gate (§4.6 "drift jako CI, nie komenda").
+#
+# Runs ONLY deterministic, 0-token checks before a push so a broken spec / leaked
+# secret / stale digest never leaves the repo. No LLM here — LLM validators advise
+# via WARN in the pipeline; the push gate blocks only on things code can prove.
+#
+# Install (version-controlled, one command):
+#   git config core.hooksPath .claude/hooks/git
+#
+# Checks:
+#   1. blast-lint.py --all      → EARS/ID/traceability. Block on lint errors (exit 2).
+#   2. blast-secscan.py --changed → hardcoded secrets / injection on changed code.
+#                                  Block on CRITICAL (exit 2).
+#   3. blast-steering-digest.py --check → WARN (never block) if the digest is stale.
+#
+# Philosophy (mirrors blast-lint-gate): fail-OPEN on missing tooling by default so a
+# fresh clone can still push; set BLAST_PREPUSH_STRICT=1 (CI) to fail CLOSED instead.
+#
+# Bypass a single push (intentional WIP): git push --no-verify
+
+set -u
+ROOT="$(git rev-parse --show-toplevel 2>/dev/null || echo .)"
+cd "$ROOT" || exit 0
+PY="$(command -v python3 || command -v python || echo python)"
+STRICT="${BLAST_PREPUSH_STRICT:-}"
+fail=0
+
+say()  { printf '%s\n' "[blast-prepush] $*" >&2; }
+missing() {  # $1 = what; fail-closed only in strict mode
+  if [ -n "$STRICT" ]; then say "STRICT: $1 unavailable → blocking push"; fail=1
+  else say "WARN: $1 unavailable → skipped (set BLAST_PREPUSH_STRICT=1 to block)"; fi
+}
+
+# 1. deterministic spec lint (whole repo)
+if [ -f .claude/scripts/blast-lint.py ]; then
+  if ! "$PY" .claude/scripts/blast-lint.py --all >/tmp/blast-prepush-lint.log 2>&1; then
+    rc=$?
+    if [ "$rc" -eq 2 ]; then
+      say "LINT FAIL — push blocked. Details:"; sed 's/^/    /' /tmp/blast-prepush-lint.log >&2; fail=1
+    else
+      say "lint exited $rc (non-blocking)"; fi
+  else say "lint: clean"; fi
+else missing "blast-lint.py"; fi
+
+# 2. deterministic security scan on changed code
+if [ -f .claude/scripts/blast-secscan.py ]; then
+  "$PY" .claude/scripts/blast-secscan.py --changed --json >/tmp/blast-prepush-sec.json 2>/dev/null
+  rc=$?
+  if [ "$rc" -eq 2 ]; then
+    say "SECURITY: CRITICAL finding on changed code — push blocked:"
+    "$PY" - "$PY" <<'PYEOF' >&2
+import json, sys
+try:
+    for f in json.load(open("/tmp/blast-prepush-sec.json")):
+        if f.get("severity") == "CRITICAL":
+            print(f"    {f['file']}:{f['line']}  {f['category']} — {f['description']}")
+except Exception:
+    print("    (see: python3 .claude/scripts/blast-secscan.py --changed)")
+PYEOF
+    fail=1
+  else say "secscan: no CRITICAL on changed code"; fi
+else missing "blast-secscan.py"; fi
+
+# 3. steering digest freshness (advisory — never blocks)
+if [ -f .claude/scripts/blast-steering-digest.py ]; then
+  if ! "$PY" .claude/scripts/blast-steering-digest.py --check >/dev/null 2>&1; then
+    say "WARN: steering-digest is stale — run 'python3 .claude/scripts/blast-steering-digest.py' (not blocking)"
+  fi
+fi
+
+if [ "$fail" -ne 0 ]; then
+  say "PUSH BLOCKED. Fix the above, or 'git push --no-verify' to override (intentional WIP only)."
+  exit 1
+fi
+say "all deterministic gates passed."
+exit 0
