@@ -15,6 +15,9 @@ Usage:
   python3 .claude/scripts/blast-bench.py --task analytical    # critics only
   python3 .claude/scripts/blast-bench.py --models qwen3.6:latest,glm-4.6:cloud
   python3 .claude/scripts/blast-bench.py --runs 1             # single-run only (skip warm)
+  # vLLM batch engine (start blast-vllm-batch.sh first — it opens the GPU window):
+  python3 .claude/scripts/blast-bench.py --engine vllm --task coding
+  python3 .claude/scripts/blast-bench.py --engine vllm --base-url http://localhost:8001
 
 Output:
   - Markdown table per task to stdout
@@ -261,6 +264,56 @@ def run_one(machine: str, model: str, task: str, prompt: str, run_idx: int,
     )
 
 
+def run_one_vllm(base_url: str, model: str, task: str, prompt: str, run_idx: int) -> RunResult:
+    """Run a task against a vLLM OpenAI-compatible server (/v1/completions).
+
+    vLLM is the BATCH engine (decision 2026-07-09) — use via `blast-vllm-batch.sh`,
+    which opens a GPU window and serves this endpoint. tok/s is wall-clock based
+    (no server-side eval_duration like Ollama exposes)."""
+    url = f"{base_url}/v1/completions"
+    payload = {
+        "model": model,
+        "prompt": prompt,
+        "max_tokens": 4096,
+        "temperature": 0.2,
+    }
+
+    def _err(msg: str) -> RunResult:
+        return RunResult("vllm", model, task, run_idx, elapsed_s=time.time() - t0,
+                         tokens_in=0, tokens_out=0, tokens_per_sec=0.0,
+                         ollama_total_s=0.0, ollama_eval_s=0.0, response_chars=0, error=msg)
+
+    t0 = time.time()
+    try:
+        with httpx.Client(timeout=TIMEOUT_S) as client:
+            resp = client.post(url, json=payload)
+            resp.raise_for_status()
+            data = resp.json()
+    except httpx.TimeoutException:
+        return _err(f"TIMEOUT after {TIMEOUT_S}s")
+    except httpx.ConnectError as e:
+        return _err(f"CONNECT_ERROR: {e} (is blast-vllm-batch running on {base_url}?)")
+    except httpx.HTTPStatusError as e:
+        return _err(f"HTTP_{e.response.status_code}: {e.response.text[:160]}")
+    except Exception as e:
+        return _err(f"{type(e).__name__}: {e}")
+
+    elapsed = time.time() - t0
+    choices = data.get("choices") or [{}]
+    text = choices[0].get("text", "") or ""
+    usage = data.get("usage", {}) or {}
+    tokens_in = usage.get("prompt_tokens", 0)
+    tokens_out = usage.get("completion_tokens", 0)
+    tps = tokens_out / elapsed if elapsed > 0 else 0.0
+    preview = " ".join(text[:160].split())[:80]
+    return RunResult(
+        machine="vllm", model=model, task=task, run_idx=run_idx,
+        elapsed_s=elapsed, tokens_in=tokens_in, tokens_out=tokens_out,
+        tokens_per_sec=tps, ollama_total_s=elapsed, ollama_eval_s=elapsed,
+        response_chars=len(text), response_preview=preview, error="",
+    )
+
+
 def render_table(results: list[RunResult], task: str) -> str:
     out = []
     out.append(f"\n## Task: `{task}`")
@@ -320,10 +373,51 @@ def main(argv):
     parser.add_argument("--runs", type=int, default=2, help="how many runs per (model,task), default 2 (cold+warm)")
     parser.add_argument("--output", help="optional path to write full JSON transcript")
     parser.add_argument("--sleep", type=float, default=2.0, help="seconds between runs (default 2)")
+    parser.add_argument("--engine", choices=["ollama", "vllm"], default="ollama",
+                        help="ollama (default, /api/generate) or vllm (OpenAI /v1/completions — batch window)")
+    parser.add_argument("--base-url", help="override endpoint (vllm default http://localhost:8001)")
+    parser.add_argument("--vllm-model", default="QuantTrio/Qwen3-Coder-30B-A3B-Instruct-AWQ",
+                        help="served model id when --engine vllm (used if --models not given)")
     args = parser.parse_args(argv)
 
     tasks = ["analytical", "coding"] if args.task == "both" else [args.task]
     model_filter = set(m.strip() for m in args.models.split(",")) if args.models else None
+
+    # vLLM path: single OpenAI-compatible endpoint, one served model (the coder).
+    # Decision 2026-07-09 — vLLM is the BATCH engine; start it with blast-vllm-batch.sh first.
+    if args.engine == "vllm":
+        base_url = args.base_url or "http://localhost:8001"
+        vmodels = sorted(model_filter) if model_filter else [args.vllm_model]
+        print(f"# blast-bench (vLLM) — {dt.datetime.now(dt.timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')}")
+        print(f"\n**Engine**: vLLM @ {base_url}\n**Models**: {vmodels}\n**Tasks**: {tasks}\n"
+              f"**Runs**: {args.runs}\n**Timeout**: {TIMEOUT_S}s\n")
+        results: list[RunResult] = []
+        plan_v = [(m, t) for m in vmodels for t in tasks]
+        print(f"**Planned runs**: {len(plan_v) * args.runs}\n")
+        for i, (model, task) in enumerate(plan_v, 1):
+            print(f"[{i}/{len(plan_v)}] vllm/{model} — task={task}", file=sys.stderr, flush=True)
+            for run_idx in range(1, args.runs + 1):
+                print(f"   run {run_idx}/{args.runs}...", end="", file=sys.stderr, flush=True)
+                r = run_one_vllm(base_url, model, task, TASKS[task], run_idx)
+                results.append(r)
+                if r.error:
+                    print(f" {r.error}", file=sys.stderr)
+                    break
+                print(f" {r.elapsed_s:.1f}s ({r.tokens_per_sec:.1f} tok/s)", file=sys.stderr)
+                time.sleep(args.sleep)
+        for t in tasks:
+            print(render_table(results, t))
+            print(render_preview(results, t))
+        if args.output:
+            payload_json = json.dumps([asdict(r) for r in results], indent=2, ensure_ascii=False)
+            try:
+                Path(args.output).write_text(payload_json, encoding="utf-8")
+                print(f"\nFull transcript written to {args.output}", file=sys.stderr)
+            except (PermissionError, OSError) as e:
+                fb = Path(f"/tmp/{Path(args.output).name}")
+                fb.write_text(payload_json, encoding="utf-8")
+                print(f"\nWARNING: {e}; fallback {fb}", file=sys.stderr)
+        return 1 if any(r.error for r in results) else 0
 
     print(f"# blast-bench results — {dt.datetime.now(dt.timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')}")
     print(f"\n**Endpoints**: {ENDPOINTS}")
