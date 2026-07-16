@@ -41,3 +41,4 @@ Thumbs.db
 # Personal/private content — paper drafts, R&D, internal notes, spike data
 # Never tracked. Replaces the old `r_and_d/` convention with an enforced gitignore.
 .priv/
+/.priv/
