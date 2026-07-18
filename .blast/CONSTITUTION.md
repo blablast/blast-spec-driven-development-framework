@@ -40,9 +40,17 @@ Encouraged:
 
 ---
 
-## Article III — Multi-LLM Debate Is the Default for Validation (SOTA #1)
+## Article III — Multi-LLM Debate Is Evidence-Gated, Not Default (SOTA #1)
 
-For all `validate-{design,impl,tasks}` and `security` phases, the debate composition specified in `llm-routing.md::debate_config` runs by default. Solo single-agent review is the **exception**, requested explicitly via `--no-debate`.
+Solo review (per Model routing in `llm-routing.md`) is the **default** for all
+`validate-{design,impl,tasks}` phases; the user opts INTO debate with `--debate`.
+Rationale: blast's own Spike-3 measured multi-LLM debate at only ~+5% recall vs solo
+at ~2× cost and +90–130s — a poor trade as an unconditional default. Debate fires
+automatically only where cross-model corpus diversity demonstrably pays:
+`security` and `simplify` on **high-stakes** specs (`security_critical: true`,
+`risk_level: high`, or sensitive paths). Canonical trigger table:
+`llm-routing.md::debate_config` — that file is the single source of truth; when this
+article and the routing file disagree, the routing file wins and this article is stale.
 
 Compositions wire real subagents and real MCP tools — no stand-ins, no roleplay. If a juror's tool is unavailable (subagent missing, MCP key not set), the juror is **skipped and logged**, never simulated. Aggregator must reflect degradations honestly in the verdict envelope.
 
@@ -140,11 +148,4 @@ This is rare. Most "evolve" intents should use `/blast:evolve`, not duplicate.
 
 ## Amendment Process
 
-This document is amended by editing it directly and running `/blast:steering` to propagate any consequential changes to operational steering files. There is no formal vote — this is one developer's framework — but every amendment commit message must explain *why* the article changed, not just *what*.
-
-History of amendments lives in `git log .blast/CONSTITUTION.md`.
-
----
-
-*Last reviewed: 2026-05-07*
-*Article count target: stable at 11. Adding a 12th means promoting a steering rule to invariant status — high bar.*
+This document is amended by edi

@@ -5,6 +5,11 @@ blast privacy gate - PreToolUse hook enforcing privacy patterns from llm-routing
 Blocks tool calls that would send privacy-flagged file content to non-local LLMs.
 
 Specifically:
+    - Enforces `spec.json.privacy: local-only` (Constitution Art. — the gate READS
+      the active spec's spec.json): an Agent/Task prompt carrying `Feature: <name>`
+      whose spec is local-only may NOT reference cloud LLM tools, and while such a
+      spec is active (session state, 30-min window) direct MCP cloud calls are
+      blocked too — regardless of which files were touched.
     - Reads `.blast/steering/llm-routing.md` for `local-only` glob patterns
     - When a Read/Glob/Grep tool call references a privacy-flagged path,
       records the path in a session-scoped state file
@@ -62,6 +67,32 @@ LOCAL_TOOL_PATTERNS = [
     r"^ask_win11_",
 ]
 LOCAL_RES = [re.compile(p) for p in LOCAL_TOOL_PATTERNS]
+
+
+FEATURE_RE = re.compile(r"^Feature:\s*([A-Za-z0-9._-]+)\s*$", re.MULTILINE)
+ACTIVE_WINDOW_S = 1800  # how long a local-only spec stays "active" for direct-MCP checks
+
+
+def spec_privacy(root: Path, feature: str) -> str | None:
+    """Return the spec's `privacy` field (e.g. 'local-only') or None.
+
+    Looks in .blast/specs/{feature}/spec.json, then evolution specs. Any parse
+    error → None (fail-open here; the pattern-based defense still applies).
+    """
+    candidates = [root / ".blast" / "specs" / feature / "spec.json"]
+    evo_dir = root / ".blast" / "specs"
+    if evo_dir.exists():
+        candidates.extend(evo_dir.glob(f"*/evolutions/*/spec.json"))
+    for path in candidates:
+        try:
+            if not path.exists():
+                continue
+            spec = json.loads(path.read_text(encoding="utf-8"))
+            if path.parent.name == feature or spec.get("feature_name") == feature:
+                return spec.get("privacy")
+        except Exception:
+            continue
+    return None
 
 
 def bare_tool_name(tool_name: str) -> str:
@@ -204,6 +235,44 @@ def main():
         return 0
 
     state = prune_touched(load_state(state_path))
+    project_root = routing_path.parent.parent.parent  # .blast/steering/llm-routing.md → root
+
+    # ── spec.json.privacy enforcement (independent of patterns/touched paths) ──
+    # This is the Constitution's guarantee: a local-only spec cannot reach cloud
+    # LLM tools, full stop. Previously the hook only reacted to touched paths.
+    prompt = tool_input.get("prompt") or "" if tool_name in ("Agent", "Task") else ""
+    if prompt:
+        fm = FEATURE_RE.search(prompt)
+        if fm:
+            feature = fm.group(1)
+            if spec_privacy(project_root, feature) == "local-only":
+                # remember the active local-only spec for later direct-MCP checks
+                state["active_local_only"] = {"feature": feature, "ts": time.time()}
+                save_state(state_path, state)
+                hits = sorted({m.group(1) for m in re.finditer(r"(ask_\w+)", prompt)
+                               if any(rx.match(m.group(1)) for rx in EXTERNAL_RES)})
+                if hits:
+                    log_block(
+                        f"spec '{feature}' is privacy: local-only but the agent prompt "
+                        f"references cloud LLM tool(s) {hits}.\n"
+                        f"  local-only specs may use ONLY local tools "
+                        f"(ask_local_*, ask_ubuntu_*, ask_win11_*) — composition HYBRID_LOCAL.\n"
+                        f"  Fix: re-run without --debate cloud jurors, or drop `privacy` from spec.json."
+                    )
+                    return 2
+
+    # direct MCP cloud call while a local-only spec is active → block
+    active = state.get("active_local_only")
+    if (active and isinstance(active, dict)
+            and (time.time() - active.get("ts", 0)) <= ACTIVE_WINDOW_S
+            and is_external_tool(tool_name)):
+        log_block(
+            f"spec '{active.get('feature')}' is privacy: local-only — direct call to "
+            f"cloud LLM tool '{tool_name}' is blocked.\n"
+            f"  Allowed: only local tools (ask_local_*, ask_ubuntu_*, ask_win11_*)."
+        )
+        return 2
+
     patterns = get_patterns_cached(routing_path, state, state_path)
     if not patterns:
         return 0  # No privacy patterns configured → allow everything

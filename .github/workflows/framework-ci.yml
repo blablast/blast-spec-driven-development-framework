@@ -1,0 +1,59 @@
+name: framework-ci
+
+# CI for the blast FRAMEWORK itself (hooks, scripts, agents) — addresses the
+# "no tests/CI for the framework" gap. Runs the deterministic checks a human
+# would otherwise have to remember: compile, syntax, unit tests, self-secscan.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # secscan --changed diffs against history
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install test deps
+        run: pip install pytest httpx pyyaml
+
+      - name: Compile all framework Python
+        run: |
+          python -m compileall -q .claude/hooks .claude/scripts .claude/mcp || exit 1
+
+      - name: Shell syntax (git hooks + batch helpers)
+        run: |
+          for f in .claude/hooks/git/* .claude/scripts/*.sh; do
+            [ -f "$f" ] && bash -n "$f" && echo "syntax OK: $f"
+          done
+
+      - name: Agent frontmatter is valid YAML
+        run: |
+          python - <<'PY'
+          import glob, re, sys, yaml
+          bad = 0
+          for f in glob.glob(".claude/agents/**/*.md", recursive=True):
+              text = open(f, encoding="utf-8", errors="replace").read().replace("\r\n", "\n")
+              m = re.match(r"^---\n(.*?)\n---\n", text, re.S)
+              if not m:
+                  continue
+              try:
+                  yaml.safe_load(m.group(1))
+              except Exception as e:
+                  print(f"BAD frontmatter: {f}: {e}"); bad += 1
+          sys.exit(1 if bad else 0)
+          PY
+
+      - name: Framework unit tests
+        run: pytest .claude/tests -q
+
+      - name: Self-scan (secscan over the framework's own code)
+        run: python .claude/scripts/blast-secscan.py --all --json > /dev/null

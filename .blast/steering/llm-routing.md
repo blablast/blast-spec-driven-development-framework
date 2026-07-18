@@ -196,7 +196,7 @@ fires automatically only where cross-model diversity genuinely matters (security
 
 | Trigger | Fires when |
 |---|---|
-| `always` | every invocation of that phase (debate non-negotiable, e.g., security) |
+| `always` | every invocation of that phase (debate non-negotiable — currently no phase uses it; security moved to `high_stakes`) |
 | `debate_flag` | ONLY when the user passes `--debate` (default OFF — solo composition otherwise) |
 | `high_stakes` | `risk_level: high` OR `security_critical: true` OR PR touches sensitive paths (always debate, no opt-out) |
 
@@ -305,7 +305,7 @@ debate_config:
 
 Compositions (HYBRID, HYBRID_LOCAL, JURY_3_FLASH3) defined above. **Trigger semantics**:
 - `debate_flag` — opt-in: fire debate ONLY when the calling slash command injected `Debate: true` into the agent prompt (user passed `--debate`). Otherwise run the solo composition from Model routing.
-- `always` — fire debate unconditionally (e.g. security).
+- `always` — fire debate unconditionally (no phase uses it today; security is `high_stakes`).
 - `high_stakes` — fire only when risk_level=high or security_critical=true.
 
 To **disable** debate for a phase without removing config: set `enabled: false`. To **force always-on**: set `trigger: always`.

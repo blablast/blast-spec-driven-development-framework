@@ -34,7 +34,7 @@ steering → init → requirements → [research] → design → [validate-desig
 ### Skróty
 
 - `/blast:quick "opis" [--auto] [--research]` — tylko spec (init→req→[research]→design→tasks)
-- `/blast:full "opis" [--auto] [--research] [--validate] [--debate] [--push]` — pełny pipeline. Debate jest **opt-in**: domyślnie solo (Sonnet/Opus); `--debate` włącza jury dla faz walidacji (security zawsze ma jury). Powód: własny spike-3 verdict — debata daje tylko ~+5% recall vs solo Opus.
+- `/blast:full "opis" [--auto] [--research] [--validate] [--debate] [--push]` — pełny pipeline. Debate jest **opt-in**: domyślnie solo (Sonnet/Opus); `--debate` włącza jury dla faz walidacji; security dostaje jury tylko na **high-stakes** specach (security_critical / risk=high / wrażliwe ścieżki) — zwykłe specy: solo Sentinel + deterministyczny skan `blast-secscan.py`. Powód: własny spike-3 verdict — debata daje tylko ~+5% recall vs solo Opus.
 - `/blast:status [f]` — status i postęp specu
 - `/blast:validate-tasks {f}` — KISS + SOTA review tasks.md przed impl (auto-fires na complex specs)
 - `/blast:simplify {f} [--apply]` — behavior-preserving odchudzanie kodu PO impl; raport domyślnie, `--apply` tnie i re-runuje Verification Strategy (revert na czerwonych)
@@ -202,8 +202,8 @@ blast obsługuje wieloprovider'owy code review przez `debate_config:` w `.blast/
 ### Compositions
 
 - **HYBRID** — `validate-impl --debate` / `validate-tasks --debate`. Sonnet ‖ qwen3.6:latest (parallel critic) → Haiku judge. ~$0.12/spec, ~130s. **Opt-in.**
-- **JURY_3_FLASH3** — `security` (always), `validate-design --debate`, `review --debate`. Opus ‖ qwen3.6:latest ‖ Gemini-3-Flash (3-juror) → Haiku aggregator. ~$0.17/spec, ~141s.
-- **Solo Sonnet/Opus/Haiku** — **default dla wszystkich faz walidacji** (debata jest opt-in via `--debate`; tylko `security` ma jury zawsze).
+- **JURY_3_FLASH3** — `security` (**high_stakes only**), `validate-design --debate`, `review --debate`. Opus ‖ qwen3.6:latest ‖ Gemini-3-Flash (3-juror) → Haiku aggregator. ~$0.17/spec, ~141s.
+- **Solo Sonnet/Opus/Haiku** — **default dla wszystkich faz walidacji ORAZ security** (debata jest opt-in via `--debate`; security odpala jury tylko przy security_critical / risk=high / wrażliwych ścieżkach — zwykły spec: solo Sentinel + skan `blast-secscan.py`).
 
 ### Privacy mode
 

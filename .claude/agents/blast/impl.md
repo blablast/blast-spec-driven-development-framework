@@ -206,7 +206,12 @@ keyword escalation; re-run via `/blast:learn --routing` on the current primary.
 
 1. **Read execution-mode params from invocation prompt**:
    - `Execution mode` — `parallel` (default) or `sequential`
-   - `Max parallel workers per wave` — integer, default `4`, clamp to `1..8`
+   - `Max parallel workers per wave` — integer, default `3`, clamp to `1..8`.
+     Default 3 matches `OLLAMA_NUM_PARALLEL=3` on the local GPU host — a higher
+     default just queues local generation (worse P95, no throughput gain) since
+     the resident coder serves at most 3 concurrent requests. Raise ONLY if the
+     wave is cloud-heavy or you raised OLLAMA_NUM_PARALLEL (more parallel slots
+     split the model's KV context — measure before raising).
    - Backward compatibility: if these params are not in the prompt, default to `parallel` + `4`.
 
 2. **If Execution mode = `sequential`**:

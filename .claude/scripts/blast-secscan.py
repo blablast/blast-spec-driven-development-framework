@@ -42,13 +42,22 @@ from pathlib import Path
 
 CODE_EXT = {".py", ".js", ".ts", ".jsx", ".tsx"}
 EXCLUDE_DIRS = {"node_modules", "__pycache__", ".venv", "venv", ".git", ".blast",
-                "dist", "build", ".next", "coverage", "_to_delete"}
-TESTY = re.compile(r"(^|/)(tests?|__tests__|spec|fixtures?|examples?|templates?)(/|$)|"
-                   r"(test_|_test|\.test\.|\.spec\.)", re.IGNORECASE)
+                "dist", "build", ".next", "coverage", "_to_delete", ".priv"}
+# Test/template detection: a directory SEGMENT must exactly equal one of these
+# (substring matching on the whole path is too greedy — e.g. /home/test_user/ or
+# pytest's tmp dirs named test_<func> would downgrade real secrets), or the file
+# BASENAME must follow test-file naming conventions.
+TEST_DIR_NAMES = {"test", "tests", "__tests__", "spec", "specs", "fixture",
+                  "fixtures", "example", "examples", "template", "templates"}
+TEST_BASENAME = re.compile(r"^(test_|conftest)|(_test|\.test|\.spec)\.[a-z]+$", re.IGNORECASE)
 
 
 def is_test_or_template(path: str) -> bool:
-    return bool(TESTY.search(path.replace("\\", "/")))
+    norm = path.replace("\\", "/")
+    parts = norm.split("/")
+    if any(p.lower() in TEST_DIR_NAMES for p in parts[:-1]):
+        return True
+    return bool(TEST_BASENAME.search(parts[-1]))
 
 
 def iter_lines(path: Path):

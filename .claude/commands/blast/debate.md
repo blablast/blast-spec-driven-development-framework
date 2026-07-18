@@ -163,22 +163,22 @@ Use `--cost-ceiling N` to cap. Protokoł C respektuje cost ceiling (stop early j
 
 ## Integration with Validation Phases
 
-`/blast:debate` is **manual trigger**. For automatic debate during validation phases, configure in `.blast/steering/llm-routing.md`:
+`/blast:debate` is **manual trigger**. For automatic debate during validation phases,
+the ONLY authoritative config is `.blast/steering/llm-routing.md::debate_config` —
+do not duplicate its values here (past copies of that YAML in this file drifted from
+the source and caused contradictory semantics).
 
-```yaml
-debate_config:
-  validate-design:
-    enabled: true
-    protocol: A
-  validate-impl:
-    enabled: false  # default off
-  security:
-    enabled: true
-    protocol: B
-    jury_size: 3
-```
+Current semantics (summary; llm-routing.md wins on any conflict):
+- **Debate is opt-in** — solo composition per Model routing unless the user passes
+  `--debate` (`trigger: debate_flag`).
+- **`security` and `simplify` use `trigger: high_stakes`** — jury fires only on
+  `security_critical` / `risk_level: high` / sensitive paths; normal specs run solo.
+- Compositions (HYBRID / HYBRID_LOCAL / JURY_3_FLASH3), cost ceilings, and privacy-mode
+  fallbacks are all defined in llm-routing.md.
 
-When config is present, the relevant validation agent (Crucible / Auditor / Sentinel) auto-spawns the debate flow before producing its verdict envelope. Without config, validation runs standard single-agent path (backward compatible).
+When the trigger condition is met, the relevant validation agent (Crucible / Auditor /
+Sentinel) auto-spawns the debate flow before producing its verdict envelope. Otherwise
+validation runs the standard single-agent path.
 
 ## Safety & Fallback
 
