@@ -148,4 +148,11 @@ This is rare. Most "evolve" intents should use `/blast:evolve`, not duplicate.
 
 ## Amendment Process
 
-This document is amended by edi
+This document is amended by editing it directly and running `/blast:steering` to propagate any consequential changes to operational steering files. There is no formal vote — this is one developer's framework — but every amendment commit message must explain *why* the article changed, not just *what*.
+
+History of amendments lives in `git log .blast/CONSTITUTION.md`.
+
+---
+
+*Last reviewed: 2026-05-07*
+*Article count target: stable at 11. Adding a 12th means promoting a steering rule to invariant status — high bar.*
